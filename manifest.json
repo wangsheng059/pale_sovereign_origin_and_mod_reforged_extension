@@ -1,0 +1,811 @@
+{
+  "snapshot": "data_removed_mods/整合前_20261120",
+  "outputs": [
+    "zz_local_interface.zip",
+    "zz_local_campaign.zip",
+    "zz_local_rules.zip",
+    "zz_local_integration.zip"
+  ],
+  "sources": [
+    {
+      "number": 1,
+      "name": "mod_reforged_core_0.9.3.zip",
+      "sha256": "dc99d3cb250bca64f0970638c4d26d1f6404cd158b96d1c3ea8826e419bb74a0",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/mod_reforged.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(requiredMods);\r"
+      ]
+    },
+    {
+      "number": 2,
+      "name": "mod_reforged_assets-0.1.4.zip",
+      "sha256": "8f57a8ab1e795ad6c44cd68833ce744b68879971df2f30b4554dac3f2aa4f4ff",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/mod_reforged_assets/mod_reforged_assets_registration.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require([\r"
+      ]
+    },
+    {
+      "number": 3,
+      "name": "mod_hooks_总前置.zip",
+      "sha256": "0461ea3f457a798e6af2082ecbe6e058f5917e70f4487a1298160161b0a8d38c",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/!!redirect.nut",
+        "scripts/!mods_preload/~~finalize.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_hooks"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 4,
+      "name": "mod_modern_hooks-0.7.0.zip",
+      "sha256": "921634e1c13a893c527bcf2f1d92e30c87922fc6eb277a8ce31650ecc0883b52",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/!!zz_modern_hooks_patch_mod_hooks.nut",
+        "scripts/!mods_preload/~~modern_hooks.nut",
+        "scripts/!mods_preload/mod_modern_hooks.nut"
+      ],
+      "literal_registry_ids": [
+        "vanilla"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 5,
+      "name": "mod_msu_改版总前置.zip",
+      "sha256": "6f5f01c72f27fd6aea24154bd2e9138acea23e6061766550d9dd3ad637a3b874",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/!!z_msu_preload.nut",
+        "scripts/!mods_preload/msu.nut",
+        "scripts/!mods_preload/~~~msu_connect_screens.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"vanilla\" + \" >= 1.5.0-13\");\r"
+      ]
+    },
+    {
+      "number": 6,
+      "name": "stdlib_标准库.zip",
+      "sha256": "b34815bff5e03843f3afba822ee5c0fed163c73afa01b3c3199990801e6fb206",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/!stdlib.nut"
+      ],
+      "literal_registry_ids": [
+        "stdlib"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 7,
+      "name": "mod_modular_vanilla_模块原版重铸前置.zip",
+      "sha256": "cd91d50ab96da10ddab6e841af889008617502ba4192f360afd32b3b02793cc9",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/mod_modular_vanilla.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require([\r"
+      ]
+    },
+    {
+      "number": 8,
+      "name": "mod_nested_tooltips_嵌入提示次级前置.zip",
+      "sha256": "bc3be330dc91e886bbc909ba9d58a45661270810819670340c598d35956ad54c",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/mod_nested_tooltips.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu\");\r"
+      ]
+    },
+    {
+      "number": 9,
+      "name": "mod_dynamic_perks_动态特技重铸前置.zip",
+      "sha256": "f060a094e2f59f37dcec9c5fd6db7d25ac6a1fd6d3412670391c9bfb47432da3",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/dynamic_perks.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require([\r"
+      ]
+    },
+    {
+      "number": 10,
+      "name": "mod_dynamic_spawns_动态生成重铸前置.zip",
+      "sha256": "71260d80af638718adea0c8023608156d1640ca54978805d924ac7bd8cfcd77e",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/dynamic_spawns.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(requiredMods);\r"
+      ]
+    },
+    {
+      "number": 11,
+      "name": "mod_item_tables_物品列表重铸前置.zip",
+      "sha256": "2c77a09967c1799fafd1f56ad16b324a8852fd022e250c15b87456a1e78c5174",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/mod_item_tables.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu\");\r"
+      ]
+    },
+    {
+      "number": 12,
+      "name": "mod_stack_based_skills_堆叠技能重铸前置.zip",
+      "sha256": "6cc75a0f784ddec866aaaea9383a337cf0db9f2df35035648297c9bb511fbee1",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/mod_stack_based_skills.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu\"); // TODO: Can't put a version requirement right now due to a bug in Modern Hooks\r"
+      ]
+    },
+    {
+      "number": 13,
+      "name": "mod_unified_perk_descriptions_统一特技描述重铸前置.zip",
+      "sha256": "0a5f62d57f900ccbb8629a97e215c470d86a890f680dcebd4632b44b7254465b",
+      "output": null,
+      "preload": [
+        "scripts/!mods_preload/upd_aa.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu\");\r"
+      ]
+    },
+    {
+      "number": 14,
+      "name": "zdata_cn.zip",
+      "sha256": "0f459526e301296211cd805aa4c168c8431fdcef5ae711c95b63eefb364e1bfd",
+      "output": null,
+      "preload": [],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 15,
+      "name": "Historical_Music_and_Audio_v1.4-史诗感音乐包.zip",
+      "sha256": "24967024e2db36045d47cb595b89024675a8530d47427f43119fd23972a05c0c",
+      "output": null,
+      "preload": [],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 16,
+      "name": "mod_tooltips-敌人属性显示-1.2.zip",
+      "sha256": "386563d7b531fba2cad38aa24aba21d6d83594f70043d3197ab76df500c88e6a",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_maxi_tooltips.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require("
+      ]
+    },
+    {
+      "number": 17,
+      "name": "mod_tooltip_extension_720.zip",
+      "sha256": "e201c3c260fa0fb1e3aa27ad00b324e837c0ed648fa5ad557648a8caffc7967e",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_tooltip_extension_720.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 18,
+      "name": "mod_vse-548-1-1-0-1653535746.zip",
+      "sha256": "2bd367379befe0d09c3b150332fea6bfd364ccbadf03c438ea21e011f2317475",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_vse.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 19,
+      "name": "mod_clever_recruiter_重铸兼容显星功能性.zip",
+      "sha256": "ab3a1727ec0005d46c5d8fac5284ac7ce2d8c2d16929489249b20a228e9f9daa",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_clever_recruiter.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu >= 1.2.0\");\r"
+      ]
+    },
+    {
+      "number": 20,
+      "name": "在城镇贸易价格+事件BUFF具体说明.zip",
+      "sha256": "830c23efb1ee89cfa7a5bdff6b75a3954ed764b8c3bf0d3a79ae7db1ed53f917",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_settlementSituationTootips.nut",
+        "scripts/!mods_preload/mod_settlement_prices_tooltip.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_settlement_prices_tooltip"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 21,
+      "name": "战利品管理(自动修理，一键出售).zip",
+      "sha256": "1a8fc7676c39a63e34aef3afa35de50759b5339463f637848e38ed4f9017c555",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_EIMO.nut",
+        "scripts/!mods_preload/mod_EIMO_character_screen.nut",
+        "scripts/!mods_preload/mod_EIMO_data_helper.nut",
+        "scripts/!mods_preload/mod_EIMO_item_&_stash.nut",
+        "scripts/!mods_preload/mod_EIMO_settlement.nut",
+        "scripts/!mods_preload/mod_EIMO_smart_loot.nut",
+        "scripts/!mods_preload/mod_EIMO_tooltip_events.nut",
+        "scripts/!mods_preload/mod_EIMO_town_shop.nut",
+        "scripts/!mods_preload/mod_EIMO_world_state.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_EIMO",
+        "mod_smart_loot_EIMO"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 22,
+      "name": "战斗快速更换背包武器.zip",
+      "sha256": "51daa9c4cb4cb31ee7c02917ca16ee1ea434abfe6aa1c8823d401c3fbca19542",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_quickly_swap_items.cnut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 23,
+      "name": "显示营地红装信息中文.zip",
+      "sha256": "38ab040c649ab8c13b3ea0e998a5c494844aa8b5644d4fd14905caa9dc5d8cc8",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/Lair_Info_Compilation.nut"
+      ],
+      "literal_registry_ids": [
+        "Lair_Info_Compilation"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 24,
+      "name": "quicker_1.4（加速MOD）.zip",
+      "sha256": "bb461c73c2d41b5933a92066e1cf0723e90134a298dbcedd61b82d8e32c7e23d",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/!quicker.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 25,
+      "name": "原版揭示所有配方 （新）.zip",
+      "sha256": "4a41358ff29dd042b0cbbfadc951078cadf430e7d37e9fd02f5e8ad9066e7ac1",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/tnf_allRecipes.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 26,
+      "name": "mod_autopilot_new_自动战斗+额外快捷键.zip",
+      "sha256": "4cef3cad67ab310c56963b0d59c68f0d13b3004c359bcaa30564b9460e5dbaea",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_autopilot_new.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu >= 1.6.0\", \"stdlib >= 2.5\");\r"
+      ]
+    },
+    {
+      "number": 27,
+      "name": "mod_汉化修改器_shift+e呼出_传奇_重铸_原版兼容_v8.9.zip",
+      "sha256": "69e35e0d556b2800281f6ea918b006856042801e900a39e6b4035e826140ee90",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_bbforge.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_bbforge"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 28,
+      "name": "z_mod_开局批量筛选种子_重制威力加强版v1.79_fast.zip",
+      "sha256": "5980e075e2a9e261e62b7202b01e4d431c21f326756b4837bc7f1d32a5df120e",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_bb_seed_tool.nut"
+      ],
+      "literal_registry_ids": [
+        "bb_seed_tool"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 29,
+      "name": "8倍招募新兵.zip",
+      "sha256": "0cfd802ebc69eb43940eea6a361093349369865f8c995ecb8c027602b6dd6b57",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_moreRecruits.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_moreRecruits"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 30,
+      "name": "视野调整(平时x1.2,山丘上x2).zip",
+      "sha256": "b0d2a567b54d1664e2f20638686d2b7903f86e199c664daf1498b593c7fa38e2",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/!config/mod_sight_range_x3.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 31,
+      "name": "大规模战队更多经验加成.zip",
+      "sha256": "36add89a810c9181b88c0360bd3a89244a82d3b4a9ecc7930ece29c53b66d6ce",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_xpMult.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 32,
+      "name": "zbigmap015-强制剥敌人甲.zip",
+      "sha256": "b3e3f5b1d9b9a90d34e64a7b438343ee9df02b9b6e8fcb20f79bfc3bd54c2b8b",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_zhy_isDroppedAsLoot.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 33,
+      "name": "zbigmap028-战旗增强1.0(自己用文本编辑器打开battle_standard.nut修改去).zip",
+      "sha256": "ed4ae9a94388f5b5b06e2b6bc0b7722b026c9074fc4d0d037bb8fd318f99a7f1",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/battle_standard.nut"
+      ],
+      "literal_registry_ids": [
+        "battle_standard"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 34,
+      "name": "zbigmap054-冠军生成自调-MSU版1.0.4.zip",
+      "sha256": "66414f5de9e5054bdd28cfc0d562eaac5595f3c0d719b031c871d1656cd18672",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_morechampions.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 35,
+      "name": "namedItemStats_著名武器属性范围.zip",
+      "sha256": "c9cf323945f06bdfcc3ae224114e6d518d249c2faf80331d40324145611150ab",
+      "output": "zz_local_interface.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_namedItemStats.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 36,
+      "name": "More Perk Trees_更多特技树.zip",
+      "sha256": "2d9fa08eeca986adb18949e0fcc0ff3c32c9fde523a2180d79d4c3309056b353",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_more_perk_trees.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 37,
+      "name": "背景拥有独特加成（重铸）.zip",
+      "sha256": "16a8484944f0d64c7cee43b32245849ae0f47b15ae3090a1d63680861de1170f",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_backgroundBonuses_reforged.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 38,
+      "name": "【修改】乞丐起源调整(内有说明).zip",
+      "sha256": "fe3d42bb9afbd90edd85a518c4303efa4511c0ee9ba6e5ae11e288b2a8930be1",
+      "output": "zz_local_campaign.zip",
+      "preload": [],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 39,
+      "name": "mod_eagle_eyes_buff_鹰眼特性强化.zip",
+      "sha256": "d7b64ebea24434b3d82a619a75d79a167da51e7e6ea0d0c764c6fe25000258dc",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_eagle_eyes_buff.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_modern_hooks\");"
+      ]
+    },
+    {
+      "number": 40,
+      "name": "Black_Pyramid_1.4.5_汉化.zip",
+      "sha256": "a69c169a152c6b5dab09bc9b3d885b6a957f89b8fe3461850f6086c16afc3416",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_undead_curse.nut",
+        "scripts/!mods_preload/mod_reforged_rogues.nut",
+        "scripts/!mods_preload/black_pyramid_beasts.nut",
+        "scripts/!mods_preload/mod_bp_perk_pruner.nut",
+        "scripts/!mods_preload/mod_bp_boss_helmets.nut",
+        "scripts/!mods_preload/black_pyramid_card_tooltip.nut",
+        "scripts/!mods_preload/mod_bp_shoplist_fix.nut",
+        "scripts/!mods_preload/mod_elemental_reforged.nut",
+        "scripts/!mods_preload/mod_black_pyramid_spawn.nut",
+        "scripts/!mods_preload/mod_bp_augmenteds_rf.nut",
+        "scripts/!mods_preload/black_pyramid_ai_behaviors.nut",
+        "scripts/!mods_preload/mod_bp_funds.nut",
+        "scripts/!mods_preload/mod_bp_jewelry.nut",
+        "scripts/!mods_preload/mod_bp_smith.nut"
+      ],
+      "literal_registry_ids": [
+        "BP_jewelry",
+        "black_pyramid_beasts",
+        "black_pyramid_card_tooltip",
+        "mod_black_pyramid"
+      ],
+      "literal_require_calls": [
+        ".require(",
+        ".require(\"mod_msu\", \"mod_reforged\");",
+        ".require([",
+        ".require([\"mod_msu >= 1.8.0\", \"mod_dynamic_perks >= 0.5.1\", \"mod_reforged >= 0.8.20\"]);"
+      ]
+    },
+    {
+      "number": 41,
+      "name": "Pandoras_Hobby_汉化_1_2_18.zip",
+      "sha256": "aad62696b678f4dd70767cb3eb47b52da89a705f6f2d72220c00665435c41d65",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_pandoras_hobby.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_reforged\", \"mod_pandoras_followers >= 1.0.0\");"
+      ]
+    },
+    {
+      "number": 42,
+      "name": "Pandoras Pack of Followers - Vanilla Art-992-1-1775745885.zip",
+      "sha256": "9fb4dcc6fa639216ccab9433c73725254678d07357f65e4129d84ec637ef49be",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_pandoras_followers.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_pandoras_hobby\");\r"
+      ]
+    },
+    {
+      "number": 43,
+      "name": "mod_Legacy_遗产(兄弟退休可传授经验留下物品)_2.13.zip",
+      "sha256": "cb0afaa77e943b53e1aafffb27fc3f30a664c51e831b95f1b2319d9f7bc943c3",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_weapon_kills.nut",
+        "scripts/!mods_preload/mod_career_stats.nut",
+        "scripts/!mods_preload/mod_xpshare.nut",
+        "scripts/!mods_preload/mod_legacy_perma_hook.nut",
+        "scripts/!mods_preload/mod_legacy_graves.nut",
+        "scripts/!mods_preload/mod_legacy.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_weapon_kills"
+      ],
+      "literal_require_calls": [
+        ".require(\"mod_modern_hooks\", \"mod_msu\");",
+        ".require(\"mod_modern_hooks\", \"mod_msu\", \"mod_legacy\");",
+        ".require(\"mod_msu\", \"mod_legacy\");",
+        ".require(\"mod_msu\", \"mod_legacy\", \"mod_career_stats\");",
+        ".require(\"mod_msu\", \"mod_modern_hooks\", \"mod_legacy\");"
+      ]
+    },
+    {
+      "number": 44,
+      "name": "mod_stronghold_要塞.zip",
+      "sha256": "2164f4d040e388d4b8e53947d08780ed37a3731377a6b7caf61b178dccac3420",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_stronghold.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 45,
+      "name": "mod_配件兄弟(驯兽、复活，支持重铸MOD)_2.1.14_汉化.zip",
+      "sha256": "558f3f883a400277c99ce3c5971ef7323ea5656bd1a73895609590fc4d5d73e2",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_AC.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(["
+      ]
+    },
+    {
+      "number": 46,
+      "name": "mod_重铸子MOD_德鲁伊起源_0.5.1.zip",
+      "sha256": "968e809bdf2211b3b00ac748e53c2fa9737710d75af077d3cd2da8c7b2e0bcca",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_druid.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu >= 1.6.0\", \"stdlib >= 2.1\");"
+      ]
+    },
+    {
+      "number": 47,
+      "name": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+      "sha256": "9b18f0adbd98c811e1965ffdd8b2d644d5184b598a715e00da753f1cb0fa6e20",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_north_expansion.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_north_expansion"
+      ],
+      "literal_require_calls": []
+    },
+    {
+      "number": 48,
+      "name": "mod_剑宗首徒起源2.0 (重铸专用).zip",
+      "sha256": "27f0ef1958c689f5436c6c5c0f8504f87743051b16c290f2d1af29c7eb8f5bc9",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/!config/mod_backgrounds_reforged.nut",
+        "scripts/!mods_preload/!config/mod_xx_config.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require([\"mod_msu\", \"mod_reforged\"]);"
+      ]
+    },
+    {
+      "number": 49,
+      "name": "最新达库尔崛起重铸修复汉化版20260521.zip",
+      "sha256": "f830db9f205da082f7ab3355cfbae85ee4f6190c13dac58f6f2ac0922ca07152",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/!config/spawnlist_cultists.nut",
+        "scripts/!mods_preload/mod_cultists.nut",
+        "scripts/!mods_preload/!config/mod_cultist_config.nut",
+        "scripts/!mods_preload/mod_davkul_origin_pace.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_davkul_rising"
+      ],
+      "literal_require_calls": [
+        ".require(\"mod_msu\", \"mod_davkul_rising\");",
+        ".require(["
+      ]
+    },
+    {
+      "number": 50,
+      "name": "捕奴modv5.zip",
+      "sha256": "3bc4da3e86b6df41abc87b1086952a2a7b5bb8b81dcdb215b6b3dd878cb88530",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/zzz_hsc_face_icons.nut",
+        "scripts/!mods_preload/zzz_human_slave_capture.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": []
+    },
+    {
+      "number": 51,
+      "name": "zzz_mod_(暗黑破坏神风格)装备融合随机属性2.78汉化版.zip",
+      "sha256": "86fad874608d6d7604ebea2724b3df69cec19167879706487a96bceff674d784",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/bbfusion_framework.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_msu >= 1.0.0\");\r"
+      ]
+    },
+    {
+      "number": 52,
+      "name": "mod_背景专属特技_1.6.1.zip",
+      "sha256": "f53f3160184748b38ef2c2917cee4169b3f0bf07d23eb600df51f48ed254f961",
+      "output": "zz_local_rules.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_bg_unique_perks.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_reforged\", \"mod_dynamic_perks\", \"mod_msu\");"
+      ]
+    },
+    {
+      "number": 53,
+      "name": "mod_捕奴背景扩展_1.0.6.zip",
+      "sha256": "ec3864eaa1930309ae64ef109ac5033bf1d623e905f3e36f6d08caa29f5f0b00",
+      "output": "zz_local_integration.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_hsc_bg_ext.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"hsc_human_slave_capture\");"
+      ]
+    },
+    {
+      "number": 54,
+      "name": "mod_配件兄弟_潘多拉兼容补丁_1.2.3.zip",
+      "sha256": "2eeec8d8cf03f60530fdc07e6f9533f24436687d337427f0b703ba134a113275",
+      "output": "zz_local_integration.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_ac_ph_compat.nut"
+      ],
+      "literal_registry_ids": [],
+      "literal_require_calls": [
+        ".require(\"mod_AC\", \"mod_pandoras_hobby\");"
+      ]
+    }
+  ],
+  "conflicts": {
+    "preload/on_running.txt": {
+      "providers": [
+        "mod_reforged_core_0.9.3.zip",
+        "Black_Pyramid_1.4.5_汉化.zip"
+      ],
+      "omit": [
+        "Black_Pyramid_1.4.5_汉化.zip"
+      ],
+      "winner": "mod_reforged_core_0.9.3.zip",
+      "same_bytes": false,
+      "note": "Reforged 72-resource preload is active in baseline."
+    },
+    "gfx/ui/skin/custom_background_698_40.png": {
+      "providers": [
+        "mod_dynamic_perks_动态特技重铸前置.zip",
+        "mod_stronghold_要塞.zip"
+      ],
+      "omit": [
+        "mod_stronghold_要塞.zip"
+      ],
+      "winner": "mod_dynamic_perks_动态特技重铸前置.zip",
+      "same_bytes": true,
+      "note": "Duplicate artwork supplied by the independent prerequisite."
+    },
+    "ui/main.html": {
+      "providers": [
+        "mod_hooks_总前置.zip",
+        "zdata_cn.zip"
+      ],
+      "omit": [],
+      "winner": "zdata_cn.zip",
+      "same_bytes": false,
+      "note": "Retain both original archives and their relative order."
+    },
+    "scripts/root_state.nut": {
+      "providers": [
+        "mod_hooks_总前置.zip",
+        "zdata_cn.zip"
+      ],
+      "omit": [],
+      "winner": "zdata_cn.zip",
+      "same_bytes": false,
+      "note": "Retain both original archives and their relative order."
+    },
+    "gfx/skills/active_227.png": {
+      "providers": [
+        "mod_reforged_assets-0.1.4.zip",
+        "mod_汉化修改器_shift+e呼出_传奇_重铸_原版兼容_v8.9.zip"
+      ],
+      "omit": [],
+      "winner": "mod_汉化修改器_shift+e呼出_传奇_重铸_原版兼容_v8.9.zip",
+      "same_bytes": false,
+      "note": "Retain the current UI replacer and its precedence."
+    },
+    "gfx/ui/skin/rf_bar_fill_action_196.png": {
+      "providers": [
+        "mod_reforged_assets-0.1.4.zip",
+        "mod_tooltips-敌人属性显示-1.2.zip"
+      ],
+      "omit": [
+        "mod_tooltips-敌人属性显示-1.2.zip"
+      ],
+      "winner": "mod_reforged_assets-0.1.4.zip",
+      "same_bytes": true,
+      "note": "Duplicate artwork supplied by the independent prerequisite."
+    },
+    "readme.txt": {
+      "providers": [
+        "z_mod_开局批量筛选种子_重制威力加强版v1.79_fast.zip",
+        "捕奴modv5.zip"
+      ],
+      "omit": [
+        "z_mod_开局批量筛选种子_重制威力加强版v1.79_fast.zip",
+        "捕奴modv5.zip"
+      ],
+      "winner": null,
+      "same_bytes": false,
+      "note": "Keep both documents and attribution in the frozen source packages."
+    }
+  },
+  "modules": [],
+  "patches": []
+}
