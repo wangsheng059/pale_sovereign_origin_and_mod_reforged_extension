@@ -1,0 +1,88 @@
+﻿《战场兄弟》重铸 0.9.3 四合集
+2026-11-20 分享版
+
+这套合集在 Reforged（重铸）0.9.3 上增加战役内容、自制背景和特技、玩法规则，以及界面和操作工具。外层压缩包内有四个游戏模组 ZIP 和这份说明。
+
+一、安装前准备
+
+游戏与 DLC（可下载内容）
+
+- 实测环境是 Windows 版 Battle Brothers（战场兄弟）GOG 1.5.2.3，通过游戏根目录的 bb-launcher-gog.exe 启动。这个启动器下，游戏和日志显示 1.5.2.2，依赖检查显示 vanilla 1.5.2-2。
+- 安装并启用重铸所需的五项 DLC：Lindwurm、Beasts & Exploration、Warriors of the North、Blazing Deserts、Of Flesh and Faith。
+- MSU 和 Modular Vanilla（模块化原版）请与发送者的已验证环境配套。下面是实测版本，便于核对已安装文件和启动日志。其他游戏发行版或不同版本的组合需自行验证。
+
+请另行安装的前置及实测版本
+
+  Reforged（重铸）核心                  mod_reforged_core      0.9.3
+  Reforged Assets（重铸资源）           mod_reforged_assets    0.1.4
+  Modern Hooks（现代钩子）              mod_modern_hooks       0.7.0
+  MSU（模组标准及组件）                 mod_msu                1.9.0 中文改版
+  Modular Vanilla（模块化原版）         mod_modular_vanilla    0.9.1 前置条件改版
+  Nested Tooltips（嵌套提示）           mod_nested_tooltips    0.5.4
+  Dynamic Perks（动态特技）             mod_dynamic_perks      0.5.1
+  Dynamic Spawns（动态生成）            mod_dynamic_spawns     0.6.0
+  Item Tables（物品表）                 mod_item_tables        0.1.3
+  Stack Based Skills（堆叠技能）        mod_stack_based_skills 0.5.3
+  Unified Perk Descriptions（特技描述） mod_upd                0.1.2
+  Modding Script Hooks（旧版脚本钩子）  mod_hooks              21.1
+  stdlib（标准库）                      stdlib                 2.5
+
+旧版脚本钩子与 Modern Hooks 都要安装。stdlib 供自动战斗和德鲁伊等内容使用。复现本文的中文测试环境还需另行放入发送者使用的 2026-11-09 版 zdata_cn.zip。音乐包可自行选装。
+
+在 GOG 启动器显示 1.5.2.2 的环境里，使用已将游戏版本要求设为 vanilla >= 1.5.2-2 的 Modular Vanilla 0.9.1 配套版本。下方为上游页面，中文改版和前置条件改版请向发送者确认版本。
+
+  重铸安装指南 https://github.com/Battle-Modders/mod-reforged/wiki/Installation-Guide
+  重铸核心 0.9.3 https://github.com/Battle-Modders/mod-reforged/releases/tag/0.9.3
+  重铸资源 https://github.com/Battle-Modders/mod_reforged_assets/releases
+  Modern Hooks 0.7.0 https://github.com/MSUTeam/Modern-Hooks/releases/tag/0.7.0
+  MSU 1.9.0 https://github.com/MSUTeam/MSU/releases/tag/1.9.0
+  旧版脚本钩子 https://www.nexusmods.com/battlebrothers/mods/42?tab=files
+  stdlib https://www.nexusmods.com/battlebrothers/mods/676?tab=files
+
+二、安装四个合集
+
+1. 退出游戏和启动器。已单独安装下文同名模组时，先将对应旧 ZIP 移到 data 以外，防止重复注册和文件覆盖。前置也各留一份。
+2. 解开外层分享 ZIP，把以下四个 ZIP 原样复制到游戏安装目录的 data 文件夹。四个内层 ZIP 保持压缩状态和原文件名。
+
+   zz_local_interface.zip
+   zz_local_campaign.zip
+   zz_local_rules.zip
+   zz_local_integration.zip
+
+3. 用对应的游戏启动器打开游戏。按本文 GOG 环境安装时，从根目录运行 bb-launcher-gog.exe。进入主菜单后开始新战役，测试使用的是达库尔起源。换回其他模组组合前，保留各自的战役存档。
+
+四包是一起测试的组合。联动包需要战役与内容包中的捕奴、配件兄弟、潘多拉，以及规则包中的专属背景。它们随四包安装即可。
+
+三、相对重铸 0.9.3 增加了什么
+
+[zz_local_interface.zip] 界面与操作
+- 自动战斗、战斗快捷键、战中快速切换背包武器。整合版加速工具 Quicker（加速）提供战斗倍速和大地图加速。
+- 明智招募者（Clever Recruiter）支持试用显星，战利品管理支持自动修理和批量出售。
+- 敌人属性、扩展提示、技能视觉效果、著名物品属性范围、城镇贸易价格和事件效果说明、营地红装提示，以及配方揭示。
+- 开局批量种子工具和 BBForge（汉化修改器）。种子工具从主菜单入口打开，修改器快捷键为 Shift+E。
+
+[zz_local_campaign.zip] 战役与内容
+- 黑色金字塔 1.4.5 汉化版，包含相关首领、元素装备和铁匠内容。潘多拉的嗜好 1.2.18 与原版画风追随者包，扩展随从、宠物、制作和样本掉落。
+- 配件兄弟 2.1.14 汉化版，增加驯兽、宠物成长及复活相关玩法。Human Slave Capture（人类俘虏捕获）提供捕获和招募入口。
+- 达库尔崛起、野蛮人扩张、德鲁伊起源、剑宗首徒、乞丐起源调整。要塞模组提供自建据点玩法。
+- 遗产加入生涯统计、物品履历、墓地及付费退休时的经验分享。装备融合加入随机装备词条与融合。另有更多特技树和重铸版背景独特加成。
+
+[zz_local_rules.zip] 本地玩法规则
+- 背景专属特技 1.6.1。统帅、老执誓者、死灵法师拥有专属内容。刺客、流浪骑士、角斗士、成名剑师等也新增或调整专属特技组。统帅可用指挥战印，死灵法师可用复活死者和尸爆等技能。
+- 死灵法师的“亡灵冠军”和“亡灵天灾”都显示在特技树。学到一组的独有特技会锁定另一组的独有特技。“死灵精通”两组共用，学习它不会触发锁定。
+- 城镇招募候选数量倍率 ×8、世界地图视野调整、鹰眼强化、战旗增强及可配置的冠军生成。改变这些项会影响原重铸的平衡。
+- 大队伍经验按开战时实际部署的战团成员计算。超过 12 人时，将可缩放的正战斗经验乘以“出战人数 ÷ 12”。18 人为 ×1.5。世界事件和固定经验保留原发放规则。
+- 扩展敌人装备掉落。著名或传奇武器损坏时也可回收，视野外损坏和持有者死亡的场景有防重复处理。
+
+[zz_local_integration.zip] 跨模组联动
+- 捕奴背景扩展将俘获的强盗男爵和元帅映射为统帅、指定执誓者映射为老执誓者、敌方死灵法师映射为可招募的死灵法师。传令官仍为冒险贵族，野蛮人神选者保留神选者背景。
+- 死灵法师学习“死灵精通”后，可通过配件兄弟驯服可用亡灵或用“封魂入器”保存自己复活的单位。死灵配件限死灵法师装备，记录所捕获单位的装备脚本。
+- 配件兄弟与潘多拉兼容补丁处理恐惧战狼继承等交互，并将可识别主人的宠物伤害归给对应战团成员参与重铸经验结算。
+
+四、修复和验证范围
+
+- 本地修复包括潘多拉冠军样本路径、经验来源与出战人数判断、视野外著名武器掉落、尸爆的伤害类型初始化，以及大地图空光标坐标报错。
+- 达库尔新档已完成保存、退出重启、读回和继续推进时间。受控战斗验证了 12 / 18 人经验、固定经验、样本掉落及武器掉落。死灵宠物装备记录也通过存读档验证。自然战役中捕获后招募、封魂入器后放出和付费退休等流程仍待完整实测。
+- 启动出错时，先核对缺失依赖和重复模组。Windows 日志通常在“文档\Battle Brothers\log.html”，可把报错和当前模组版本一起发给整合者。
+
+本包为社区模组、汉化和本地调整的合集。感谢重铸团队及各子模组作者。
