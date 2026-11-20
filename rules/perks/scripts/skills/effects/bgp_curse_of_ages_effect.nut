@@ -1,9 +1,10 @@
 // 1.6.0 岁月诅咒：主动值 -20，近战技能 / 远程技能 -10，近战 / 远程伤害 ×0.8，持续 3 回合（目标自己的回合结束时减 1）；
-// 期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲当前耐久各额外 -20（流血、中毒等不是攻击，不触发）
+// 期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲当前耐久各额外 -Decay（流血、中毒等不是攻击，不触发）
+// 1.6.2 起 Decay = 10 + W/4（W = 施放者施放时的决心；原为固定 20）；重复施放刷新持续时间并换成新施放者的值
 this.bgp_curse_of_ages_effect <- ::inherit("scripts/skills/skill", {
 	m = {
 		TurnsLeft = 3,
-		Decay = 20,
+		Decay = 10,
 		IsPendingDecay = false
 	},
 	function create()
@@ -33,9 +34,11 @@ this.bgp_curse_of_ages_effect <- ::inherit("scripts/skills/skill", {
 		return ret;
 	}
 
-	function refresh()
+	function refresh( _decay = null )
 	{
 		this.m.TurnsLeft = 3;
+		if (_decay != null)
+			this.m.Decay = _decay;
 	}
 
 	function onUpdate( _properties )

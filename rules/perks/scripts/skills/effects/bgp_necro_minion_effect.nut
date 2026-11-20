@@ -1,5 +1,6 @@
 // 死灵仆从：死灵法师复活的单位身上挂的效果
-// 复活时按主人的特技决定：不死再生（每回合 +10 生命）、钢铁之躯（复活时护甲 +30%，有不死再生时每回合再 +7%）、
+// 复活时按主人的特技决定：不死再生（每回合 +5 + W/5 生命）、钢铁之躯（复活时护甲 +10% + W/4 %，有不死再生时每回合再 +7%）、
+// （1.6.2 起 W = 主人决心：不死再生每回合取主人当前值，主人不在场时用复活时记下的；钢铁之躯在复活时取值。原为固定 10 / 30%）
 // 嗜血者（获得吸血）、心灵交融（复制主人的部分被动特技）
 this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 	m = {
@@ -8,6 +9,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		HasRegen = false,
 		HasArmorRegen = false,
 		HasBloodSucking = false,
+		Will = 0,
 		MeldedPerks = []
 	},
 	function create()
@@ -33,6 +35,20 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		return this.m.Master.get();
 	}
 
+	function getWill()
+	{
+		local m = this.getMaster();
+		try
+		{
+			if (m != null && m.isAlive() && !m.isDying() && m.isPlacedOnMap())
+				this.m.Will = ::BGP.Necro.getWill(m);
+		}
+		catch (e)
+		{
+		}
+		return this.m.Will;
+	}
+
 	function setMaster( _master )
 	{
 		this.m.Master = ::MSU.asWeakTableRef(_master);
@@ -42,9 +58,10 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		local actor = this.getContainer().getActor();
 		this.m.HasRegen = s.hasSkill("perk.bgp_necro_regeneration");
 		this.m.HasArmorRegen = this.m.HasRegen && s.hasSkill("perk.bgp_necro_flesh_of_iron");
+		this.m.Will = ::BGP.Necro.getWill(_master);
 
 		if (s.hasSkill("perk.bgp_necro_flesh_of_iron"))
-			::BGP.Necro.restoreArmorPct(actor, 0.3);
+			::BGP.Necro.restoreArmorPct(actor, ::BGP.Necro.WillScale.IronPct(this.m.Will));
 
 		if (s.hasSkill("perk.bgp_necro_blood_sucking") && !actor.getSkills().hasSkill("racial.vampire"))
 		{
@@ -88,7 +105,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 			ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "听命于" + this.m.MasterName });
 		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "不会出血、中毒，不受伤势和夜晚影响，没有士气" });
 		if (this.m.HasRegen)
-			ret.push({ id = 12, type = "text", icon = "ui/icons/health.png", text = "每回合开始时回复 " + ::MSU.Text.colorPositive("10") + " 点生命" });
+			ret.push({ id = 12, type = "text", icon = "ui/icons/health.png", text = "每回合开始时回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.Regen(this.getWill())) + " 点生命（按主人决心 " + this.m.Will + "）" });
 		if (this.m.HasArmorRegen)
 			ret.push({ id = 13, type = "text", icon = "ui/icons/armor_body.png", text = "每回合开始时头甲、身甲各回复上限的 " + ::MSU.Text.colorPositive("7%") });
 		if (this.m.HasBloodSucking)
@@ -135,7 +152,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		if (this.m.HasRegen)
 		{
 			local missing = actor.getHitpointsMax() - actor.getHitpoints();
-			local heal = ::Math.min(missing, 10);
+			local heal = ::Math.min(missing, ::BGP.Necro.WillScale.Regen(this.getWill()));
 			if (heal > 0)
 			{
 				::BGP.heal(actor, heal);

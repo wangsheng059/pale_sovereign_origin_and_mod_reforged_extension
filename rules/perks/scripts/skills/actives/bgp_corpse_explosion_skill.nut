@@ -2,11 +2,12 @@
 //   钝器伤害 = 尸体生前最大生命 × 35%（对护甲效率 100%）；
 //   尸体死亡时头甲 + 身甲还有剩余耐久时，再加一次劈砍伤害 = 剩余耐久总和 × 25%（对护甲效率 150%）；
 //   命中的敌人陷入“趔趄”（原版效果，下回合行动顺位延后）。
+// 1.6.2 起按施放者决心 W：钝器伤害改为生前最大生命 ×(20% + W/4 %)（原 35%）；被炸到还活着的敌人做一次士气检定，难度 -W/4。
 this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 	m = {
 		BaseAP = 4,
 		BaseFatigue = 20,
-		HitpointsPct = 0.35,
+		HitpointsPct = 0.2,
 		ArmorPct = 0.25,
 		ArmorEfficiency = 1.5
 	},
@@ -45,11 +46,13 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getDefaultUtilityTooltip();
+		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "技能范围为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；目标为有尸体的格子（格子上可以有人）" },
-			{ id = 11, type = "text", icon = "ui/icons/regular_damage.png", text = "对目标格和相邻 1 格内的所有敌人造成钝器伤害，等于尸体生前最大生命的 " + ::MSU.Text.colorPositive("35%") + "；不伤友军" },
+			{ id = 11, type = "text", icon = "ui/icons/regular_damage.png", text = "对目标格和相邻 1 格内的所有敌人造成钝器伤害，等于尸体生前最大生命的 " + ::MSU.Text.colorPositive(::BGP.Necro.pctText(::BGP.Necro.WillScale.BlastPct(w))) + ::BGP.Necro.willText(w) + "；不伤友军" },
 			{ id = 12, type = "text", icon = "ui/icons/armor_damage.png", text = "尸体死亡时头甲、身甲还有剩余耐久的，额外造成劈砍伤害，等于剩余耐久总和的 " + ::MSU.Text.colorPositive("25%") + "（对护甲效率 " + ::MSU.Text.colorPositive("150%") + "）" },
-			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "被波及的敌人陷入“趔趄”；尸体被摧毁，不能再复活" }
+			{ id = 13, type = "text", icon = "ui/icons/morale.png", text = "被波及还活着的敌人做一次士气检定，难度 " + ::MSU.Text.colorNegative("-" + ::BGP.Necro.WillScale.BlastMorale(w)) },
+			{ id = 14, type = "text", icon = "ui/icons/special.png", text = "被波及的敌人陷入“趔趄”；尸体被摧毁，不能再复活" }
 		]);
 		return ret;
 	}
@@ -59,13 +62,15 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 		::BGP.Necro.applyCost(this, this.m.BaseAP, this.m.BaseFatigue);
 	}
 
-	function getBlast( _corpse )
+	function getBlast( _corpse, _user = null )
 	{
 		local info = ::BGP.Necro.getInfo(_corpse);
 		if (info == null || info.MaxHP <= 0)
 			return null;
+		if (_user == null)
+			_user = this.getContainer().getActor();
 		return {
-			Blunt = ::Math.floor(info.MaxHP * this.m.HitpointsPct),
+			Blunt = ::Math.floor(info.MaxHP * ::BGP.Necro.WillScale.BlastPct(::BGP.Necro.getWill(_user))),
 			Cutting = ::Math.floor(info.Armor * this.m.ArmorPct)
 		};
 	}
@@ -89,9 +94,10 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 	function onUse( _user, _targetTile )
 	{
 		local corpse = ::BGP.Necro.getCorpse(_targetTile);
-		local blast = this.getBlast(corpse);
+		local blast = this.getBlast(corpse, _user);
 		if (blast == null)
 			return false;
+		local moraleDifficulty = -::BGP.Necro.WillScale.BlastMorale(::BGP.Necro.getWill(_user));
 
 		::BGP.Necro.removeCorpse(_targetTile);
 		try
@@ -131,6 +137,10 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 					::BGP.Necro.applyBlast(_user, this, target, blast.Cutting, this.m.ArmorEfficiency, ::Const.Injury.CuttingBody, ::Const.Injury.CuttingHead, ::Const.Damage.DamageType.Cutting);
 				if (target.isAlive() && !target.isDying() && !target.getSkills().hasSkill("effects.staggered"))
 					target.getSkills().add(::new("scripts/skills/effects/staggered_effect"));
+				if (target.isAlive() && !target.isDying())
+				{
+					try { target.checkMorale(-1, moraleDifficulty); } catch (e) {}
+				}
 			}
 			catch (e)
 			{

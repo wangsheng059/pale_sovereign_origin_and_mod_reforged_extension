@@ -597,3 +597,104 @@
 	try { hitInfo.Tile = _target.getTile(); } catch (e) {}
 	_target.onDamageReceived(_user, _skill, hitInfo);
 }
+
+// 1.6.2 决心加成：W = 死灵法师当前决心（含装备、光环；取整，最低 0）
+//   主动技能在施放时取值；不死再生每回合取主人当前值（主人不在场时用复活时记下的值）；
+//   钢铁之躯在复活时取值；岁月诅咒在施放时记进效果。
+::BGP.Necro.getWill <- function( _actor )
+{
+	if (_actor == null)
+		return 0;
+	local w = 0;
+	try
+	{
+		w = _actor.getCurrentProperties().getBravery();
+	}
+	catch (e)
+	{
+		try
+		{
+			local p = _actor.getCurrentProperties();
+			w = p.Bravery * p.BraveryMult;
+		}
+		catch (e2)
+		{
+			w = 0;
+		}
+	}
+	return ::Math.max(0, ::Math.floor(w));
+}
+
+::BGP.Necro.WillScale <- {
+	// 支配亡灵：受到伤害 -(W/4 - 5)%，0~30%（返回百分数）；近战技能 +W/5
+	PossessReduction = function( _w ) { return ::Math.minf(30.0, ::Math.maxf(0.0, _w / 4.0 - 5.0)); },
+	PossessMeleeSkill = function( _w ) { return ::Math.floor(_w / 5.0); },
+	// 血肉重铸 骨刺外甲：骨甲 40 + W/2，反伤 5 + W/4
+	BoneArmor = function( _w ) { return 40 + ::Math.floor(_w / 2.0); },
+	BoneThorns = function( _w ) { return 5 + ::Math.floor(_w / 4.0); },
+	// 死灵灌注：回 10 + W/4 生命、减 10 + W/6 疲劳
+	InfusionHeal = function( _w ) { return 10 + ::Math.floor(_w / 4.0); },
+	InfusionFatigue = function( _w ) { return 10 + ::Math.floor(_w / 6.0); },
+	// 不灭号令：复活后生命、头甲、身甲 20% + W/2 %，最多 80%（返回比例）
+	RevivePct = function( _w ) { return ::Math.minf(0.8, 0.2 + _w / 200.0); },
+	// 不死再生：每回合 5 + W/5 生命
+	Regen = function( _w ) { return 5 + ::Math.floor(_w / 5.0); },
+	// 钢铁之躯：复活时头甲、身甲各恢复上限的 10% + W/4 %（返回比例；恢复量本身不超过上限）
+	IronPct = function( _w ) { return 0.1 + _w / 400.0; },
+	// 岁月诅咒：每次挨打头甲、身甲各 -(10 + W/4)
+	CurseDecay = function( _w ) { return 10 + ::Math.floor(_w / 4.0); },
+	// 尸爆：钝器伤害 = 生前最大生命 ×(20% + W/4 %)；被炸到的敌人士气检定难度 -W/4
+	BlastPct = function( _w ) { return 0.2 + _w / 400.0; },
+	BlastMorale = function( _w ) { return ::Math.floor(_w / 4.0); }
+};
+
+::BGP.Necro.pctText <- function( _ratio )
+{
+	return ::Math.round(_ratio * 100) + "%";
+}
+
+::BGP.Necro.willText <- function( _w )
+{
+	return "（按当前决心 " + _w + " 计算）";
+}
+
+// 支配亡灵按决心替换原版的近战技能和受伤减免：先记下改动前的值，原函数跑完后把改了的项换成新倍率
+::BGP.Necro.DamageMultKeys <- [
+	"DamageReceivedTotalMult",
+	"DamageReceivedRegularMult",
+	"DamageReceivedArmorMult",
+	"DamageReceivedDirectMult",
+	"DamageReceivedMeleeMult",
+	"DamageReceivedRangedMult"
+];
+
+::BGP.Necro.snapKeys <- function( _t, _keys )
+{
+	local s = {};
+	foreach (k in _keys)
+	{
+		try
+		{
+			if (k in _t)
+				s[k] <- _t[k];
+		}
+		catch (e)
+		{
+		}
+	}
+	return s;
+}
+
+::BGP.Necro.rescaleKeys <- function( _t, _snap, _mult )
+{
+	local changed = 0;
+	foreach (k, v in _snap)
+	{
+		if (_t[k] != v)
+		{
+			_t[k] = v * _mult;
+			changed++;
+		}
+	}
+	return changed;
+}

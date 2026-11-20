@@ -1,12 +1,13 @@
 // 1.6.0 血肉重铸第 1 次嫁接：骨刺外甲
+//   1.6.2 起按施放者决心 W：骨甲 40 + W/2，反伤 5 + W/4（下面写的 80 / 15 是 1.6.0 的固定值）
 //   独立骨甲 80：受到攻击时先吸收原始伤害（生命伤害和对护甲伤害按同一比例减少），吸收量在伤害实际结算后扣除
 //   （onBeforeDamageReceived 也会被伤害预览调用，所以只在 onDamageReceived 里真正扣）；
 //   骨甲没碎时，每次被敌人近战攻击（命中或闪避）对攻击者造成 15 点穿刺伤害（无视护甲）
 this.bgp_graft_bone_effect <- ::inherit("scripts/skills/skill", {
 	m = {
-		Pool = 80,
-		PoolMax = 80,
-		Thorns = 15,
+		Pool = 40,
+		PoolMax = 40,
+		Thorns = 5,
 		PendingAbsorb = 0,
 		PendingThorn = null
 	},
@@ -34,6 +35,13 @@ this.bgp_graft_bone_effect <- ::inherit("scripts/skills/skill", {
 		else
 			ret.push({ id = 11, type = "text", icon = "ui/icons/warning.png", text = "骨甲已碎，骨刺不再生效" });
 		return ret;
+	}
+
+	function setWill( _w )
+	{
+		this.m.PoolMax = ::BGP.Necro.WillScale.BoneArmor(_w);
+		this.m.Pool = this.m.PoolMax;
+		this.m.Thorns = ::BGP.Necro.WillScale.BoneThorns(_w);
 	}
 
 	function isMeleeAttackBy( _attacker, _skill )

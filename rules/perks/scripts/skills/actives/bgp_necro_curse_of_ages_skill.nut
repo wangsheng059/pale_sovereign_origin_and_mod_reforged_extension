@@ -41,11 +41,12 @@ this.bgp_necro_curse_of_ages_skill <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getDefaultUtilityTooltip();
+		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "技能范围为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；作用于目标格及相邻 1 格内的敌人，不影响友军" },
 			{ id = 11, type = "text", icon = "ui/icons/initiative.png", text = "持续 3 回合：主动值 " + ::MSU.Text.colorNegative("-20") + "，近战技能 / 远程技能 " + ::MSU.Text.colorNegative("-10") + "，近战 / 远程伤害 " + ::MSU.Text.colorNegative("-20%") },
-			{ id = 12, type = "text", icon = "ui/icons/armor_body.png", text = "诅咒期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲当前耐久各额外 " + ::MSU.Text.colorNegative("-20") },
-			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "再次诅咒同一目标只刷新持续时间，不叠加" }
+			{ id = 12, type = "text", icon = "ui/icons/armor_body.png", text = "诅咒期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲当前耐久各额外 " + ::MSU.Text.colorNegative("-" + ::BGP.Necro.WillScale.CurseDecay(w)) + ::BGP.Necro.willText(w) },
+			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "再次诅咒同一目标只刷新持续时间（护甲腐朽换成这次的数值），不叠加" }
 		]);
 		return ret;
 	}
@@ -62,6 +63,7 @@ this.bgp_necro_curse_of_ages_skill <- ::inherit("scripts/skills/skill", {
 
 	function onUse( _user, _targetTile )
 	{
+		local decay = ::BGP.Necro.WillScale.CurseDecay(::BGP.Necro.getWill(_user));
 		local tiles = [_targetTile];
 		for (local i = 0; i < 6; i++)
 		{
@@ -80,9 +82,13 @@ this.bgp_necro_curse_of_ages_skill <- ::inherit("scripts/skills/skill", {
 			{
 				local fx = target.getSkills().getSkillByID("effects.bgp_curse_of_ages");
 				if (fx != null)
-					fx.refresh();
+					fx.refresh(decay);
 				else
-					target.getSkills().add(::new("scripts/skills/effects/bgp_curse_of_ages_effect"));
+				{
+					fx = ::new("scripts/skills/effects/bgp_curse_of_ages_effect");
+					fx.m.Decay = decay;
+					target.getSkills().add(fx);
+				}
 				target.getSkills().update();
 				target.setDirty(true);
 				try { this.spawnIcon("status_effect_67", tile); } catch (e) {}

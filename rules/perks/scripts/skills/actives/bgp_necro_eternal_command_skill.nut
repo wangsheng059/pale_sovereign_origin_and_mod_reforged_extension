@@ -1,5 +1,6 @@
 // 1.6.0 不灭号令（不灭冠军附带）：6 行动点、20 疲劳、99 格、不需要视野、没有冷却。
-// 目标为自己的永恒禁卫倒下后留下的残骸（格子上不能有人），让它原地以 50% 生命、50% 护甲复活。
+// 目标为自己的永恒禁卫倒下后留下的残骸（格子上不能有人），让它原地复活；
+// 1.6.2 起生命和头甲、身甲恢复到 20% + W/2 %（W = 施放时的决心，最多 80%；原为 50%）。
 this.bgp_necro_eternal_command_skill <- ::inherit("scripts/skills/skill", {
 	m = {
 		BaseAP = 6,
@@ -42,7 +43,7 @@ this.bgp_necro_eternal_command_skill <- ::inherit("scripts/skills/skill", {
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "技能范围为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；没有冷却" },
 			{ id = 11, type = "text", icon = "ui/icons/special.png", text = "目标为你的永恒禁卫倒下后留下的残骸（格子上不能有人）" },
-			{ id = 12, type = "text", icon = "ui/icons/health.png", text = "禁卫原地复活，生命 " + ::MSU.Text.colorPositive("50%") + "，头甲、身甲耐久 " + ::MSU.Text.colorPositive("50%") }
+			{ id = 12, type = "text", icon = "ui/icons/health.png", text = "禁卫原地复活，生命和头甲、身甲耐久恢复到 " + ::MSU.Text.colorPositive(::BGP.Necro.pctText(::BGP.Necro.WillScale.RevivePct(::BGP.Necro.getWill(this.getContainer().getActor())))) + ::BGP.Necro.willText(::BGP.Necro.getWill(this.getContainer().getActor())) + "，最多 80%" }
 		]);
 		return ret;
 	}

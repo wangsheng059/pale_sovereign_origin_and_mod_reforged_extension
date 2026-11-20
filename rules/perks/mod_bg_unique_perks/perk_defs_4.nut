@@ -35,7 +35,8 @@
 		Type = ::UPD.EffectType.Active,
 		Description = [
 			"解锁“支配亡灵”技能：消耗 " + ::MSU.Text.colorNegative("3") + " 行动点数、" + ::MSU.Text.colorNegative("10") + " 疲劳，目标为一名友方亡灵（原版的僵尸、骷髅等，以及你复活的所有单位和死灵宠物），效果和原版 / 重铸的支配亡灵相同。",
-			"被支配的亡灵直到它的回合结束：行动点上限变为 12、近战技能 +15、近战 / 远程防御 +10、主动值 +50、受到的伤害 -25%。"
+			"被支配的亡灵直到它的回合结束：行动点上限变为 12、近战技能 " + ::MSU.Text.colorPositive("+W/5") + "、近战 / 远程防御 +10、主动值 +50、受到的伤害 " + ::MSU.Text.colorPositive("-(W/4 - 5)%") + "（0~30%）。",
+			"（W = 死灵法师当前决心，施放时计算）"
 		]
 	}]
 });
@@ -45,7 +46,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"你复活的单位每回合开始时回复 " + ::MSU.Text.colorPositive("10") + " 点生命。"
+			"你复活的单位每回合开始时回复 " + ::MSU.Text.colorPositive("5 + W/5") + " 点生命（W = 你的当前决心）。"
 		]
 	}]
 });
@@ -92,7 +93,8 @@
 		Type = ::UPD.EffectType.Active,
 		Description = [
 			"解锁“死灵灌注”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("12") + " 疲劳，目标为 8 格内的一名友方亡灵。",
-			"目标立刻回复 " + ::MSU.Text.colorPositive("20") + " 点生命、减少 " + ::MSU.Text.colorPositive("15") + " 点疲劳，行动点数 " + ::MSU.Text.colorPositive("+4") + "，持续 2 回合。"
+			"目标立刻回复 " + ::MSU.Text.colorPositive("10 + W/4") + " 点生命、减少 " + ::MSU.Text.colorPositive("10 + W/6") + " 点疲劳，行动点数 " + ::MSU.Text.colorPositive("+4") + "，持续 2 回合。",
+			"（W = 死灵法师当前决心，施放时计算）"
 		]
 	}]
 });
@@ -102,7 +104,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"你复活单位时，它的头甲、身甲各恢复上限的 " + ::MSU.Text.colorPositive("30%") + "。",
+			"你复活单位时，它的头甲、身甲各恢复上限的 " + ::MSU.Text.colorPositive("10% + W/4 %") + "（W = 复活时你的当前决心）。",
 			"同时有“不死再生”时，复活的单位每回合开始时头甲、身甲再各恢复 " + ::MSU.Text.colorPositive("7%") + "。"
 		]
 	}]
@@ -114,7 +116,8 @@
 		Type = ::UPD.EffectType.Active,
 		Description = [
 			"解锁“尸爆”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("20") + " 疲劳，施法距离 6 格，摧毁目标格上的一具尸体（之后不能再复活）。",
-			"对目标格和相邻 1 格内的所有敌人（不伤友军）造成钝器伤害，等于该尸体生前最大生命的 " + ::MSU.Text.colorPositive("35%") + "。",
+			"对目标格和相邻 1 格内的所有敌人（不伤友军）造成钝器伤害，等于该尸体生前最大生命的 " + ::MSU.Text.colorPositive("20% + W/4 %") + "；被炸到还活着的敌人做一次士气检定，难度 " + ::MSU.Text.colorNegative("-W/4") + "。",
+			"（W = 死灵法师当前决心，施放时计算）",
 			"尸体死亡时身上的头甲、身甲还有剩余耐久的，额外造成劈砍伤害，等于剩余耐久总和的 " + ::MSU.Text.colorPositive("25%") + "（对护甲伤害效率 " + ::MSU.Text.colorPositive("150%") + "）。",
 			"被波及的敌人陷入“趔趄”（下回合行动顺位延后）。"
 		]
@@ -128,8 +131,9 @@
 		Description = [
 			"解锁“血肉重铸”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("15") + " 疲劳，施法距离 5 格，目标为你的亡灵（你复活的单位、你的死灵宠物、永恒禁卫）。",
 			"摧毁目标所在格或相邻 1 格内的一具尸体，把它的骨骼和肌腱嫁接到目标身上；每个单位每场战斗最多嫁接 2 次。",
-			"第 1 次 骨刺外甲：获得 " + ::MSU.Text.colorPositive("80") + " 点独立骨甲（先于护甲吸收伤害）；骨甲没碎时，每次被近战攻击对攻击者造成 " + ::MSU.Text.colorNegative("15") + " 点穿刺伤害（无视护甲）。",
-			"第 2 次 畸变肌腱：行动点上限 " + ::MSU.Text.colorPositive("+2") + "，每格移动行动点 " + ::MSU.Text.colorPositive("-1") + "（最少 1），所有攻击命中头部几率 " + ::MSU.Text.colorPositive("+15%") + "。"
+			"第 1 次 骨刺外甲：获得 " + ::MSU.Text.colorPositive("40 + W/2") + " 点独立骨甲（先于护甲吸收伤害）；骨甲没碎时，每次被近战攻击对攻击者造成 " + ::MSU.Text.colorNegative("5 + W/4") + " 点穿刺伤害（无视护甲）。",
+			"第 2 次 畸变肌腱：行动点上限 " + ::MSU.Text.colorPositive("+2") + "，每格移动行动点 " + ::MSU.Text.colorPositive("-1") + "（最少 1），所有攻击命中头部几率 " + ::MSU.Text.colorPositive("+15%") + "。",
+			"（W = 死灵法师当前决心，施放时计算）"
 		]
 	}]
 });
@@ -146,7 +150,7 @@
 	{
 		Type = ::UPD.EffectType.Active,
 		Description = [
-			"解锁“不灭号令”：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("20") + " 疲劳，99 格、不需要视野、没有冷却，让倒下的永恒禁卫原地复活，生命和头甲、身甲耐久各恢复到 " + ::MSU.Text.colorPositive("50%") + "。",
+			"解锁“不灭号令”：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("20") + " 疲劳，99 格、不需要视野、没有冷却，让倒下的永恒禁卫原地复活，生命和头甲、身甲耐久各恢复到 " + ::MSU.Text.colorPositive("20% + W/2 %") + "（最多 80%；W = 施放时你的当前决心）。",
 			"你在战斗中死亡时，倒下的宠物禁卫随之失去；你活到战斗结束时它保留，伤势记为 50%。"
 		]
 	}]
@@ -159,7 +163,7 @@
 		Description = [
 			"解锁“岁月诅咒”技能：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("24") + " 疲劳，施法距离 6 格，作用于目标格及相邻 1 格内的敌人（不影响友军），持续 3 回合。",
 			"被诅咒的敌人：主动值 " + ::MSU.Text.colorNegative("-20") + "，近战技能 / 远程技能 " + ::MSU.Text.colorNegative("-10") + "，近战 / 远程伤害 " + ::MSU.Text.colorNegative("-20%") + "。",
-			"诅咒期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲的当前耐久各额外 " + ::MSU.Text.colorNegative("-20") + "。",
+			"诅咒期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲的当前耐久各额外 " + ::MSU.Text.colorNegative("-(10 + W/4)") + "（W = 施放时你的当前决心）。",
 			"再次诅咒同一目标只刷新持续时间，不叠加。"
 		]
 	}]

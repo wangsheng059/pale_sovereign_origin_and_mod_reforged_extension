@@ -54,3 +54,51 @@
 	}
 });
 
+
+// 1.6.2 支配亡灵（本 mod 死灵法师施放的）按施放时的决心 W：近战技能 +W/5，受到伤害 -(W/4 - 5)%（0~30%），
+// 替换原版 / 重铸的 +15 和 -25%；行动点 12、近防 / 远防 +10、主动 +50 不变。敌方死灵法师的支配不受影响（BGP_Will 为 null）。
+::BGP.HooksMod.hook("scripts/skills/effects/possessed_undead_effect", function(q)
+{
+	q.m.BGP_Will <- null;
+
+	q.onUpdate = @(__original) function( _properties )
+	{
+		if (this.m.BGP_Will == null)
+			return __original(_properties);
+		local ms = _properties.MeleeSkill;
+		local snap = ::BGP.Necro.snapKeys(_properties, ::BGP.Necro.DamageMultKeys);
+		__original(_properties);
+		_properties.MeleeSkill = ms + ::BGP.Necro.WillScale.PossessMeleeSkill(this.m.BGP_Will);
+		::BGP.Necro.rescaleKeys(_properties, snap, 1.0 - ::BGP.Necro.WillScale.PossessReduction(this.m.BGP_Will) / 100.0);
+	}
+
+	q.onBeforeDamageReceived = @(__original) function( _attacker, _skill, _hitInfo, _properties )
+	{
+		if (this.m.BGP_Will == null)
+			return __original(_attacker, _skill, _hitInfo, _properties);
+		local mult = 1.0 - ::BGP.Necro.WillScale.PossessReduction(this.m.BGP_Will) / 100.0;
+		local snapP = ::BGP.Necro.snapKeys(_properties, ::BGP.Necro.DamageMultKeys);
+		local snapH = ::BGP.Necro.snapKeys(_hitInfo, ["DamageRegular", "DamageArmor", "DamageDirect"]);
+		__original(_attacker, _skill, _hitInfo, _properties);
+		::BGP.Necro.rescaleKeys(_properties, snapP, mult);
+		::BGP.Necro.rescaleKeys(_hitInfo, snapH, mult);
+	}
+
+	q.getTooltip = @(__original) function()
+	{
+		local ret = __original();
+		if (this.m.BGP_Will == null)
+			return ret;
+		local w = this.m.BGP_Will;
+		foreach (row in ret)
+		{
+			if (!("id" in row))
+				continue;
+			if (row.id == 11)
+				row.text = ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + " 近战技能（按施放者决心 " + w + "）";
+			else if (row.id == 16)
+				row.text = "受到的所有伤害降低 " + ::MSU.Text.colorPositive(::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + "（按施放者决心 " + w + "）";
+		}
+		return ret;
+	}
+});

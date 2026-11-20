@@ -1,10 +1,11 @@
-// 死灵灌注：4 行动点、12 疲劳，8 格内一名友方亡灵立刻回复 20 生命、15 疲劳，行动点数 +4 持续 2 回合
+// 死灵灌注：4 行动点、12 疲劳，8 格内一名友方亡灵立刻回复生命、减少疲劳，行动点数 +4 持续 2 回合
+// 1.6.2 起回复量按施放时的决心 W：生命 10 + W/4、疲劳 10 + W/6（1.4.0~1.6.1 固定 20 / 15）
 this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 	m = {
 		BaseAP = 4,
 		BaseFatigue = 12,
-		Heal = 20,
-		FatigueRestore = 15
+		Heal = 10,
+		FatigueRestore = 10
 	},
 	function create()
 	{
@@ -38,10 +39,11 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getDefaultUtilityTooltip();
+		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "目标为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格内的一名友方亡灵（不需要视野）" },
-			{ id = 11, type = "text", icon = "ui/icons/health.png", text = "立刻回复 " + ::MSU.Text.colorPositive(this.m.Heal) + " 点生命" },
-			{ id = 12, type = "text", icon = "ui/icons/fatigue.png", text = "立刻减少 " + ::MSU.Text.colorPositive(this.m.FatigueRestore) + " 点疲劳" },
+			{ id = 11, type = "text", icon = "ui/icons/health.png", text = "立刻回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionHeal(w)) + " 点生命" + ::BGP.Necro.willText(w) },
+			{ id = 12, type = "text", icon = "ui/icons/fatigue.png", text = "立刻减少 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionFatigue(w)) + " 点疲劳" + ::BGP.Necro.willText(w) },
 			{ id = 13, type = "text", icon = "ui/icons/action_points.png", text = "行动点数 " + ::MSU.Text.colorPositive("+4") + "，持续 2 回合（再次灌注会刷新持续时间，不叠加）" }
 		]);
 		return ret;
@@ -70,8 +72,9 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 		local target = _targetTile.getEntity();
 		try
 		{
-			::BGP.heal(target, this.m.Heal);
-			::BGP.reduceFatigue(target, this.m.FatigueRestore);
+			local w = ::BGP.Necro.getWill(_user);
+			::BGP.heal(target, ::BGP.Necro.WillScale.InfusionHeal(w));
+			::BGP.reduceFatigue(target, ::BGP.Necro.WillScale.InfusionFatigue(w));
 			local fx = target.getSkills().getSkillByID("effects.bgp_necro_infusion");
 			if (fx != null)
 				fx.refresh();
