@@ -39,7 +39,7 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 		this.m.MinRange = 1;
 		this.m.MaxRange = 6;
 		this.m.AIBehaviorID = null;
-		try { this.m.DamageType = ::MSU.Class.WeightedContainer([[100, ::Const.Damage.DamageType.Blunt]]); } catch (e) {}
+		this.m.DamageType.add(::Const.Damage.DamageType.Blunt);
 	}
 
 	function getTooltip()
