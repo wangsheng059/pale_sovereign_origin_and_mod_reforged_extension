@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "mod_pandoras_hobby/hooks/entity/tactical/actor.nut",
+  "before": "e0be1b7c7b02763a1d5e619e66f190871ebeda54553ca1c68f2f12f10b3ca90b",
+  "after": "d3320fe0e4a60122384b292f8359862150bfc1995401a80872c6777f60dd906f",
+  "old": "scripts/items/misc/anatomist/ph_generic_sample_item",
+  "new": "scripts/items/misc/ph_generic_sample_item"
+}

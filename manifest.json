@@ -1259,5 +1259,7 @@
       "output": "zz_local_integration.zip"
     }
   ],
-  "patches": []
+  "patches": [
+    "patches/pandora/champion_sample.json"
+  ]
 }

@@ -130,6 +130,8 @@ def collect(manifest, sources, exclusions, profile, individual):
     groups = {name: {} for name in manifest["outputs"] if not individual}
     omissions = {}
     modular = manifest["modules"] if profile == "modular" else []
+    patches = [json.loads((ROOT / name).read_text(encoding="utf-8"))
+               for name in manifest["patches"]] if profile == "modular" else []
     replaced = {}
     for module in modular:
         for member in module["members"]:
@@ -152,15 +154,14 @@ def collect(manifest, sources, exclusions, profile, individual):
                 unused.discard(origin)
                 omissions[f"{name}:{entry.filename}"] = module["directory"]
                 continue
-            if profile == "modular":
-                for patch in manifest["patches"]:
-                    if origin != (patch["source"], patch["member"]):
-                        continue
-                    if sha(data) != patch["before"] or data.count(patch["old"].encode()) != 1:
-                        raise ValueError(f"Patch no longer applies: {origin}")
-                    data = data.replace(patch["old"].encode(), patch["new"].encode())
-                    if sha(data) != patch["after"]:
-                        raise ValueError(f"Unexpected patched bytes: {origin}")
+            for patch in patches:
+                if origin != (patch["source"], patch["member"]):
+                    continue
+                if sha(data) != patch["before"] or data.count(patch["old"].encode()) != 1:
+                    raise ValueError(f"Patch no longer applies: {origin}")
+                data = data.replace(patch["old"].encode(), patch["new"].encode())
+                if sha(data) != patch["after"]:
+                    raise ValueError(f"Unexpected patched bytes: {origin}")
             add_member(entries, entry.filename, raw_name(entry), data, name, name_extra(entry))
     for module in modular:
         if individual and module["source"] != individual:
