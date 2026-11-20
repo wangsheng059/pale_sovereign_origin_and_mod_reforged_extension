@@ -5,10 +5,9 @@ from contextlib import ExitStack
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
-import re
+import struct
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
-import struct
 
 ROOT = Path(__file__).resolve().parent
 MANIFEST = ROOT / "manifest.json"
@@ -126,7 +125,7 @@ def validate_virtual_layout(source, name):
         raise ValueError(f"Unexpected reserved Reforged prefix: {name}")
 
 
-def collect(manifest, sources, exclusions, profile, individual):
+def collect(manifest, sources, exclusions, profile, individual, disabled):
     groups = {name: {} for name in manifest["outputs"] if not individual}
     omissions = {}
     modular = manifest["modules"] if profile == "modular" else []
@@ -165,6 +164,8 @@ def collect(manifest, sources, exclusions, profile, individual):
             add_member(entries, entry.filename, raw_name(entry), data, name, name_extra(entry))
     for module in modular:
         if individual and module["source"] != individual:
+            continue
+        if module["directory"] in disabled:
             continue
         source = sources[module["source"]][0]
         output = module.get("output") or source["output"]
@@ -225,8 +226,14 @@ def main():
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--group", help="Output ZIP filename")
     selection.add_argument("--individual", help="Original bundled ZIP filename")
+    parser.add_argument("--omit-module", action="append", default=[],
+                        help="Omit a local module when building an isolated modular configuration")
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    disabled = set(args.omit_module)
+    optional = {m["directory"] for m in manifest["modules"] if m["directory"].startswith("integration/")}
+    if disabled and (args.profile != "modular" or disabled - optional):
+        parser.error("--omit-module requires a modular profile and an integration module directory")
     archive = ROOT.parent / manifest["snapshot"] / "packages"
     target = ROOT / "dist" / args.profile
     with ExitStack() as stack:
@@ -242,19 +249,23 @@ def main():
             return
         if args.individual and (args.individual not in sources or not sources[args.individual][0]["output"]):
             parser.error("--individual requires an original bundled ZIP filename")
-        groups, omissions = collect(manifest, sources, exclusions, args.profile, args.individual)
+        groups, omissions = collect(manifest, sources, exclusions, args.profile, args.individual, disabled)
         if args.group:
             if args.group not in groups:
                 parser.error(f"Unknown group: {args.group}")
             groups = {args.group: groups[args.group]}
-        if args.group or args.individual:
-            target = target / "isolated" / (args.group or "individual")
+        if args.group or args.individual or disabled:
+            label = args.group or ("individual" if args.individual else "all")
+            if disabled:
+                label += "-without-" + "-".join(Path(name).name for name in sorted(disabled))
+            target = target / "isolated" / label
         if args.command == "verify":
             for name, entries in groups.items():
                 verify_archive(target / name, entries)
         else:
             report = {
                 "profile": args.profile,
+                "omitted_modules": sorted(disabled),
                 "standalone": {s["name"]: s["sha256"] for s in manifest["sources"] if not s["output"]},
                 "conflicts": collisions,
                 "replaced": omissions,

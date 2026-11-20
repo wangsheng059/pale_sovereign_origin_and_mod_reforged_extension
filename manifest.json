@@ -1257,6 +1257,12 @@
         "scripts/skills/effects/ac_ph_druid_bond_effect.nut"
       ],
       "output": "zz_local_integration.zip"
+    },
+    {
+      "directory": "interface/tooltip_cursor",
+      "source": "quicker_1.4（加速MOD）.zip",
+      "members": [],
+      "output": "zz_local_interface.zip"
     }
   ],
   "patches": [
