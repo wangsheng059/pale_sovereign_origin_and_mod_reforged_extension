@@ -1,0 +1,8 @@
+{
+  "source": "mod_配件兄弟(驯兽、复活，支持重铸MOD)_2.1.14_汉化.zip",
+  "member": "scripts/companions/companions_library.nut",
+  "before": "f21daa4ab983b779e2a9f1d701fc3b901bc24752a28c5eca5b0320239288a53a",
+  "after": "2ea1c68eb5ff40ea2ea8d8831fa4783b3f282dde7030838a98eae1fcedba14da",
+  "old": "gt.Const.Companions.TameChanceMult <- 20.0;",
+  "new": "gt.Const.Companions.TameChanceMult <- 15.0;"
+}

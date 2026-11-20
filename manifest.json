@@ -1266,6 +1266,8 @@
     }
   ],
   "patches": [
-    "patches/pandora/champion_sample.json"
+    "patches/pandora/champion_sample.json",
+    "patches/companions/tame_mult_setting.json",
+    "patches/companions/tame_mult_fallback.json"
   ]
 }
