@@ -1,0 +1,8 @@
+{
+  "source": "mod_配件兄弟(驯兽、复活，支持重铸MOD)_2.1.14_汉化.zip",
+  "member": "scripts/companions/companions_library.nut",
+  "before": "2ea1c68eb5ff40ea2ea8d8831fa4783b3f282dde7030838a98eae1fcedba14da",
+  "after": "85cedd3f1b3d48a821243dd4f032ea78755a34f446ce19a75884623c13bffd66",
+  "old": "\tBeastmaster = 45.00",
+  "new": "\tBeastmaster = 60.00"
+}
