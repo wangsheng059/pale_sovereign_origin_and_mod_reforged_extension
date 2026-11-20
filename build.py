@@ -119,6 +119,33 @@ def exclusion_plan(manifest, sources):
     return exclusions, conflict_report
 
 
+def module_collisions(manifest, sources):
+    """Reject module files whose virtual path another ZIP or module also provides."""
+    replaced = {(m["source"], member_key(name)) for m in manifest["modules"] for name in m["members"]}
+    providers = defaultdict(list)
+    for name, (_, z) in sources.items():
+        for entry in z.infolist():
+            key = member_key(entry.filename)
+            if not entry.is_dir() and (name, key) not in replaced:
+                providers[key].append(name)
+    owners = {}
+    for module in manifest["modules"]:
+        base = ROOT / module["directory"]
+        for file in sorted(base.rglob("*")):
+            if not file.is_file():
+                continue
+            name = file.relative_to(base).as_posix()
+            validate_path(name)
+            key = member_key(name)
+            if key in owners:
+                raise ValueError(f"Module path {name} in both {owners[key]} and {module['directory']}")
+            owners[key] = module["directory"]
+            if providers[key]:
+                raise ValueError(f"Module path {name} from {module['directory']} "
+                                 f"is also provided by {sorted(providers[key])}")
+    return len(owners)
+
+
 def validate_virtual_layout(source, name):
     validate_path(name)
     if source["output"] and name.casefold().startswith(("mod_reforged_core", "mod_reforged_assets")):
@@ -241,11 +268,13 @@ def main():
         for name, (source, _) in sources.items():
             validate_virtual_layout(source, source["output"] or name)
         exclusions, collisions = exclusion_plan(manifest, sources)
+        module_files = module_collisions(manifest, sources)
         if args.command == "audit":
             for name, (_, z) in sources.items():
                 if bad := z.testzip():
                     raise ValueError(f"Bad CRC: {name}:{bad}")
-            print(f"Audit passed: {len(sources)} source ZIPs, {len(collisions)} conflict policies")
+            print(f"Audit passed: {len(sources)} source ZIPs, {len(collisions)} conflict policies, "
+                  f"{module_files} module files without path collisions")
             return
         if args.individual and (args.individual not in sources or not sources[args.individual][0]["output"]):
             parser.error("--individual requires an original bundled ZIP filename")
