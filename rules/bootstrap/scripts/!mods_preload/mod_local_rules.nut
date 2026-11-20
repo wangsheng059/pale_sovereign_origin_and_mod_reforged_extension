@@ -47,6 +47,8 @@
 	::include("mod_bg_unique_perks/perk_defs_4");
 	::include("mod_bg_unique_perks/hooks");
 	::include("mod_bg_unique_perks/necro_hooks");
+	::include("mod_local_rules/combat_xp");
+	::include("mod_local_rules/weapon_loot");
 });
 
 // 特技组要等全部脚本加载完、重铸的特技组和集合注册之后再加

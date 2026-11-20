@@ -3,7 +3,7 @@
 // What the mod does (unchanged):
 //   1. every item an enemy carries counts as loot, whatever the origin is;
 //   2. a NAMED or LEGENDARY shield that gets destroyed is dropped on the ground instead of vanishing;
-//   3. a NAMED or LEGENDARY weapon that breaks is dropped on the ground instead of vanishing.
+// Weapon recovery is handled separately by the local rules entry point.
 //
 // What changed: the old version replaced shield.applyShieldDamage() and
 // weapon.lowerCondition() with full copies of the vanilla code, which threw
@@ -59,30 +59,3 @@
 	}
 });
 
-::mods_hookExactClass("items/weapons/weapon", function(o)
-{
-	local lowerCondition = o.lowerCondition;
-	o.lowerCondition = function( _value = this.Const.Combat.WeaponDurabilityLossOnHit )
-	{
-		local isSpecial = this.isItemType(this.Const.Items.ItemType.Legendary) || this.isItemType(this.Const.Items.ItemType.Named);
-
-		// Ordinary weapons, and special ones that survive this hit: untouched.
-		if (!isSpecial || this.m.Condition - _value > 0)
-		{
-			return lowerCondition(_value);
-		}
-
-		// A named / legendary weapon breaks right now: same feedback as the
-		// game, but the weapon falls to the ground instead of being removed.
-		local actor = this.getContainer().getActor();
-		this.m.Condition = 0.0;
-
-		if (!actor.isHiddenToPlayer())
-		{
-			this.Tactical.EventLog.log(this.Const.UI.getColorizedEntityName(actor) + "\'s " + this.getName() + " has broken!");
-			this.Tactical.spawnIconEffect("status_effect_36", actor.getTile(), this.Const.Tactical.Settings.SkillIconOffsetX, this.Const.Tactical.Settings.SkillIconOffsetY, this.Const.Tactical.Settings.SkillIconScale, this.Const.Tactical.Settings.SkillIconFadeInDuration, this.Const.Tactical.Settings.SkillIconStayDuration, this.Const.Tactical.Settings.SkillIconFadeOutDuration, this.Const.Tactical.Settings.SkillIconMovement);
-			this.Sound.play(this.m.BreakingSound, 1.0, actor.getPos());
-			this.Time.scheduleEvent(this.TimeUnit.Virtual, 300, this.drop, null);
-		}
-	}
-});
