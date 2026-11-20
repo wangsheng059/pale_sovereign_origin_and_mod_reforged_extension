@@ -1,14 +1,11 @@
-// 封魂入器（死灵精通，需要配件兄弟）：3 行动点、15 疲劳、6 格（1.5.1 起，原为相邻），把一个自己复活的单位封进配件（饰品）。
-// 饰品栏空着就直接装备（同驯服，本场不能再放出），否则放进仓库；仓库满了不能用。
-// 封进去的是配件兄弟宠物：属性取这个单位自己的，之后像宠物一样放出、收回、升级、抽特质池；
-// 1.5.1 起记下它身上的武器和护甲，放出时生成满耐久的同款（不掉落）。
+// The saved skill ID and both resource paths stay compatible with existing saves.
 this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 	m = {},
 	function create()
 	{
 		this.m.ID = "actives.bgp_necro_bind";
-		this.m.Name = "封魂入器";
-		this.m.Description = "把一个由你复活的单位连同它的魂魄封进封魂匣，从此像宠物一样随战团同行。";
+		this.m.Name = "驱役亡灵";
+		this.m.Description = "以意志锁住亡灵的魂火。你可以收回亲手复活的仆从，也可以趁敌方亡灵虚弱时将它收入封魂匣，成为战团的死灵宠物。";
 		this.m.Icon = "skills/bgp_necro_bind_skill.png";
 		this.m.IconDisabled = "skills/bgp_necro_bind_skill_sw.png";
 		this.m.Overlay = "";
@@ -26,8 +23,8 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 		this.m.IsStacking = false;
 		this.m.IsAttack = false;
 		this.m.IsIgnoredAsAOO = true;
-		this.m.ActionPointCost = 3;
-		this.m.FatigueCost = 15;
+		this.m.ActionPointCost = 4;
+		this.m.FatigueCost = 16;
 		this.m.MinRange = 1;
 		this.m.MaxRange = 6;
 		this.m.AIBehaviorID = null;
@@ -37,7 +34,7 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 	{
 		local ret = this.skill.getDefaultUtilityTooltip();
 		ret.extend([
-			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "目标为 " + ::MSU.Text.colorPositive("6") + " 格内、由你复活的单位（复活死者得到的僵尸，以及死灵法术复活的野兽、亡灵、兽人、地精）" },
+			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "目标为 " + ::MSU.Text.colorPositive("6") + " 格内仍在场的单位：你亲手复活的友军不限生命值；敌方亡灵须尚未死亡，且当前生命不高于最大生命的 30%。目标须有对应的死灵宠物类型" },
 			{ id = 11, type = "text", icon = "ui/icons/special.png", text = "饰品栏空着时直接装备（本场不能再放出），否则放进仓库；属性、名字、伤势沿用这个单位" },
 			{ id = 12, type = "text", icon = "ui/icons/special.png", text = "之后和配件兄弟的宠物一样放出、收回、升级，升级时从亡灵特质池抽特质，11 级得到死灵契约" },
 			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "记住它现在的武器和护甲：每次放出都是满耐久的同款，不会掉落；原来那套随它一起消失" }
@@ -73,13 +70,23 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 			return false;
 		if (!this.skill.onVerifyTarget(_originTile, _targetTile))
 			return false;
-		local target = _targetTile.getEntity();
-		local user = this.getContainer().getActor();
-		if (target.getID() == user.getID() || !target.isAlliedWith(user))
+		return this.canCommand(this.getContainer().getActor(), _targetTile.getEntity());
+	}
+
+	function canCommand( user, target )
+	{
+		if (target == null || !target.isAlive() || target.isDying() || target.getHitpoints() <= 0 || target.getID() == user.getID())
 			return false;
-		local master = ::BGP.Necro.getMaster(target);
-		if (master == null || master.getID() != user.getID())
+		if (target.isAlliedWith(user))
+		{
+			local master = ::BGP.Necro.getMaster(target);
+			if (master == null || master.getID() != user.getID())
+				return false;
+		}
+		else if (!target.getFlags().has("undead") || target.getHitpoints() * 10 > target.getHitpointsMax() * 3)
+		{
 			return false;
+		}
 		try
 		{
 			if (target.m.Item != null)
@@ -93,6 +100,8 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 
 	function onUse( _user, _targetTile )
 	{
+		if (!_targetTile.IsOccupiedByActor || !this.hasDestination(_user) || !this.onVerifyTarget(_user.getTile(), _targetTile))
+			return false;
 		local target = _targetTile.getEntity();
 		local type = ::BGP.NecroPet.getTypeForEntity(target, false);
 		if (type == null)
@@ -107,6 +116,8 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 			if (_user.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) == null)
 			{
 				_user.getItems().equip(item);
+				if (_user.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) != item)
+					return false;
 				equipped = true;
 				local unleash = _user.getSkills().getSkillByID("actives.unleash_companion");
 				if (unleash != null)
@@ -117,6 +128,7 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 			}
 			else
 			{
+				if (!::World.Assets.getStash().hasEmptySlot()) return false;
 				::World.Assets.getStash().add(item);
 			}
 
@@ -126,7 +138,7 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 		}
 		catch (e)
 		{
-			::logError("mod_bg_unique_perks: 封魂入器失败: " + e);
+			::logError("mod_bg_unique_perks: 驱役亡灵失败: " + e);
 			return false;
 		}
 		return true;
