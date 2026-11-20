@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 import re
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
+import struct
 
 ROOT = Path(__file__).resolve().parent
 MANIFEST = ROOT / "manifest.json"
@@ -33,15 +34,27 @@ def member_key(name):
 
 def raw_name(info):
     utf8 = info.flag_bits & 0x800
-    return info.filename.encode("utf-8" if utf8 else "cp437"), utf8
+    return info.orig_filename.encode("utf-8" if utf8 else "cp437"), utf8
+
+
+def name_extra(info):
+    """Keep the Unicode spelling override for legacy filenames."""
+    extra = info.extra
+    while len(extra) >= 4:
+        tag, length = struct.unpack_from("<HH", extra)
+        if tag == 0x7075:
+            return extra[:4 + length]
+        extra = extra[4 + length:]
+    return b""
 
 
 class ArchiveMember(ZipInfo):
     """Carry the legacy member-name bytes and encoding bit through zipfile."""
 
-    def __init__(self, name, encoding):
+    def __init__(self, name, encoding, extra):
         self.encoding = encoding
         super().__init__(name)
+        self.extra = extra
 
     def _encodeFilenameFlags(self):
         raw, utf8 = self.encoding
@@ -99,10 +112,9 @@ def exclusion_plan(manifest, sources):
             raise ValueError(f"Identical-copy assumption failed for {path}")
         if policy.get("winner"):
             remaining = [name for name, _ in entries if name not in policy["omit"]]
-            deployed_as = lambda name: sources[name][0].get("output") or name
-            winner = max(remaining, key=lambda name: deployed_as(name).casefold())
+            winner = max(remaining, key=lambda name: (sources[name][0]["output"] or name).casefold())
             original = max(observed, key=str.casefold)
-            if winner != policy["winner"] or original != policy["winner"]:
+            if winner != policy["winner"] or details[original] != details[winner]:
                 raise ValueError(f"Override order changed for {path}: {original} → {winner}")
         conflict_report[path] = {**policy, "source_member_sha256": details}
     return exclusions, conflict_report
@@ -149,7 +161,7 @@ def collect(manifest, sources, exclusions, profile, individual):
                     data = data.replace(patch["old"].encode(), patch["new"].encode())
                     if sha(data) != patch["after"]:
                         raise ValueError(f"Unexpected patched bytes: {origin}")
-            add_member(entries, entry.filename, raw_name(entry), data, name)
+            add_member(entries, entry.filename, raw_name(entry), data, name, name_extra(entry))
     for module in modular:
         if individual and module["source"] != individual:
             continue
@@ -166,12 +178,12 @@ def collect(manifest, sources, exclusions, profile, individual):
     return groups, omissions
 
 
-def add_member(entries, name, encoding, data, origin):
+def add_member(entries, name, encoding, data, origin, extra=b""):
     validate_path(name)
     key = member_key(name)
     if key in entries:
         raise ValueError(f"Duplicate output path: {name} from {origin} and {entries[key][3]}")
-    entries[key] = (name, encoding, data, origin)
+    entries[key] = (name, encoding, data, origin, extra)
 
 
 def verify_archive(path, entries):
@@ -182,9 +194,10 @@ def verify_archive(path, entries):
         actual = {member_key(e.filename): e for e in z.infolist()}
         if len(z.infolist()) != len(entries) or actual.keys() != entries.keys():
             raise ValueError(f"Unexpected member list in {path.name}")
-        for key, (name, encoding, data, origin) in entries.items():
+        for key, (name, encoding, data, origin, extra) in entries.items():
             entry = actual[key]
-            if entry.filename != name or raw_name(entry) != encoding or z.read(entry) != data:
+            if (entry.filename != name or raw_name(entry) != encoding
+                    or name_extra(entry) != extra or z.read(entry) != data):
                 raise ValueError(f"Output differs: {path.name}:{name} from {origin}")
 
 
@@ -195,8 +208,8 @@ def publish(target, groups, report):
         for name, entries in groups.items():
             with ZipFile(staging / name, "w", ZIP_DEFLATED) as z:
                 for key in sorted(entries):
-                    path, encoding, data, _ = entries[key]
-                    z.writestr(ArchiveMember(path, encoding), data, compress_type=ZIP_DEFLATED)
+                    path, encoding, data, _, extra = entries[key]
+                    z.writestr(ArchiveMember(path, encoding, extra), data, compress_type=ZIP_DEFLATED)
             verify_archive(staging / name, entries)
         for name in groups:
             (staging / name).replace(target / name)
