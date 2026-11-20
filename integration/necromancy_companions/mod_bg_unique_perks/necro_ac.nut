@@ -663,6 +663,8 @@
 ::BGP.NecroPet.applyScaling <- function( _e )
 {
 	local item = _e.m.Item;
+	// The release skill passes the inventory label to the actor before scaling.
+	_e.setName(item.m.Name);
 	try
 	{
 		local a = item.m.Attributes;

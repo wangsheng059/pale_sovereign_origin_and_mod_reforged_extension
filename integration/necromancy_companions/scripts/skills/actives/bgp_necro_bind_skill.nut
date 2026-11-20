@@ -5,7 +5,7 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 	{
 		this.m.ID = "actives.bgp_necro_bind";
 		this.m.Name = "驱役亡灵";
-		this.m.Description = "以意志锁住亡灵的魂火。你可以收回亲手复活的仆从，也可以趁敌方亡灵虚弱时将它收入封魂匣，成为战团的死灵宠物。";
+		this.m.Description = "以意志锁住亡灵的魂火。你可以收回亲手复活的仆从，也可以趁敌方亡灵虚弱时将它收入棺椁，成为战团的死灵宠物。";
 		this.m.Icon = "skills/bgp_necro_bind_skill.png";
 		this.m.IconDisabled = "skills/bgp_necro_bind_skill_sw.png";
 		this.m.Overlay = "";
@@ -133,7 +133,7 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 			}
 
 			if (!_user.isHiddenToPlayer())
-				::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + "把" + ::Const.UI.getColorizedEntityName(target) + "封进了封魂匣" + (equipped ? "" : "（放进仓库）"));
+				::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + "把" + ::Const.UI.getColorizedEntityName(target) + "封进了棺椁" + (equipped ? "" : "（放进仓库）"));
 			::BGP.NecroPet.removeEntity(target);
 		}
 		catch (e)

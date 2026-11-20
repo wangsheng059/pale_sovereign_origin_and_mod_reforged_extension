@@ -88,6 +88,14 @@ if (::BGP.HasAC)
 			}
 		}
 
+		local getPetItemName = p.getName;
+		p.getName <- function()
+		{
+			if (!::BGP.NecroPet.isOwnType(this.m.Type))
+				return getPetItemName.call(this);
+			return this.m.Entity == null ? "棺椁（" + this.m.Name + "）" : "棺椁";
+		}
+
 		local ser = p.serializeCompanionName;
 		p.serializeCompanionName <- function()
 		{
