@@ -16,7 +16,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 	{
 		this.m.ID = "effects.bgp_necro_minion";
 		this.m.Name = "死灵仆从";
-		this.m.Description = "这具躯体被死灵法术唤起，听从死灵法师的意志战斗。";
+		this.m.Description = "这具躯体被死灵法术唤起，听从亡灵法师的意志战斗。";
 		this.m.Icon = "ui/perks/perk_bgp_necro_arts.png";
 		this.m.IconMini = "";
 		this.m.Type = ::Const.SkillType.StatusEffect;

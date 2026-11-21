@@ -180,6 +180,8 @@ mod.hook("scripts/entity/tactical/player", function(q)
         local args = [this];
         args.extend(vargv);
         __original.acall(args);
+        if (S.isChief(this) && this.getTitle() == "亡者之主")
+            S.nameChief(this);
         if (S.isUndead(this))
         {
             this.m.MoraleState = ::Const.MoraleState.Ignore;

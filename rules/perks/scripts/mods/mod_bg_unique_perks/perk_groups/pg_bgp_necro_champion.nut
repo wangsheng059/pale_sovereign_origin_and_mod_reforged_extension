@@ -6,7 +6,7 @@ this.pg_bgp_necro_champion <- ::inherit(::DynamicPerks.Class.PerkGroup, {
 	{
 		this.m.ID = "pg.bgp_necro_champion";
 		this.m.Name = "亡灵冠军";
-		this.m.Description = "死灵法师专属特技组：强化单个亡灵（尤其是死灵宠物）和死灵法师自身。与“亡灵天灾”互斥。";
+		this.m.Description = "亡灵法师专属特技组：强化单个亡灵（尤其是死灵宠物）和亡灵法师自身。与“亡灵天灾”互斥。";
 		this.m.Icon = "ui/perk_groups/bgp_necro_champion.png";
 		this.m.Tree = [
 			[],

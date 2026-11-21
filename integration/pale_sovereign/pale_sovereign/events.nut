@@ -606,7 +606,7 @@ S.renderEvent <- function( _event, _screen )
 
         case "apprentice":
             title = "握灯的人";
-            _screen.Text = "你负伤后，一名流浪死灵法师带着提灯来到营地。他说自己可以从守夜学起。";
+            _screen.Text = "你负伤后，一名流浪亡灵法师带着提灯来到营地。他说自己可以从守夜学起。";
             if (assets.getMoney() >= 250 && ::World.getPlayerRoster().getSize() < assets.getBrothersMax())
                 this.option(_screen, "付 250 金安家费收徒", function()
                 {
@@ -615,7 +615,7 @@ S.renderEvent <- function( _event, _screen )
                     assets.addMoney(-250);
                     assets.updateFormation(true);
                     S.set("Apprentice", 1);
-                    return "流浪死灵法师加入战团，占 1 个编制位。";
+                    return "流浪亡灵法师加入战团，占 1 个编制位。";
                 });
             if (assets.getMoney() >= 75)
                 this.option(_screen, "给 75 金旅费，交换遗址情报", function()

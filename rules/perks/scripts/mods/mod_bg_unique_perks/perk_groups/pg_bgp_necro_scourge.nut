@@ -7,7 +7,7 @@ this.pg_bgp_necro_scourge <- ::inherit(::DynamicPerks.Class.PerkGroup, {
 	{
 		this.m.ID = "pg.bgp_necro_scourge";
 		this.m.Name = "亡灵天灾";
-		this.m.Description = "死灵法师专属特技组：强化复活亡灵的能力，偏向群体数量。与“亡灵冠军”互斥。";
+		this.m.Description = "亡灵法师专属特技组：强化复活亡灵的能力，偏向群体数量。与“亡灵冠军”互斥。";
 		this.m.Icon = "ui/perk_groups/bgp_necro_scourge.png";
 		this.m.Tree = [
 			[],

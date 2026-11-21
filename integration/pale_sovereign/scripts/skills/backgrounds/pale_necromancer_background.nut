@@ -4,7 +4,6 @@ this.pale_necromancer_background <- ::inherit("scripts/skills/backgrounds/bgp_ne
     {
         this.bgp_necromancer_background.create();
         this.m.ID = ::PaleSovereign.Chief;
-        this.m.Name = "异端死灵法师";
         this.m.Icon = "ui/backgrounds/pale_necromancer.png";
         this.m.BackgroundDescription = "你是这支战团的首席。两道誓约都向你敞开，直到你择其一。";
         this.m.DailyCost = 0;

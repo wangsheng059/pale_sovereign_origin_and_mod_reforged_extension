@@ -9,9 +9,9 @@ this.bgp_necromancer_background <- this.inherit("scripts/skills/backgrounds/char
 	{
 		this.character_background.create();
 		this.m.ID = "background.bgp_necromancer";
-		this.m.Name = "死灵法师";
+		this.m.Name = "亡灵法师";
 		this.m.Icon = "ui/backgrounds/background_39.png";
-		this.m.BackgroundDescription = "死灵法师擅长唤起死者为己所用，他们对生死的看法与常人截然不同。";
+		this.m.BackgroundDescription = "亡灵法师擅长唤起死者为己所用，他们对生死的看法与常人截然不同。";
 		this.m.GoodEnding = "%name% 离开战团后消失在北方的沼泽里。有人说他找到了一处古代墓穴，从此再也没人见过他——至少，没人见过活着的他。";
 		this.m.BadEnding = "%name% 最终被猎巫人围在一座废弃的教堂里。据说那天晚上，墓地里的死人比来时的猎巫人还多。";
 		this.m.HiringCost = 1500;
@@ -32,7 +32,7 @@ this.bgp_necromancer_background <- this.inherit("scripts/skills/backgrounds/char
 			"trait.superstitious"
 		];
 		this.m.Titles = [
-			"死灵法师",
+			"亡灵法师",
 			"黑巫师",
 			"掘墓者",
 			"亡者之主"

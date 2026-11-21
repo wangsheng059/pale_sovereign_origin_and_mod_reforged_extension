@@ -5,7 +5,9 @@ S.isActive <- function()
     if (!("Assets" in ::World) || ::World.Assets == null)
         return false;
     local origin = ::World.Assets.getOrigin();
-    return origin != null && origin.getID() == this.ID;
+    // MSU probes world serialization with a placeholder origin during startup.
+    local kind = typeof origin;
+    return (kind == "table" || kind == "instance") && origin.getID() == this.ID;
 };
 
 S.get <- function( _key )
@@ -26,6 +28,12 @@ S.oath <- function()
 S.isChief <- function( _actor )
 {
     return _actor != null && _actor.getFlags().has("PaleChief");
+};
+
+S.nameChief <- function( _chief )
+{
+    _chief.setName(this.ChiefName);
+    _chief.setTitle("");
 };
 
 S.chief <- function()

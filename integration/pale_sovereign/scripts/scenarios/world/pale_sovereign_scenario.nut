@@ -29,7 +29,7 @@ this.pale_sovereign_scenario <- ::inherit("scripts/scenarios/world/starting_scen
         chief.getSkills().add(::new("scripts/skills/traits/player_character_trait"));
         chief.getFlags().set("IsPlayerCharacter", true);
         chief.getFlags().set("PaleChief", true);
-        chief.setTitle("亡者之主");
+        s.nameChief(chief);
         chief.getItems().equip(s.makeGuard(true));
         chief.getSkills().update();
         s.spawnBrother("graverobber_background", ["armor/thick_tunic", "weapons/militia_spear", "shields/wooden_shield"], 4);

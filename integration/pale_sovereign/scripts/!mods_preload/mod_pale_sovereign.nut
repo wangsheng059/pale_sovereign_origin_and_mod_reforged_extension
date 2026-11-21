@@ -2,6 +2,7 @@
     ID = "scenario.pale_sovereign",
     Chief = "background.pale_necromancer",
     ChiefScript = "scripts/skills/backgrounds/pale_necromancer_background",
+    ChiefName = "亡灵法师导师",
     RosterLimit = 12,
     UndeadLimit = 6,
     PetLimit = 1,
@@ -14,14 +15,14 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.0.0", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.0.1", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.3");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_dynamic_perks", ">mod_AC", ">mod_reforged"], function()
 {
     if (!::BGP.HasAC)
         return;
-    foreach (file in ["company", "combat", "souls", "sites", "events", "hooks"])
+    foreach (file in ["company", "combat", "souls", "sites", "events", "hooks", "loading"])
         ::include("pale_sovereign/" + file);
 });
 

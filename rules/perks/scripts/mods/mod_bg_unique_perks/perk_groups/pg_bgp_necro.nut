@@ -3,8 +3,8 @@ this.pg_bgp_necro <- ::inherit(::DynamicPerks.Class.PerkGroup, {
 	function create()
 	{
 		this.m.ID = "pg.bgp_necro";
-		this.m.Name = "死灵法师";
-		this.m.Description = "死灵法师专属特技组。";
+		this.m.Name = "亡灵法师";
+		this.m.Description = "亡灵法师专属特技组。";
 		this.m.Icon = "ui/perk_groups/bgp_necro.png";
 		this.m.Tree = [
 			["perk.bgp_necro_arts"],

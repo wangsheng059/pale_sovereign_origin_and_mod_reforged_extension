@@ -46,7 +46,7 @@ this.bgp_necro_raise_skill <- ::inherit("scripts/skills/skill", {
 		if (::BGP.Necro.canRaiseAll(this.getContainer().getActor()))
 			ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "还能复活野兽、亡灵、兽人、地精的尸体" });
 		else
-			ret.push({ id = 12, type = "text", icon = "ui/icons/warning.png", text = "野兽、亡灵、兽人、地精的尸体只有死灵法师能复活" });
+			ret.push({ id = 12, type = "text", icon = "ui/icons/warning.png", text = "野兽、亡灵、兽人、地精的尸体只有亡灵法师能复活" });
 		ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "复活的单位是友军，但由 AI 控制，不能直接操控；同时存在的数量没有上限" });
 		return ret;
 	}

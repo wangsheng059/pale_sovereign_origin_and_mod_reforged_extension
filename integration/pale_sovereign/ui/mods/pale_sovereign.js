@@ -1,4 +1,20 @@
 (function () {
+    var createLoadingScreen = LoadingScreen.prototype.createDIV;
+    LoadingScreen.prototype.createDIV = function (parent) {
+        createLoadingScreen.call(this, parent);
+        this.mPaleDefaultLoadingTitle = this.mTipOfTheDayLabel.siblings(".title").text();
+    };
+
+    var showLoadingScreen = LoadingScreen.prototype.show;
+    LoadingScreen.prototype.show = function (data) {
+        showLoadingScreen.call(this, data);
+        if (this.mTipOfTheDayLabel !== null) {
+            this.mTipOfTheDayLabel.siblings(".title").text(
+                data && data.PaleSovereignTitle ? data.PaleSovereignTitle : this.mPaleDefaultLoadingTitle
+            );
+        }
+    };
+
     var champion = [
         "perk.bgp_necro_possess", "perk.bgp_necro_flesh_reforge",
         "perk.bgp_necro_mind_meld", "perk.bgp_necro_infusion", "perk.bgp_necro_undying_champion"
