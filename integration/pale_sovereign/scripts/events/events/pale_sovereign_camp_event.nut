@@ -1,0 +1,24 @@
+this.pale_sovereign_camp_event <- ::inherit("scripts/events/event", {
+    m = { Page = "camp", Message = "" },
+    function create()
+    {
+        this.m.ID = "event.pale_sovereign_camp";
+        this.m.Title = "亡灵主宰";
+        this.m.Cooldown = 0;
+        foreach (page in ["camp", "soul", "shovels", "evolve", "banner", "crown", "empty", "smith", "whispers", "mortuary", "parts", "porter", "lantern", "dice", "apprentice", "harvest", "result"])
+        {
+            this.m.Screens.push({
+                ID = page, Text = "", Image = "", List = [], Characters = [], Options = [],
+                function start( _event )
+                {
+                    ::PaleSovereign.renderEvent(_event, this);
+                }
+            });
+        }
+    }
+
+    function onDetermineStartScreen()
+    {
+        return this.m.Page;
+    }
+});

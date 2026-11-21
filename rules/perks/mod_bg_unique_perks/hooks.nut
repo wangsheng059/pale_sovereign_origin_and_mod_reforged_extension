@@ -28,7 +28,10 @@
 			local tree = __original();
 			local key = ::IO.scriptFilenameByHash(this.ClassNameHash);
 			if (key in ::BGP.ExclusiveMap)
-				::BGP.setExclusive(tree, [::BGP.ExclusiveMap[key]]);
+				{
+				local groups = ::BGP.ExclusiveMap[key];
+				::BGP.setExclusive(tree, typeof groups == "array" ? clone groups : [groups]);
+			}
 			return tree;
 		}
 	});

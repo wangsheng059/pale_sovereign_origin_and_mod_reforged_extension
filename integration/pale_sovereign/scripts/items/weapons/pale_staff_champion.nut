@@ -1,0 +1,14 @@
+this.pale_staff_champion <- ::inherit("scripts/items/weapons/pale_staff", {
+    m = {},
+    function create()
+    {
+        this.pale_staff.create();
+        this.m.ID = "weapon.pale_staff_champion";
+        this.m.Name = "骸骨权杖";
+        this.m.Description = "镀铜的颅骨已将誓约刻入柄中。首席与冠军会合力追猎权杖标定的猎物。";
+        this.m.PaleForm = "_champion";
+        this.m.RegularDamage = 40;
+        this.m.RegularDamageMax = 70;
+        this.updatePaleIcons();
+    }
+});

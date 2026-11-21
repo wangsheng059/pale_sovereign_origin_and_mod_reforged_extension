@@ -808,6 +808,12 @@
   },
   "modules": [
     {
+      "directory": "integration/pale_sovereign",
+      "source": "mod_背景专属特技_1.6.1.zip",
+      "members": [],
+      "output": "zz_local_integration.zip"
+    },
+    {
       "directory": "rules/combat_xp",
       "source": "大规模战队更多经验加成.zip",
       "members": [
