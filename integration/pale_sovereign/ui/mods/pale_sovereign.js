@@ -1,4 +1,25 @@
 (function () {
+    var paleBanner = "banner_90";
+    var showCompanyPanel = NewCampaignMenuModule.prototype.showCompanyCrisisSelectionPanel;
+    NewCampaignMenuModule.prototype.showCompanyCrisisSelectionPanel = function () {
+        var scenario = this.mScenarios && this.mScenarios[this.mSelectedScenario];
+        var paleOrigin = scenario && scenario.ID === "scenario.pale_sovereign";
+        if (paleOrigin && !this.mPalePreviousBanners) {
+            this.mPalePreviousBanners = this.mBanners;
+            this.mPalePreviousBannerIndex = this.mCurrentBannerIndex;
+            this.mBanners = [paleBanner].concat(this.mBanners);
+            this.mCurrentBannerIndex = 0;
+        } else if (!paleOrigin && this.mPalePreviousBanners) {
+            this.mBanners = this.mPalePreviousBanners;
+            this.mCurrentBannerIndex = this.mPalePreviousBannerIndex;
+            this.mPalePreviousBanners = null;
+        }
+        if (this.mBanners && this.mBanners.length) {
+            this.mBannerImage.attr("src", Path.GFX + "ui/banners/" + this.mBanners[this.mCurrentBannerIndex] + ".png");
+        }
+        showCompanyPanel.call(this);
+    };
+
     var createLoadingScreen = LoadingScreen.prototype.createDIV;
     LoadingScreen.prototype.createDIV = function (parent) {
         createLoadingScreen.call(this, parent);
