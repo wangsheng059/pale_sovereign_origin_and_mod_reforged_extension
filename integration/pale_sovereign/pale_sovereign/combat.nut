@@ -70,31 +70,6 @@ S.isChampionActor <- function( _actor )
     return ::BGP.Champion.isGuard(_actor);
 };
 
-S.countTemporary <- function( _pet )
-{
-    local count = 0;
-    foreach (faction in ::Tactical.Entities.getAllInstances())
-    {
-        foreach (actor in faction)
-        {
-            if (actor == null || ::MSU.isNull(actor) || !actor.isAlive() || actor.isDying() || !actor.isPlacedOnMap())
-                continue;
-            if (actor.getFaction() != ::Const.Faction.PlayerAnimals)
-                continue;
-            local item = null;
-            try { item = actor.m.Item; } catch (e) {}
-            if ((_pet && item != null) || (!_pet && item == null && ::BGP.Necro.getMaster(actor) != null))
-                ++count;
-        }
-    }
-    return count;
-};
-
-S.canSummon <- function()
-{
-    return this.Battle == null || this.countTemporary(false) < this.SummonLimit;
-};
-
 S.placeShot <- function( _tile )
 {
     if (this.Battle == null)

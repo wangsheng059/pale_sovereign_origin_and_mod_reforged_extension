@@ -77,8 +77,6 @@ local oldFly = ::BGP.Necro.isFlySwarmMinion;
 local oldRaise = ::BGP.Necro.raise;
 ::BGP.Necro.raise = function( _actor, _tile )
 {
-    if (S.Battle != null && !S.canSummon())
-        return null;
     local entity = oldRaise(_actor, _tile);
     if (entity != null && S.Battle != null)
         entity.getFlags().set("PaleRaised", true);
@@ -458,22 +456,6 @@ mod.hook("scripts/skills/skill_container", function(q)
             properties.DamageTotalMult *= 1.2;
         }
         return properties;
-    };
-});
-
-mod.hook("scripts/skills/actives/bgp_necro_raise_skill", function(q)
-{
-    q.isUsable = @(__original) function()
-    {
-        return S.canSummon() && __original();
-    };
-});
-
-mod.hook("scripts/companions/onequip/companions_unleash", function(q)
-{
-    q.isUsable = @(__original) function()
-    {
-        return __original() && (S.Battle == null || S.countTemporary(true) < S.PetLimit);
     };
 });
 
