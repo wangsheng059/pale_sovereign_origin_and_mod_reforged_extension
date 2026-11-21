@@ -18,7 +18,7 @@ S.Souls <- [
       Scripts = [] },
     { Name = "军团统帅之魂", Icon = "ui/perks/perk_rf_legatus", Desc = "古帝国军团统帅的号令仍在骨缝间回响。近战技能 +5，近战防御 +5，决心 +10。",
       Scripts = ["rf_skeleton_legatus", "skeleton_boss"] },
-    { Name = "古帝祭司之魂", Icon = "ui/perks/perk_rf_terrifying_visage", Desc = "祭司与巫妖的禁咒烙在了它的骨头上。决心 +15；攻击命中后，目标以 −10 的难度做一次士气检定。",
+    { Name = "古帝祭司之魂", Icon = "ui/perks/perk_rf_terrifying_visage", Desc = "祭司与巫妖的禁咒烙在了它的骨头上。决心 +15；攻击命中后，目标陷入致盲（近战技能、远程技能 −15，持续到它的下一回合结束）。",
       Scripts = ["skeleton_priest", "skeleton_lich", "rf_draugr_shaman"] },
     { Name = "督军之魂", Icon = "ui/perks/perk_rf_feral_rage", Desc = "绿皮督军永不餍足的战意。击杀敌人后，立刻恢复 3 点行动点数。",
       Scripts = ["orc_warlord", "orc_berserker", "rf_zombie_orc_warlord", "rf_zombie_orc_berserker"] },
@@ -43,8 +43,6 @@ S.Souls <- [
     { Name = "上古神兽之魂", Icon = "ui/perks/perk_rf_formidable_approach", Desc = "古老神兽残存的神性。受到的所有伤害 −15%。",
       Scripts = ["trickster_god", "kraken"] }
 ];
-// 打倒后有机会掉落古代魂玉的首领
-S.BossScripts <- ["rf_skeleton_legatus", "skeleton_boss", "skeleton_lich", "rf_vampire_lord", "zombie_betrayer", "zombie_boss", "trickster_god", "kraken"];
 
 S.scriptBase <- function( _script )
 {
@@ -67,7 +65,7 @@ S.isAscended <- function()
 
 S.devourCap <- function( _pet )
 {
-    return 3 + this.petGet(_pet, "JadeCap") + (this.isAscended() && this.oath() == this.Oath.Champion ? 1 : 0);
+    return 3 + (this.isAscended() && this.oath() == this.Oath.Champion ? 1 : 0);
 };
 
 S.markThreshold <- function()

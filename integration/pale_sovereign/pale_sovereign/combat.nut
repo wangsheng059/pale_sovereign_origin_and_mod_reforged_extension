@@ -2,7 +2,7 @@ local S = ::PaleSovereign;
 
 S.beginBattle <- function( _night )
 {
-    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, Death = null, Bosses = 0 };
+    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, Death = null, Champions = 0 };
 };
 
 S.area <- function( _center )
@@ -137,8 +137,8 @@ S.onVictory <- function( _loot )
         ::World.Assets.addArmorParts(8);
         ::Tactical.EventLog.log("从巡逻队的遗物里搜刮出 8 点工具。");
     }
-    if (this.Battle.Bosses > 0 && this.oath() != this.Oath.None && ::Math.rand(1, 100) <= 50 && this.addMaterials("jade", 1))
-        ::Tactical.EventLog.log("首领的遗骸里滚出一枚冰冷的古代魂玉。");
+    if (this.Battle.Champions > 0 && this.oath() != this.Oath.None && ::Math.rand(1, 100) <= 50 && this.addMaterials("jade", 1))
+        ::Tactical.EventLog.log("冠军的遗骸里滚出一枚冰冷的古代魂玉。");
 
     local corpses = {};
     local soulFound = false;

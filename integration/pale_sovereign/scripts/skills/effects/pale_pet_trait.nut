@@ -99,7 +99,11 @@ this.pale_pet_trait <- ::inherit("scripts/skills/skill", {
         }
         else if (this.m.Species == 6 && _target != null && !::MSU.isNull(_target) && _target.isAlive() && !_target.isDying())
         {
-            try { _target.checkMorale(-1, -10); } catch (e) {}
+            local blind = _target.getSkills().getSkillByID("effects.pale_blind");
+            if (blind == null)
+                _target.getSkills().add(::new("scripts/skills/effects/pale_blind_effect"));
+            else
+                blind.m.Turns = 1;
         }
     }
 

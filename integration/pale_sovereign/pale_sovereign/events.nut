@@ -279,21 +279,15 @@ S.campPanel <- function( _screen )
                 });
             }
         }
-        if (pet != null && pet.m.PaleID == this.get("StarterID") && this.get("GuardWins") >= 5 && this.petGet(pet, "Promoted") == 0 && jade > 0)
-            this.option(_screen, "用 1 枚古代魂玉将古墓守卫晋升为尸妖王", function()
+        if (pet != null && pet.m.PaleID == this.get("StarterID") && this.get("GuardWins") >= 5 && this.petGet(pet, "Promoted") == 0 && jade >= 3)
+            this.option(_screen, "用 3 枚古代魂玉将古墓守卫晋升为尸妖王", function()
             {
-                if (!S.removeMaterial("jade"))
+                if (S.countItems("misc.pale_jade") < 3)
                     return null;
+                for (local i = 0; i < 3; ++i)
+                    S.removeMaterial("jade");
                 S.promoteGuard(pet);
-                return "导师将魂玉推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：永久 +15 生命、+5 近战技能、+5 近战防御、+10 决心）";
-            });
-        if (pet != null && jade > 0 && this.petGet(pet, "JadeCap") == 0)
-            this.option(_screen, "魂玉嵌棺 · 1 枚古代魂玉，" + pet.m.Name + " 吞魂上限 +1", function()
-            {
-                if (!S.removeMaterial("jade"))
-                    return null;
-                S.petSet(pet, "JadeCap", 1);
-                return "你把魂玉嵌进棺盖内侧的铜箍。棺中残魂的低语多了一层回声，它还能再容下一缕亡魂。\n\n（吞魂上限 +1，每个冠军限 1 次）";
+                return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：永久 +15 生命、+5 近战技能、+5 近战防御、+10 决心）";
             });
         if (pet != null && jade > 0 && this.petGet(pet, "JadeTemper") < 2)
             this.option(_screen, "魂玉淬骨 · 1 枚古代魂玉，" + pet.m.Name + " 8 项属性各 +2", function()

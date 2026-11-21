@@ -448,8 +448,8 @@ mod.hook("scripts/entity/tactical/actor", function(q)
         if (battle.Death.Eligible)
         {
             local fileName = S.scriptBase(battle.Death.Info.Script);
-            if (S.BossScripts.find(fileName) != null)
-                ++battle.Bosses;
+            if (this.getSkills().hasSkill("racial.champion"))
+                ++battle.Champions;
             if (fileName == "trickster_god")
                 S.set("Legend.Hunt", 1);
         }

@@ -125,19 +125,19 @@ S.inspectAncient <- function( _site )
 
     if (this.oath() == this.Oath.Champion)
     {
-        // 魂玉 15%、锁链 35%、其余是陪葬的古钱
+        // 魂玉 30%、锁链 60%、其余是陪葬的古钱
         local roll = ::Math.rand(1, 100);
         local found = null;
-        if (roll <= 50)
+        if (roll <= 90)
         {
-            local jade = roll <= 15;
+            local jade = roll <= 30;
             if (!this.addMaterials(jade ? "jade" : "chain", 1))
                 return "仓库没有空位，石棺里的东西仍留在遗址里。";
             found = jade ? "撬开石棺，从中取出一枚冰冷的古代魂玉。" : "撬开石棺，从枯骨的腕间解下一条尚能使用的缚魂锁链。";
         }
         else
         {
-            local coins = ::Math.rand(60, 120);
+            local coins = ::Math.rand(200, 300);
             ::World.Assets.addMoney(coins);
             found = "撬开石棺，里面只剩一些陪葬的古钱，折合 " + coins + " 克朗。";
         }
