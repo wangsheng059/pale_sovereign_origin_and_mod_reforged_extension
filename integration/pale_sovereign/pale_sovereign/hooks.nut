@@ -203,7 +203,12 @@ S.applyPartyLook <- function()
     local player = ::World.State.getPlayer();
     if (player == null || ::MSU.isNull(player))
         return;
-    try { player.getSprite("body").setBrush(this.PartyFigure); }
+    try
+    {
+        local body = player.getSprite("body");
+        body.setBrush(this.PartyFigure);
+        body.setHorizontalFlipping(true);
+    }
     catch (e) { ::logWarning("[PaleSovereign] party look: " + e); }
 };
 
