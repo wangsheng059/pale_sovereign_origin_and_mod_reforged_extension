@@ -7,7 +7,7 @@
     CombatLimit = 12,
     ScourgeRosterLimit = 20,
     ScourgeCombatLimit = 14,
-    ChampionUndeadLimit = 3,
+    ChampionUndeadLimit = 4,
     ReserveLimit = 40,
     Oath = { None = 0, Champion = 1, Scourge = 2 },
     OathNames = ["尚未立誓", "亡灵冠军", "亡灵天灾"],
