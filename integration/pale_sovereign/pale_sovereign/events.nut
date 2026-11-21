@@ -23,6 +23,15 @@ S.worldEvent <- function()
     if (this.NextWorldCheck > clock)
         return;
     this.NextWorldCheck = clock + 0.4;
+    this.deliverAmbitionItems();
+    this.followerWorldTick();
+    this.castleWorldTick();
+    this.conquestWorldTick();
+    if (this.CastlePage != null && ::World.State.m.LastEnteredTown == null && this.openEvent(this.CastlePage))
+    {
+        this.CastlePage = null;
+        return;
+    }
 
     if (this.get("IntroPending") != 0)
     {
@@ -39,7 +48,9 @@ S.worldEvent <- function()
         this.set("HarvestNotice", 0);
         return;
     }
-    if (this.canAscend() && this.openEvent("ascend"))
+    local ambition = ::World.Ambitions.getActiveAmbition();
+    local glimpse = ambition != null && ambition.getID() == "ambition.ps_forbidden_glimpse";
+    if (!glimpse && this.canAscend() && this.openEvent("ascend"))
         return;
 
     local camp = ::World.Assets.isCamping();
@@ -171,10 +182,8 @@ S.option <- function( _screen, _text, _apply )
             local result = _apply();
             if (result == null)
                 return 0;
-            if (result == "@camp")
-                return "camp";
-            if (result == "@jade")
-                return "jade";
+            if (result.slice(0, 1) == "@")
+                return result.slice(1);
             _event.m.Message = result;
             return "result";
         }
@@ -244,6 +253,11 @@ S.campPanel <- function( _screen )
             + "\n古墓守卫并肩胜仗　" + this.get("GuardWins") + " / 5";
     }
 
+    if (this.castleHere() != null)
+        this.option(_screen, "进入古堡工事", @() "@castle");
+    local occupied = this.findPaleTown();
+    if (occupied != null && this.conquestMode(occupied) == 2)
+        this.option(_screen, "亡者之城征召", @() "@conquest_recruit");
     if (!::World.Assets.isCamping())
     {
         _screen.Text += "\n\n扎营后可管理亡灵、勘察遗址和处理营地事务。";
@@ -324,8 +338,8 @@ S.campPanel <- function( _screen )
             });
         if (this.canRecruitUndead(site))
         {
-            this.option(_screen, "征召常驻骷髅（3 点防腐尸骸）", @() S.recruitUndead(site, true) ? "一具骷髅从盐封棺中坐起，加入了战团。" : "无法征召。");
-            this.option(_screen, "征召常驻行尸（3 点防腐尸骸）", @() S.recruitUndead(site, false) ? "一具行尸拖着僵硬的步子，加入了战团。" : "无法征召。");
+            this.option(_screen, "征召常驻骷髅（" + this.recruitCost() + " 点防腐尸骸）", @() S.recruitUndead(site, true) ? "一具骷髅从盐封棺中坐起，加入了战团。" : "无法征召。");
+            this.option(_screen, "征召常驻行尸（" + this.recruitCost() + " 点防腐尸骸）", @() S.recruitUndead(site, false) ? "一具行尸拖着僵硬的步子，加入了战团。" : "无法征召。");
         }
     }
 };
@@ -379,6 +393,32 @@ S.renderEvent <- function( _event, _screen )
         case "camp":
             title = "亡者的营地";
             this.campPanel(_screen);
+            break;
+
+        case "castle":
+        case "castle_forge":
+        case "castle_forge_0":
+        case "castle_forge_1":
+        case "castle_forge_2":
+        case "castle_forge_3":
+        case "castle_tombs":
+        case "castle_barracks":
+        case "castle_sacrifice":
+            title = "古堡";
+            art = "mortuary";
+            this.castlePanel(_screen);
+            break;
+
+        case "conquest_recruit":
+            title = "亡者之城";
+            art = "mortuary";
+            this.conquestRecruitPanel(_screen);
+            break;
+
+        case "conquest_governor":
+            title = "冠军坐镇";
+            art = "crown";
+            this.governorPanel(_screen);
             break;
 
         case "jade":
@@ -544,15 +584,16 @@ S.renderEvent <- function( _event, _screen )
         case "smith":
             title = "黑铁的私活";
             _screen.Text = "镇上的铁匠蹲在马车旁敲了敲旧棺上的铜箍，浑浊的眼睛里闪过一丝精明。他没有多问车厢里运的究竟是死人还是货物，只是吐了口唾沫，低声说这种老式封魂箍配的锁链如今市面上不好找，但他炉子里正好还有几块掺了墓土的生铁，愿意私下替你打几条。\n\n话音未落，他又瞥了眼你腰间隐约泛着碧光的布袋，显然是个识货的老手。";
-            if (assets.getMoney() >= 350 && assets.getArmorParts() >= 10)
-                this.option(_screen, "“350 金再加 10 点工具，给我打一条结实的。”", function()
+            local price = this.ambitionDone("first_soul_theft") ? 250 : 350;
+            if (assets.getMoney() >= price && assets.getArmorParts() >= 10)
+                this.option(_screen, "“" + price + " 金再加 10 点工具，给我打一条结实的。”", function()
                 {
                     if (!S.addMaterials("chain", 1))
                         return "仓库没有空位。";
-                    assets.addMoney(-350);
+                    assets.addMoney(-price);
                     assets.addArmorParts(-10);
                     S.set("SmithAfter", S.worldHours() + 240);
-                    return "铁匠拉上铺门，叮叮当当忙活了半宿。天亮时，一条沉重冰冷的黑铁锁链被油布包着塞进了你的马车。\n\n（消耗 350 金币与 10 点工具，获得 1 条缚魂锁链；墓土生铁用完了，10 天内不会再有铁匠接这种活）";
+                    return "铁匠拉上铺门，叮叮当当忙活了半宿。天亮时，一条沉重冰冷的黑铁锁链被油布包着塞进了你的马车。\n\n（消耗 " + price + " 金币与 10 点工具，获得 1 条缚魂锁链；墓土生铁用完了，10 天内不会再有铁匠接这种活）";
                 });
             if (this.countItems("misc.pale_jade") > 0)
                 this.option(_screen, "“这块古代魂玉归你，给我打两条锁链。”", function()

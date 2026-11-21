@@ -46,6 +46,11 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
         return !this.isHidden() && this.skill.isUsable();
     }
 
+    function onAfterUpdate( _properties )
+    {
+        this.m.FatigueCost = ::PaleSovereign.ambitionDone("laden_cart") ? 16 : 20;
+    }
+
     function onAnySkillUsed( _skill, _target, _properties )
     {
         if (_skill != this)
@@ -66,6 +71,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
         local s = ::PaleSovereign;
         if (this.isHidden() || !this.onVerifyTarget(_user.getTile(), _tile) || !s.changeReserve(-1))
             return false;
+        s.set("CorpseTossCount", s.get("CorpseTossCount") + 1);
         this.m.DivertedHit = false;
         if (!this.attackEntity(_user, _tile.getEntity()) && !this.m.DivertedHit)
         {

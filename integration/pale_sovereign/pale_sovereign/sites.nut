@@ -69,14 +69,14 @@ S.localSite <- function( _kind = 0, _cleared = false )
     return null;
 };
 
-S.revealAncient <- function()
+S.revealAncient <- function( _elite = false, _fresh = false )
 {
     local feet = ::World.State.getPlayer().getTile();
     local nearest = null;
     local distance = 100000;
     foreach (loc in ::World.EntityManager.getLocations())
     {
-        if (loc == null || !loc.isAlive() || !this.isAncientSite(loc))
+        if (loc == null || !loc.isAlive() || !this.isAncientSite(loc) || (_fresh && (loc.isDiscovered() || loc.getFlags().has("PaleRangerLead"))))
             continue;
         local tile = loc.getTile();
         local d = feet.getDistanceTo(tile);
@@ -90,8 +90,10 @@ S.revealAncient <- function()
         return null;
     nearest.setDiscovered(true);
     this.registerSite(nearest.getTile(), 1, nearest.getName(), 4, false);
-    if (this.oath() == this.Oath.Champion)
+    if (_elite || this.oath() == this.Oath.Champion)
         nearest.getFlags().set("PaleEliteLead", true);
+    if (_fresh)
+        nearest.getFlags().set("PaleRangerLead", true);
     return nearest.getName();
 };
 
@@ -128,12 +130,20 @@ S.inspectAncient <- function( _site )
         // 魂玉 30%、锁链 60%、其余是陪葬的古钱
         local roll = ::Math.rand(1, 100);
         local found = null;
-        if (roll <= 90)
+        local scout = this.followerRank("gravekeeper") >= 2;
+        local jade = roll <= (scout ? 35 : 30);
+        local chain = roll > 30 && (scout || roll <= 90);
+        if (jade || chain)
         {
-            local jade = roll <= 30;
-            if (!this.addMaterials(jade ? "jade" : "chain", 1))
-                return "仓库没有空位，石棺里的东西仍留在遗址里。";
-            found = jade ? "撬开石棺，从中取出一枚冰冷的古代魂玉。" : "撬开石棺，从枯骨的腕间解下一条尚能使用的缚魂锁链。";
+            local needed = jade && chain ? 2 : 1;
+            if (::World.Assets.getStash().getNumberOfEmptySlots() < needed)
+                return "仓库没有足够的空位，石棺里的东西仍留在遗址里。";
+            if (jade)
+                this.addMaterials("jade", 1);
+            if (chain)
+                this.addMaterials("chain", 1);
+            found = jade && chain ? "撬开石棺，同时取出古代魂玉和缚魂锁链。"
+                : jade ? "撬开石棺，从中取出一枚冰冷的古代魂玉。" : "撬开石棺，从枯骨的腕间解下一条尚能使用的缚魂锁链。";
         }
         else
         {
@@ -155,8 +165,18 @@ S.inspectAncient <- function( _site )
         this.changeReserve(supply);
         this.set(_site.Key + "Inspected", 1);
         local text = "清点地宫角落后，从遗址中回收了 " + (this.get("Reserve") - before) + " 点防腐尸骸。库存 " + before + " → " + this.get("Reserve") + "。";
-        if (this.get(_site.Key + "Kind") == 1 && ::Math.rand(1, 100) <= 10 && this.addMaterials("jade", 1))
-            text += "盗墓贼还在一具裹尸布里摸到了一枚古代魂玉。";
+        local ruins = this.get(_site.Key + "Kind") == 1;
+        local scout = this.followerRank("gravekeeper") >= 2;
+        if (ruins && ::Math.rand(1, 100) <= (scout ? 15 : 10))
+        {
+            this.pendingItem("misc/pale_jade_item");
+            text += "盗墓贼还从裹尸布里摸到一枚古代魂玉。";
+        }
+        if (ruins && scout && ::Math.rand(1, 100) <= 10)
+        {
+            this.pendingItem("misc/pale_chain_item");
+            text += "石棺里还留着一条缚魂锁链。";
+        }
         return text;
     }
     return "立誓后可勘察这处遗址。";
@@ -165,17 +185,36 @@ S.inspectAncient <- function( _site )
 S.SkeletonTitles <- ["盐封骷髅", "铜索枯骨", "墓穴哨兵", "锈刃骸骨", "无名骨卒", "荒冢白骨"];
 S.ZombieTitles <- ["缝合行尸", "盐渍尸卒", "腐土力士", "裹尸重步", "僵步死士", "墓泥行尸"];
 
-S.canRecruitUndead <- function( _site )
+S.revealLegendarySites <- function()
+{
+    foreach (site in ::World.EntityManager.getLocations())
+    {
+        if (site == null || !site.isAlive())
+            continue;
+        local name = this.scriptBase(::IO.scriptFilenameByHash(site.ClassNameHash));
+        if (name in this.LegendSites && (site.m.LocationType & ::Const.World.LocationType.Unique) != 0
+            && this.get("Legend." + this.LegendSites[name]) == 0)
+            site.setDiscovered(true);
+    }
+};
+
+S.recruitCost <- function()
+{
+    return this.ambitionDone("ranks_of_dead") ? 2 : 3;
+};
+
+S.canRecruitUndead <- function( _site, _price = 0 )
 {
     local limit = this.permanentUndeadLimit();
-    return _site != null && this.get(_site.Key + "Recruited") == 0
-        && this.get("Reserve") >= 3 && (limit == null || this.undead().len() < limit)
+    local price = _price > 0 ? _price : this.recruitCost();
+    return (_site == null || this.get(_site.Key + "Recruited") == 0)
+        && this.get("Reserve") >= price && price > 0 && (limit == null || this.undead().len() < limit)
         && ::World.getPlayerRoster().getSize() < ::World.Assets.getBrothersMax();
 };
 
-S.recruitUndead <- function( _site, _skeleton )
+S.recruitUndead <- function( _site, _skeleton, _price = 0, _levels = 0 )
 {
-    if (!this.canRecruitUndead(_site))
+    if (!this.canRecruitUndead(_site, _price))
         return false;
     local name = _skeleton ? "pale_skeleton_background" : "pale_zombie_background";
     local equipment = _skeleton
@@ -189,8 +228,11 @@ S.recruitUndead <- function( _site, _skeleton )
     bro.setTitle(titles[::Math.rand(0, titles.len() - 1)]);
     bro.m.MoraleState = ::Const.MoraleState.Ignore;
     this.applyUndeadLook(bro);
-    this.changeReserve(-3);
-    this.set(_site.Key + "Recruited", 1);
+    this.changeReserve(-(_price > 0 ? _price : this.recruitCost()));
+    if (_site != null)
+        this.set(_site.Key + "Recruited", 1);
+    if (_levels > 0)
+        this.castleTrain(bro, _levels);
     ::World.Assets.updateFormation(true);
     return true;
 };

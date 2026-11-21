@@ -61,6 +61,14 @@ local oldScale = ::BGP.NecroPet.applyScaling;
     ::BGP.Necro.copySocket(chief, _entity);
     ::BGP.Necro.markMinion(chief, _entity);
     S.applyPetProgress(item, _entity);
+    if (S.petGet(item, "Gilded") != 0 && "gildArmor" in S)
+        S.gildArmor(_entity);
+    S.addBattleBoons(_entity);
+    if (S.followerRank("wight_captain") >= 3 && ::Time.getRound() <= 1
+        && !_entity.getSkills().hasSkill("effects.pale_wight_order"))
+        _entity.getSkills().add(::new(S.SkillDir + "effects/pale_wight_order_effect"));
+    if (S.ambitionDone("immortal_guard") && !_entity.getSkills().hasSkill("effects.pale_guard_shield"))
+        _entity.getSkills().add(::new(S.SkillDir + "effects/pale_guard_shield"));
 };
 
 local oldFly = ::BGP.Necro.isFlySwarmMinion;
@@ -81,6 +89,8 @@ local oldRaise = ::BGP.Necro.raise;
     if (entity != null && S.Battle != null)
     {
         entity.getFlags().set("PaleRaised", true);
+        if (_actor != null && _actor.isPlayerControlled())
+            S.addBattleBoons(entity);
         if (S.isAscended() && S.oath() == S.Oath.Scourge && _actor != null && _actor.isPlayerControlled()
             && !entity.getSkills().hasSkill("effects.pale_dominion"))
             entity.getSkills().add(::new(S.SkillDir + "effects/pale_dominion_effect"));
@@ -246,15 +256,23 @@ mod.hook("scripts/states/world/asset_manager", function(q)
             return __original(_state);
         local dayBefore = this.m.LastDayPaid;
         S.BlockWorldHealing = true;
+        local recovery = this.m.HitpointsPerHourMult;
+        if (S.followerRank("blood_steward") > 0)
+            this.m.HitpointsPerHourMult *= 1.20;
         try { __original(_state); }
         catch (e)
         {
+            this.m.HitpointsPerHourMult = recovery;
             S.BlockWorldHealing = false;
             throw e;
         }
+        this.m.HitpointsPerHourMult = recovery;
         S.BlockWorldHealing = false;
-        if (this.m.LastDayPaid != dayBefore && S.oath() != S.Oath.None)
-            S.repairUndead();
+        if (this.m.LastDayPaid != dayBefore)
+        {
+            S.castleDaily();
+            S.conquestDay();
+        }
 
         if (this.m.LastDayPaid != dayBefore && S.get("StenchUntil") > S.worldHours())
             foreach (bro in S.humans())
@@ -282,6 +300,7 @@ mod.hook("scripts/entity/world/player_party", function(q)
         local radius = __original();
         if (!S.isActive() || ::World.getTime().IsDaytime)
             return radius;
+        radius *= S.followerRank("banshee") >= 2 ? 1.15 : 1.0;
         local mult = ::World.getGlobalVisibilityMult();
         return mult > 0 && mult < 1.0 ? radius * ((1.0 + mult) * 0.5) / mult : radius;
     };
@@ -369,9 +388,11 @@ mod.hook("scripts/states/world_state", function(q)
         return result;
     };
 
-    q.onDeserialize = @(__original) function( _in )
+    q.onDeserialize = @(__original) function( ... )
     {
-        local ret = __original(_in);
+        local args = [this];
+        args.extend(vargv);
+        local ret = __original.acall(args);
         S.applyPartyLook();
         if (S.isActive())
             S.applyRosterLimits();
@@ -382,6 +403,7 @@ mod.hook("scripts/states/world_state", function(q)
     {
         S.Battle = null;
         S.NextWorldCheck = 0;
+        S.CastlePage = null;
         local result = __original(_file);
         if (this.m.WorldScreen != null)
             this.m.WorldScreen.updateAssetsInformation();
@@ -397,6 +419,7 @@ mod.hook("scripts/states/tactical_state", function(q)
         if (S.isActive() && _properties != null)
         {
             S.beginBattle("PaleNight" in _properties ? _properties.PaleNight : !::World.getTime().IsDaytime);
+            S.Battle.SiegeFight = ["Stronghold", "ConquestSiege", "ConquestAssault"].find(_properties.CombatID) != null;
             local pet = S.mainPet();
             S.set("FightingPet", pet == null ? 0 : S.petID(pet));
         }
@@ -417,7 +440,16 @@ mod.hookTree("scripts/entity/world/location", function(q)
     {
         if (S.Battle != null && S.isAncientSite(this) && this.isAlive() && this.getTroops().len() == 0
             && ::World.Statistics.getFlags().getAsInt("LastCombatResult") == 1)
+        {
             S.registerSite(this.getTile(), 1, this.getName(), 4, true);
+            if (!S.Battle.AncientCleared)
+            {
+                S.Battle.AncientCleared = true;
+                S.set("AncientRuinWins", S.get("AncientRuinWins") + 1);
+                if (S.followerRank("gravekeeper") >= 3)
+                    S.pendingItem(::Math.rand(0, 1) == 0 ? "weapons/ancient/ancient_sword" : "loot/ancient_gold_coins_item");
+            }
+        }
         if (S.Battle != null && ::World.Statistics.getFlags().getAsInt("LastCombatResult") == 1)
             S.recordLegend(this);
         return __original();
@@ -461,7 +493,13 @@ mod.hook("scripts/entity/tactical/actor", function(q)
         try
         {
             local result = __original(_killer, _skill, _fatality, _silent);
+            local eligible = battle.Death.Eligible;
             battle.Death = former;
+            if (eligible && (!this.isAlive() || this.isDying()))
+            {
+                ++battle.DefenseDead;
+                S.followerOnKill(_killer);
+            }
             return result;
         }
         catch (e)
@@ -474,6 +512,17 @@ mod.hook("scripts/entity/tactical/actor", function(q)
 
 mod.hook("scripts/entity/tactical/tactical_entity_manager", function(q)
 {
+    q.spawn = @(__original) function( _properties )
+    {
+        local result = __original(_properties);
+        if (S.Battle != null)
+        {
+            S.Battle.UndeadDeployed = this.getInstancesOfFaction(::Const.Faction.Player)
+                .filter(@(_, actor) actor.isPlacedOnMap() && S.isUndead(actor)).len();
+        }
+        return result;
+    };
+
     q.addCorpse = @(__original) function( _tile )
     {
         local result = __original(_tile);
@@ -506,6 +555,8 @@ mod.hook("scripts/skills/skill_container", function(q)
         local actor = this.getActor();
         if (S.Battle != null && actor.isPlayerControlled())
         {
+            if (S.isChief(actor) || S.isUndead(actor))
+                S.addBattleBoons(actor);
             if (S.oath() == S.Oath.Scourge && !this.hasSkill("actives.pale_corpse_shot"))
                 this.add(::new(S.SkillDir + "actives/pale_corpse_shot"));
             if (S.isUndead(actor))

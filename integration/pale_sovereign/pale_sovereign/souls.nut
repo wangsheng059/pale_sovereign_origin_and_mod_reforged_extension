@@ -70,7 +70,7 @@ S.devourCap <- function( _pet )
 
 S.markThreshold <- function()
 {
-    return this.isAscended() && this.oath() == this.Oath.Champion ? 50 : 35;
+    return (this.isAscended() && this.oath() == this.Oath.Champion ? 50 : 35) + (this.followerRank("wight_captain") >= 2 ? 5 : 0);
 };
 
 S.isCoffin <- function( _item )
@@ -280,10 +280,11 @@ S.resolveSoul <- function( _choice )
     }
     else if (_choice == "inherit")
     {
+        this.petSet(pet, "Inherited", 1);
         if (this.get("SoulChampion") != 0)
             this.petSet(pet, "ChampionRacial", 1);
         local script = ::World.Flags.get("Pale.Soul.Weapon");
-        if (script != null && script != "")
+        if (typeof script == "string" && script.len() > 0)
         {
             this.petSet(pet, "Weapon", script);
             this.petSet(pet, "WeaponName", ::World.Flags.get("Pale.Soul.WeaponName"));
@@ -300,6 +301,7 @@ S.resolveSoul <- function( _choice )
         return false;
     }
     this.removeMaterial("chain");
+    this.set("SoulInfusions", this.get("SoulInfusions") + 1);
     this.set("PendingSoul", 0);
     pet.updateCompanion();
     return true;
@@ -313,7 +315,7 @@ S.applyPetProgress <- function( _pet, _entity )
     local flags = ::World.Flags;
     local prefix = "Pale." + this.petKey(id, "");
     local weaponPath = flags.get(prefix + "Weapon");
-    if (weaponPath != null && weaponPath != "")
+    if (typeof weaponPath == "string" && weaponPath.len() > 0)
     {
         local weapon = ::new(weaponPath);
         weapon.m.PaleReplica <- true;

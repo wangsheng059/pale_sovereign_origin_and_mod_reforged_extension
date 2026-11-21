@@ -1,0 +1,8 @@
+{
+  "source": "mod_conquest_cn攻城.zip",
+  "member": "ui/mods/conquest/town_button.js",
+  "before": "b00af2e7dd080cdfae2c471025e75e46ddc5f59a04c989c2dd041383d72a2f4b",
+  "after": "2450144c9078a313c7afd8cd25ed05470b253246c044fdc30a4dd581eed9ae4c",
+  "old": "        this.mConquestLayout.removeClass('display-none').addClass('display-block');\r\n    }\r\n};",
+  "new": "        this.mConquestLayout.removeClass('display-none').addClass('display-block');\r\n    }\r\n    else if (this.mConquestLayout)\r\n    {\r\n        this.mConquestLayout.removeClass('display-block').addClass('display-none');\r\n    }\r\n};"
+}

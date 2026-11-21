@@ -723,6 +723,23 @@
       "literal_require_calls": [
         ".require(\"mod_AC\", \"mod_pandoras_hobby\");"
       ]
+    },
+    {
+      "number": 55,
+      "name": "mod_conquest_cn攻城.zip",
+      "archive": "data_removed_mods/mod_conquest_cn攻城.zip",
+      "modular_only": true,
+      "sha256": "266c2da20f7bd1f3a4a4a7d3c0c8474fcf1907e84d06641b0714dceb384319e6",
+      "output": "zz_local_campaign.zip",
+      "preload": [
+        "scripts/!mods_preload/mod_conquest.nut"
+      ],
+      "literal_registry_ids": [
+        "mod_conquest"
+      ],
+      "literal_require_calls": [
+        ".require(\"mod_msu >= 1.2.0\");"
+      ]
     }
   ],
   "conflicts": {
@@ -1280,6 +1297,7 @@
     }
   ],
   "patches": [
+    "patches/conquest/hide_blocked_assault.json",
     "patches/pandora/champion_sample.json",
     "patches/companions/tame_mult_setting.json",
     "patches/companions/tame_mult_fallback.json",

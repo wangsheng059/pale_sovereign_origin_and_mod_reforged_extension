@@ -2,7 +2,7 @@ local S = ::PaleSovereign;
 
 S.beginBattle <- function( _night )
 {
-    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, Death = null, Champions = 0 };
+    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0 };
 };
 
 S.area <- function( _center )
@@ -126,12 +126,17 @@ S.recordCorpse <- function( _corpse )
 
 S.onVictory <- function( _loot )
 {
-    if (this.Battle == null || this.chief() == null)
+    if (this.Battle == null || this.Battle.Won || this.chief() == null)
         return;
     local strategic = ::Tactical.State.getStrategicProperties();
     if (strategic != null && strategic.IsArenaMode)
         return;
+    this.Battle.Won = true;
     this.set("Victories", this.get("Victories") + 1);
+    if (this.Battle.Night)
+        this.set("NightWins", this.get("NightWins") + 1);
+    if (this.Battle.UndeadDeployed >= 4)
+        this.set("UndeadSquadWins", this.get("UndeadSquadWins") + 1);
     if (strategic != null && strategic.CombatID == "PaleLantern" && this.oath() == this.Oath.Champion && ::Math.rand(1, 100) <= 50)
     {
         ::World.Assets.addArmorParts(8);
@@ -154,12 +159,13 @@ S.onVictory <- function( _loot )
         if (mark != null && "PaleSoul" in corpse && corpse.PaleSoul == mark.Target && corpse.IsHeadAttached)
             soulFound = true;
     }
-    if (this.oath() != this.Oath.None)
+    if (!this.castleDefenseLoot(strategic, this.Battle.DefenseDead) && this.oath() != this.Oath.None)
     {
         local before = this.get("Reserve");
-        this.changeReserve((corpses.len() / 2).tointeger());
+        local embalmer = this.followerRank("embalmer") > 0;
+        this.changeReserve(embalmer ? (corpses.len() * 2 / 3).tointeger() : (corpses.len() / 2).tointeger());
         local gathered = this.get("Reserve") - before;
-        this.Battle.Uncollected = corpses.len() - gathered * 2;
+        this.Battle.Uncollected = corpses.len() - (embalmer ? ::Math.ceil(gathered * 1.5) : gathered * 2);
         this.set("LastHarvest", gathered);
         this.set("LastCorpseCount", corpses.len());
         this.set("HarvestNotice", 1);
@@ -182,6 +188,7 @@ S.onVictory <- function( _loot )
     }
     if (soulFound && pet != null && pet.m.PaleID == mark.PetID)
         this.saveSoul(mark);
+    this.followerVictory();
 };
 
 S.applyUndeadLook <- function( _bro )

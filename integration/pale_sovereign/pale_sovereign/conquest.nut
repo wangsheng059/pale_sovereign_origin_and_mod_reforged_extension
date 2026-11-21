@@ -1,0 +1,433 @@
+local S = ::PaleSovereign;
+local C = ::Conquest;
+
+C.canTarget <- function( _town )
+{
+    if (_town == null || ::MSU.isNull(_town) || !_town.isAlive() || !_town.isActive())
+        return false;
+    local owner = _town.getOwner();
+    return owner == null || ::MSU.isNull(owner) || owner.getType() != ::Const.FactionType.Player;
+};
+
+C.getNearbySettlement = function()
+{
+    local player = ::World.State.getPlayer();
+    local nearest = null;
+    local distance = 2;
+    foreach (town in ::World.EntityManager.getSettlements())
+    {
+        if (!C.canTarget(town))
+            continue;
+        local d = town.getTile().getDistanceTo(player.getTile());
+        if (d < distance)
+        {
+            distance = d;
+            nearest = town;
+        }
+    }
+    return nearest;
+};
+
+S.conquestMode = function( _town )
+{
+    if (!S.isActive() || _town == null || ::MSU.isNull(_town))
+        return 0;
+    local mode = _town.getFlags().getAsInt("PaleConquestMode");
+    return mode > 0 && C.isOwnedByPlayer(_town) ? mode : 0;
+};
+
+S.conquestChoose <- function( _town, _mode )
+{
+    if (_town == null || !C.isOwnedByPlayer(_town) || _town.getFlags().get("PaleConquestPending") != true)
+        return null;
+    local flags = _town.getFlags();
+    local contracts = clone _town.getContracts();
+    flags.set("PaleConquestMode", _mode);
+    flags.set("PaleConquestPending", false);
+    if (_mode == 1)
+        return "你维持了城镇的日常运转。恐惧税使税收 +25%，城镇每周失去 1 点繁荣度。";
+
+    foreach (contract in contracts)
+        if (!contract.isActive())
+            ::World.Contracts.removeContract(contract);
+    this.changeReserve(20);
+    local affected = {};
+    foreach (neighbor in ::World.EntityManager.getSettlements())
+    {
+        if (neighbor == _town || !neighbor.isAlive() || !C.canTarget(neighbor) || C.isOwnedByPlayer(neighbor)
+            || neighbor.getTile().getDistanceTo(_town.getTile()) > 10)
+            continue;
+        local faction = neighbor.getFactionOfType(::Const.FactionType.Settlement);
+        if (faction == null)
+            faction = C.getDefenderFaction(neighbor);
+        if (faction == null || faction.getID() in affected)
+            continue;
+        affected[faction.getID()] <- true;
+        faction.addPlayerRelation(-20.0, "相邻城镇成了亡者之城");
+        neighbor.updatePlayerRelation();
+    }
+    _town.updateRoster(true);
+    local label = _town.getLabel("name");
+    if (label != null)
+        label.Text = _town.getName();
+    return "城镇成为亡者之城。收集 20 点防腐尸骸，周边定居点关系 −20。这里此后不再有活人招募、合同或税收。";
+};
+
+S.conquestChoices <- function( _screen, _town )
+{
+    this.option(_screen, "统治 · 恐惧税 +25%，每周繁荣度 −1", @() S.conquestChoose(_town, 1));
+    this.option(_screen, "屠城 · 建立亡者之城，收集 20 点尸骸", @() S.conquestChoose(_town, 2));
+};
+
+S.Mod.hook("scripts/events/events/conquest_assault_event", function(q)
+{
+    q.create = @(__original) function()
+    {
+        __original();
+        foreach (screen in this.m.Screens)
+        {
+            if (screen.ID != "Victory")
+                continue;
+            local start = screen.start;
+            screen.start = function( _event )
+            {
+                if (!S.isActive() || _event.m.Town == null || _event.m.Town.isNull())
+                    return start.call(this, _event);
+                local town = _event.m.Town.get();
+                if (!C.isOwnedByPlayer(town))
+                {
+                    start.call(this, _event);
+                    town.getFlags().set("PaleConquestPending", true);
+                }
+                this.Options = [];
+                this.Text = "城门已经打开。活人伏在街石上，静等导师的裁决。";
+                this.List = [];
+                foreach (mode in [1, 2])
+                {
+                    this.Options.push({
+                        Text = mode == 1 ? "统治 · 恐惧税 +25%，每周繁荣度 −1" : "屠城 · 建立亡者之城，收集 20 点尸骸",
+                        function getResult( _ev )
+                        {
+                            S.conquestChoose(town, mode);
+                            return 0;
+                        }
+                    });
+                }
+            };
+        }
+    };
+});
+
+S.Mod.hookTree("scripts/entity/world/settlement", function(q)
+{
+    q.getUIInformation = @(__original) function()
+    {
+        local info = __original();
+        if (!C.canTarget(this))
+        {
+            if ("ConquestOwned" in info) delete info.ConquestOwned;
+            if ("ConquestLabel" in info) delete info.ConquestLabel;
+        }
+        return info;
+    };
+
+    q.updateRoster = @(__original) function( _force = false )
+    {
+        if (S.conquestMode(this) != 2)
+            return __original(_force);
+        local roster = ::World.getRoster(this.getID());
+        if (roster != null)
+            roster.clear();
+    };
+
+    q.getContracts = @(__original) function()
+    {
+        return S.conquestMode(this) == 2 ? [] : __original();
+    };
+
+    q.getName = @(__original) function()
+    {
+        local name = __original();
+        return S.conquestMode(this) == 2 ? name + "（亡者之城）" : name;
+    };
+});
+
+S.Mod.hook("scripts/ui/screens/world/modules/world_town_screen/town_main_dialog_module", function(q)
+{
+    q.onConquestButtonPressed = @(__original) function()
+    {
+        if (C.canTarget(::World.State.getCurrentTown()))
+            __original();
+    };
+});
+
+S.Mod.hook("scripts/factions/settlement_faction", function(q)
+{
+    q.isReadyForContract = @(__original) function()
+    {
+        return (this.m.Settlements.len() == 0 || S.conquestMode(this.m.Settlements[0]) != 2) && __original();
+    };
+});
+
+local tax = C.getTax;
+C.getTax = function( _town )
+{
+    local mode = S.conquestMode(_town);
+    return mode == 2 ? 0 : mode == 1 ? ::Math.round(tax(_town) * 1.25) : tax(_town);
+};
+
+local upkeep = C.getGarrisonUpkeep;
+C.getGarrisonUpkeep = function()
+{
+    local total = upkeep();
+    if (S.isActive())
+        foreach (town in C.getOwnedSettlements())
+            if (S.conquestMode(town) > 0)
+                total -= C.Garrison[C.getGarrisonLevel(town)].Upkeep;
+    return total;
+};
+
+local getGarrison = C.getGarrisonLevel;
+local maxGarrison = C.Garrison.len() - 1;
+local championGarrison = clone C.Garrison[maxGarrison];
+championGarrison.Name = "冠军统领的亡灵驻军";
+championGarrison.En = championGarrison.Name;
+championGarrison.Resources += C.Garrison[maxGarrison].Resources - C.Garrison[maxGarrison - 1].Resources;
+championGarrison.HoldChance = ::Math.min(95, championGarrison.HoldChance + 15);
+C.Garrison.push(championGarrison);
+C.getGarrisonLevel = function( _town )
+{
+    local flags = _town.getFlags();
+    local bonus = S.conquestMode(_town) > 0 && flags.get("PaleGovernor") == true
+        && flags.get("PaleGarrisonHungry") != true ? 1 : 0;
+    return ::Math.min(maxGarrison, getGarrison(_town)) + bonus;
+};
+
+local hireGarrison = C.hireGarrison;
+C.hireGarrison = function( _town )
+{
+    if (getGarrison(_town) < maxGarrison && S.conquestMode(_town) == 0)
+        hireGarrison(_town);
+};
+
+local taxes = C.updateTaxes;
+C.updateTaxes = function()
+{
+    local flags = ::World.Statistics.getFlags();
+    local before = flags.get("ConquestLastTaxDay");
+    taxes();
+    if (!S.isActive() || before == false || before == flags.get("ConquestLastTaxDay"))
+        return;
+    foreach (town in C.getOwnedSettlements())
+    {
+        local mode = S.conquestMode(town);
+        if (mode == 0)
+            continue;
+        local localFlags = town.getFlags();
+        if (mode == 1)
+            localFlags.set("ConquestProsperity", ::Math.max(0, C.getProsperity(town) - 1));
+        local level = getGarrison(town);
+        if (level > 0 || localFlags.get("PaleGovernor") == true)
+        {
+            local paid = S.changeReserve(-3);
+            localFlags.set("PaleGarrisonHungry", !paid && level == 0);
+            if (!paid)
+            {
+                localFlags.set("ConquestGarrison", ::Math.max(0, level - 1));
+                localFlags.set("ConquestLastResult", "本周防腐尸骸不足，亡灵驻军降级。");
+            }
+        }
+    }
+};
+
+S.CemeteryDef <- {
+    Key = "pale_cemetery", Name = "墓园", En = "墓园", Days = 2, Cost = 500,
+    Terrain = [::Const.World.TerrainType.Plains, ::Const.World.TerrainType.Steppe, ::Const.World.TerrainType.Hills,
+        ::Const.World.TerrainType.Forest, ::Const.World.TerrainType.AutumnForest, ::Const.World.TerrainType.Farmland,
+        ::Const.World.TerrainType.Snow, ::Const.World.TerrainType.Badlands, ::Const.World.TerrainType.Desert],
+    Near = [], Distance = 2
+};
+C.Buildings.push(S.CemeteryDef);
+
+local buildable = C.getBuildable;
+C.getBuildable = function( _town )
+{
+    local result = buildable(_town);
+    return S.conquestMode(_town) > 0 ? result : result.filter(@(_, def) def.Key != "pale_cemetery");
+};
+
+S.conquestDay = function()
+{
+    foreach (town in C.getOwnedSettlements())
+        if (S.conquestMode(town) > 0)
+            foreach (attached in town.getActiveAttachedLocations())
+                if (attached.getTypeID() == "attached_location.pale_cemetery")
+                    S.changeReserve(1);
+};
+
+S.findPaleTown = function()
+{
+    local town = C.getNearbySettlement();
+    return town != null && S.conquestMode(town) > 0 ? town : null;
+};
+
+S.conquestRecruitPanel <- function( _screen )
+{
+    local town = this.findPaleTown();
+    _screen.Text = "街道上再无人声。导师的随从在空置的房屋间整顿新编入列的死者。";
+    if (town == null || this.conquestMode(town) != 2)
+    {
+        _screen.Text = "需要在一座亡者之城旁边。";
+        return;
+    }
+    local price = this.recruitCost();
+    foreach (skeleton in [true, false])
+        if (this.canRecruitUndead(null))
+            this.option(_screen, "征召" + (skeleton ? "骷髅" : "行尸") + "（" + price + " 点尸骸）",
+                @() S.recruitUndead(null, skeleton) ? "新兵已加入战团。" : "无法征召。");
+};
+
+local startSiege = C.startSiege;
+C.startSiege = function( _town, _faction )
+{
+    local flags = _town.getFlags();
+    local holy = S.conquestMode(_town) > 0 && flags.getAsInt("ConquestFormerOwner") == _faction.getID() && ::Math.rand(1, 100) <= 50;
+    flags.set("PaleHolySiege", holy);
+    startSiege(_town, _faction);
+    if (holy)
+        flags.set("ConquestLastResult", "猎巫人与执誓者率圣火讨伐军来袭，兵力 +25%。");
+};
+
+local strength = C.getSiegeStrength;
+C.getSiegeStrength = function( _town )
+{
+    return strength(_town) * (_town.getFlags().get("PaleHolySiege") == true ? 1.25 : 1.0);
+};
+
+local repelled = C.onSiegeRepelled;
+C.onSiegeRepelled = function( _town, _player )
+{
+    if (S.isActive() && _town.getFlags().get("PaleHolySiege") == true)
+        S.pendingItem("misc/pale_chain_item");
+    _town.getFlags().set("PaleHolySiege", false);
+    return repelled(_town, _player);
+};
+
+local siegeLost = C.onSiegeLost;
+C.onSiegeLost = function( _town )
+{
+    local flags = _town.getFlags();
+    local result = siegeLost(_town);
+    if (S.isActive() && !C.isOwnedByPlayer(_town))
+    {
+        flags.set("PaleConquestMode", 0);
+        flags.set("PaleConquestPending", false);
+        flags.set("PaleHolySiege", false);
+        S.returnGovernor(_town);
+        local label = _town.getLabel("name");
+        if (label != null)
+            label.Text = _town.getName();
+    }
+    return result;
+};
+
+S.ConquestDefense <- null;
+local startDefense = C.startSiegeBattle;
+C.startSiegeBattle = function( _town )
+{
+    if (S.conquestMode(_town) == 0)
+        return startDefense(_town);
+    S.ConquestDefense = _town;
+    try
+    {
+        local result = startDefense(_town);
+        S.ConquestDefense = null;
+        return result;
+    }
+    catch(e)
+    {
+        S.ConquestDefense = null;
+        throw e;
+    }
+};
+
+S.Mod.hook("scripts/states/world_state", function(q)
+{
+    q.startScriptedCombat = @(__original) function( _properties = null, _isPlayerInitiated = true, _isCombatantsVisible = true, _allowFormationPicking = true )
+    {
+        if (_properties != null && _properties.CombatID == "ConquestSiege" && S.ConquestDefense != null)
+        {
+            local town = S.ConquestDefense;
+            local enemies = _properties.Entities.filter(@(_, entity) entity.Faction == ::Const.Faction.Enemy);
+            if (town.getFlags().get("PaleHolySiege") == true && enemies.len() > 1)
+            {
+                enemies[0].Script = "scripts/entity/tactical/humans/pale_witch_hunter";
+                enemies[1].Script = "scripts/entity/tactical/humans/oathbringer";
+            }
+            local resources = C.Garrison[C.getGarrisonLevel(town)].Resources;
+            if (resources > 0)
+            {
+                local count = ::Math.max(2, (resources / 14).tointeger());
+                for (local i = 0; i < count; ++i)
+                {
+                    local soldier = clone ::Const.World.Spawn.Troops[i % 2 == 0 ? "SkeletonLight" : "Zombie"];
+                    soldier.Faction <- ::Const.Faction.PlayerAnimals;
+                    enemies.push(soldier);
+                }
+            }
+            _properties.Entities = enemies;
+            if (town.getFlags().get("PaleGovernor") == true)
+                S.addGovernorToCombat(_properties, town);
+        }
+        return __original(_properties, _isPlayerInitiated, _isCombatantsVisible, _allowFormationPicking);
+    };
+});
+
+S.Mod.hook("scripts/events/events/conquest_manage_event", function(q)
+{
+    q.create = @(__original) function()
+    {
+        __original();
+        foreach (screen in this.m.Screens)
+        {
+            if (screen.ID != "A")
+                continue;
+            local start = screen.start;
+            screen.start = function( _event )
+            {
+                start.call(this, _event);
+                local town = _event.m.Town.get();
+                local mode = S.conquestMode(town);
+                if (mode == 0 && (!S.isActive() || town.getFlags().get("PaleConquestPending") != true))
+                {
+                    if (getGarrison(town) >= maxGarrison)
+                        this.Options = this.Options.filter(@(_, option) option.Text.find(C.T("opt_garrison")) != 0);
+                    return;
+                }
+                if (mode == 0)
+                {
+                    this.Options.insert(0, { Text = "决定城镇的命运", function getResult( _event ) {
+                        C.PendingEvent = "event.pale_conquest_choice"; C.Target = ::WeakTableRef(town); return 0;
+                    } });
+                    return;
+                }
+                this.Text += mode == 1 ? "\n\n统治 · 恐惧税 +25%，繁荣度每周 −1。" : "\n\n亡者之城 · 可征召常驻亡灵，无活人招募、合同或税收。";
+                this.Text += "\n亡灵驻军 " + C.getGarrisonLevel(town) + " 级；每周消耗 3 点防腐尸骸。";
+                this.Options = this.Options.filter(@(_, option) option.Text.find(C.T("opt_garrison")) != 0);
+                local close = this.Options.len() - 1;
+                if (getGarrison(town) < maxGarrison)
+                    this.Options.insert(close++, { Text = "增编亡灵驻军（无金币费用）", function getResult( _event ) {
+                        town.getFlags().set("ConquestGarrison", getGarrison(town) + 1); return "A";
+                    } });
+                if (mode == 2)
+                    this.Options.insert(close++, { Text = "征召常驻亡灵", function getResult( _event ) {
+                        S.CastlePage = "conquest_recruit"; return 0;
+                    } });
+                if (S.oath() == S.Oath.Champion)
+                    this.Options.insert(close, { Text = "冠军坐镇", function getResult( _event ) {
+                        S.CastlePage = "conquest_governor"; return 0;
+                    } });
+            };
+        }
+    };
+});

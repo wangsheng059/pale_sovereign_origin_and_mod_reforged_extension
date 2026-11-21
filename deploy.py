@@ -20,7 +20,7 @@ def game_running():
 def desired_files(manifest, snapshot, profile, enable_groups):
     if profile == "original":
         return {s["name"]: (snapshot / "packages" / s["name"], s["sha256"])
-                for s in manifest["sources"]}
+                for s in manifest["sources"] if not s.get("modular_only")}
     build = ROOT / "dist" / profile
     report = json.loads((build / "deployment.json").read_text(encoding="utf-8"))
     if set(report["generated"]) != set(manifest["outputs"]):
@@ -28,8 +28,9 @@ def desired_files(manifest, snapshot, profile, enable_groups):
     enabled = set(enable_groups or manifest["outputs"])
     if enabled - set(manifest["outputs"]):
         raise ValueError(f"Invalid output name: {enabled - set(manifest['outputs'])}")
-    desired = {s["name"]: (snapshot / "packages" / s["name"], s["sha256"])
-               for s in manifest["sources"] if s["output"] not in enabled}
+    desired = {s["name"]: (ROOT.parent / s["archive"] if "archive" in s else snapshot / "packages" / s["name"], s["sha256"])
+               for s in manifest["sources"]
+               if s["output"] not in enabled and (profile == "modular" or not s.get("modular_only"))}
     desired.update({name: (build / name, report["generated"][name]) for name in enabled})
     return desired
 

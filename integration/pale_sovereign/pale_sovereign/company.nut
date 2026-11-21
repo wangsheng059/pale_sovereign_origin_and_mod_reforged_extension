@@ -18,7 +18,7 @@ S.applyRosterLimits <- function()
     local scourge = false;
     try { scourge = this.oath() == this.Oath.Scourge; } catch (e) { scourge = false; }
     ::World.Assets.m.BrothersMax = scourge ? this.ScourgeRosterLimit : this.RosterLimit;
-    ::World.Assets.m.BrothersMaxInCombat = scourge ? this.ScourgeCombatLimit : this.CombatLimit;
+    ::World.Assets.m.BrothersMaxInCombat = scourge ? (this.ambitionDone("forbidden_glimpse") ? 16 : this.ScourgeCombatLimit) : this.CombatLimit;
 };
 
 S.get <- function( _key )
@@ -89,7 +89,8 @@ S.permanentUndeadLimit <- function()
 
 S.reserveLimit <- function()
 {
-    return this.ReserveLimit + (this.get("Ascended") == 1 && this.oath() == this.Oath.Scourge ? 20 : 0);
+    return this.ReserveLimit + (this.get("Ascended") == 1 && this.oath() == this.Oath.Scourge ? 20 : 0)
+        + (this.ambitionDone("laden_cart") ? 10 : 0) + this.castleReserveBonus();
 };
 
 S.changeReserve <- function( _delta )
@@ -101,13 +102,33 @@ S.changeReserve <- function( _delta )
     return true;
 };
 
-S.repairUndead <- function()
+S.followerRank <- @(_key) 0;
+S.castleReserveBonus <- @() 0;
+S.castleWorldTick <- @() null;
+S.castleHere <- @() null;
+S.findPaleTown <- @() null;
+S.conquestMode <- @(_town) 0;
+S.conquestDay <- @() null;
+S.conquestWorldTick <- @() null;
+S.castleDefenseLoot <- @(_properties, _count) false;
+S.CastlePage <- null;
+S.castleDaily <- function()
+{
+    if (this.oath() != this.Oath.None)
+        this.repairUndead();
+};
+S.followerVictory <- @() null;
+S.followerWorldTick <- @() null;
+S.followerOnKill <- @(_killer) null;
+
+S.repairUndead <- function( _free = false )
 {
     local injured = this.undead().filter(@(_, bro) bro.getHitpoints() < bro.getHitpointsMax());
-    if (injured.len() == 0 || !this.changeReserve(-1))
+    if (injured.len() == 0 || (!_free && !this.changeReserve(-1)))
         return;
+    local ratio = this.ambitionDone("ranks_of_dead") ? 0.35 : (this.followerRank("embalmer") >= 2 ? 0.30 : 0.20);
     foreach (bro in injured)
-        bro.setHitpoints(::Math.minf(bro.getHitpointsMax(), bro.getHitpoints() + bro.getHitpointsMax() * 0.2));
+        bro.setHitpoints(::Math.minf(bro.getHitpointsMax(), bro.getHitpoints() + bro.getHitpointsMax() * ratio));
 };
 
 S.spawnBrother <- function( _background, _gear, _position = -1, _traits = true )

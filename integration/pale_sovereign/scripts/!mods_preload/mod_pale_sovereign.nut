@@ -22,16 +22,24 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.3.0", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.4.0", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.4");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
-::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_dynamic_perks", ">mod_AC", ">mod_reforged"], function()
+::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_dynamic_perks", ">mod_AC", ">mod_reforged", ">mod_stronghold", ">mod_pandoras_hobby", ">mod_conquest"], function()
 {
     if (!::BGP.HasAC)
         return;
-    foreach (file in ["company", "combat", "souls", "sites", "events", "hooks", "champion_ai", "loading"])
+    foreach (file in ["company", "combat", "souls", "sites", "events", "hooks", "champion_ai", "loading", "ambition_data", "ambitions", "battle_rewards"])
         ::include("pale_sovereign/" + file);
+    if ("Stronghold" in ::getroottable())
+        foreach (file in ["stronghold", "castle_services", "castle_armor", "castle_siege"])
+            ::include("pale_sovereign/" + file);
+    if ("Conquest" in ::getroottable())
+        foreach (file in ["conquest", "conquest_governor"])
+            ::include("pale_sovereign/" + file);
+    if ("PandorasHobby" in ::getroottable())
+        ::include("pale_sovereign/followers");
 });
 
 ::PaleSovereign.Mod.queue(">bbfusion_framework", function()

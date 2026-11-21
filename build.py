@@ -70,7 +70,7 @@ def inventory(manifest, archive, stack):
     sources = {}
     for source in manifest["sources"]:
         name = source["name"]
-        path = archive / name
+        path = ROOT.parent / source["archive"] if "archive" in source else archive / name
         if file_sha(path) != source["sha256"]:
             raise ValueError(f"Changed source archive: {name}")
         z = stack.enter_context(ZipFile(path))
@@ -165,6 +165,8 @@ def collect(manifest, sources, exclusions, profile, individual, disabled):
     unused = set(replaced)
     for name, (source, z) in sources.items():
         output = source["output"]
+        if source.get("modular_only") and profile != "modular":
+            continue
         if not output or (individual and individual != name):
             continue
         entries = groups.setdefault(name if individual else output, {})
