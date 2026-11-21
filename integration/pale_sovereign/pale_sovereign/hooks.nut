@@ -135,7 +135,10 @@ mod.hook("scripts/entity/tactical/player", function(q)
             return false;
         local ok = __original(_id);
         if (ok && S.oath() == S.Oath.None)
+        {
             S.set("Oath", route);
+            S.applyRosterLimits();
+        }
         return ok;
     };
 
@@ -370,6 +373,8 @@ mod.hook("scripts/states/world_state", function(q)
     {
         local ret = __original(_in);
         S.applyPartyLook();
+        if (S.isActive())
+            S.applyRosterLimits();
         return ret;
     };
 

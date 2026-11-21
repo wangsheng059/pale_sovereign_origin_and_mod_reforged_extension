@@ -10,6 +10,17 @@ S.isActive <- function()
     return (kind == "table" || kind == "instance") && origin.getID() == this.ID;
 };
 
+// 名册 18 人、部署 12 人；立下亡灵天灾誓约后名册 20 人、部署 16 人
+S.applyRosterLimits <- function()
+{
+    if (!("Assets" in ::World) || ::World.Assets == null)
+        return;
+    local scourge = false;
+    try { scourge = this.oath() == this.Oath.Scourge; } catch (e) { scourge = false; }
+    ::World.Assets.m.BrothersMax = scourge ? this.ScourgeRosterLimit : this.RosterLimit;
+    ::World.Assets.m.BrothersMaxInCombat = scourge ? this.ScourgeCombatLimit : this.CombatLimit;
+};
+
 S.get <- function( _key )
 {
     return ::World.Flags.getAsInt("Pale." + _key);
