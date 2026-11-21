@@ -262,8 +262,12 @@ S.castlePanel <- function( _screen )
     {
         case "castle":
             foreach (key, data in this.CastleBuildings)
-                if (data.Page != "castle" && this.castleHas(town, key))
-                    this.option(_screen, data.Name, @() "@" + data.Page);
+            {
+                if (data.Page == "castle" || !this.castleHas(town, key))
+                    continue;
+                local page = data.Page;
+                this.option(_screen, data.Name, @() "@" + page);
+            }
             if (this.castleHas(town, "pale_soul_anvil"))
                 this.option(_screen, "缚魂铁砧 · 200 金、10 工具、1 块铜锭", @() S.castleAnvil(town));
             if (this.castleHas(town, "pale_salt_cellar"))
@@ -280,8 +284,12 @@ S.castlePanel <- function( _screen )
             }
             local names = ["1 枚魂玉", "3 枚古代金币", "1 块金锭", "1 颗宝石"];
             foreach (i, recipe in this.CastleJobs)
-                if (this.countItems(recipe.ID) >= recipe.Amount)
-                    this.option(_screen, recipe.Name + " · " + names[i], @() "@castle_forge_" + i);
+            {
+                if (this.countItems(recipe.ID) < recipe.Amount)
+                    continue;
+                local job = i;
+                this.option(_screen, recipe.Name + " · " + names[job], @() "@castle_forge_" + job);
+            }
             break;
         case "castle_tombs":
             if (!this.castleHas(town, "pale_mausoleum"))
@@ -289,20 +297,34 @@ S.castlePanel <- function( _screen )
             local coffins = this.castleTombs(town);
             _screen.Text += "\n\n陵寝已停放 " + coffins.len() + " / 3 口棺椁。";
             foreach (pet in coffins)
-                this.option(_screen, "领回 " + pet.m.Name, @() S.storeCastleCoffin(town, pet, false));
+            {
+                local coffin = pet;
+                this.option(_screen, "领回 " + coffin.m.Name, @() S.storeCastleCoffin(town, coffin, false));
+            }
             if (coffins.len() < 3)
+            {
                 foreach (pet in ::World.Assets.getStash().getItems())
-                    if (this.isCoffin(pet))
-                        this.option(_screen, "寄存 " + pet.m.Name, @() S.storeCastleCoffin(town, pet, true));
+                {
+                    if (!this.isCoffin(pet))
+                        continue;
+                    local coffin = pet;
+                    this.option(_screen, "寄存 " + coffin.m.Name, @() S.storeCastleCoffin(town, coffin, true));
+                }
+            }
             break;
         case "castle_barracks":
             if (!this.castleHas(town, "pale_dead_barracks"))
                 break;
             local trained = flags.get("PaleBarracksUpgraded") == true;
-            foreach (skeleton in [true, false])
-                if (this.canRecruitUndead(null, 3))
-                    this.option(_screen, "征召" + (skeleton ? "骷髅" : "行尸") + "（3 点尸骸）",
-                        @() S.recruitUndead(null, skeleton, 3, trained ? 2 : 0) ? "新兵已加入战团。" : "无法征召。");
+            if (this.canRecruitUndead(null, 3))
+            {
+                foreach (skeleton in [true, false])
+                {
+                    local recruitSkeleton = skeleton;
+                    this.option(_screen, "征召" + (recruitSkeleton ? "骷髅" : "行尸") + "（3 点尸骸）",
+                        @() S.recruitUndead(null, recruitSkeleton, 3, trained ? 2 : 0) ? "新兵已加入战团。" : "无法征召。");
+                }
+            }
             if (!trained && ::World.Assets.getMoney() >= 1000)
                 this.option(_screen, "升级亡者兵营（1000 克朗）", function()
                 {
@@ -336,11 +358,19 @@ S.castlePanel <- function( _screen )
                 break;
             local job = _screen.ID.slice(13).tointeger();
             foreach (pet in this.companyCoffins())
-                if (this.castleCanForge(job, pet, true))
-                    this.option(_screen, pet.m.Name, @() S.queueCastleForge(town, job, pet, true));
+            {
+                if (!this.castleCanForge(job, pet, true))
+                    continue;
+                local target = pet;
+                this.option(_screen, target.m.Name, @() S.queueCastleForge(town, job, target, true));
+            }
             foreach (bro in this.undead())
-                if (this.castleCanForge(job, bro, false))
-                    this.option(_screen, bro.getName(), @() S.queueCastleForge(town, job, bro, false));
+            {
+                if (!this.castleCanForge(job, bro, false))
+                    continue;
+                local target = bro;
+                this.option(_screen, target.getName(), @() S.queueCastleForge(town, job, target, false));
+            }
             break;
     }
     this.option(_screen, _screen.ID == "castle" ? "回到亡灵营地" : "返回古堡", @() _screen.ID == "castle" ? "@camp" : "@castle");

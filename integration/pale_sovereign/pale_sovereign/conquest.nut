@@ -75,8 +75,18 @@ S.conquestChoose <- function( _town, _mode )
 
 S.conquestChoices <- function( _screen, _town )
 {
-    this.option(_screen, "统治 · 恐惧税 +25%，每周繁荣度 −1", @() S.conquestChoose(_town, 1));
-    this.option(_screen, "屠城 · 建立亡者之城，收集 20 点尸骸", @() S.conquestChoose(_town, 2));
+    foreach (mode in [1, 2])
+    {
+        local decision = mode;
+        _screen.Options.push({
+            Text = decision == 1 ? "统治 · 恐惧税 +25%，每周繁荣度 −1" : "屠城 · 建立亡者之城，收集 20 点尸骸",
+            function getResult( _event )
+            {
+                S.conquestChoose(_town, decision);
+                return 0;
+            }
+        });
+    }
 };
 
 S.Mod.hook("scripts/events/events/conquest_assault_event", function(q)
@@ -101,18 +111,7 @@ S.Mod.hook("scripts/events/events/conquest_assault_event", function(q)
                 }
                 this.Options = [];
                 this.Text = "城门已经打开。活人伏在街石上，静等导师的裁决。";
-                this.List = [];
-                foreach (mode in [1, 2])
-                {
-                    this.Options.push({
-                        Text = mode == 1 ? "统治 · 恐惧税 +25%，每周繁荣度 −1" : "屠城 · 建立亡者之城，收集 20 点尸骸",
-                        function getResult( _ev )
-                        {
-                            S.conquestChoose(town, mode);
-                            return 0;
-                        }
-                    });
-                }
+                S.conquestChoices(this, town);
             };
         }
     };
@@ -203,11 +202,22 @@ C.getGarrisonLevel = function( _town )
     return ::Math.min(maxGarrison, getGarrison(_town)) + bonus;
 };
 
+local undeadHireCosts = [5, 10, 15];
 local hireGarrison = C.hireGarrison;
 C.hireGarrison = function( _town )
 {
-    if (getGarrison(_town) < maxGarrison && S.conquestMode(_town) == 0)
-        hireGarrison(_town);
+    local level = getGarrison(_town);
+    if (level >= maxGarrison)
+        return;
+    if (S.conquestMode(_town) == 0)
+        return hireGarrison(_town);
+    if (!S.changeReserve(-undeadHireCosts[level]))
+        return false;
+
+    local flags = _town.getFlags();
+    flags.set("ConquestGarrison", level + 1);
+    flags.set("ConquestLastResult", "已消耗 " + undeadHireCosts[level] + " 点尸骸，亡灵驻军升至 " + (level + 1) + " 级。");
+    return true;
 };
 
 local taxes = C.updateTaxes;
@@ -281,10 +291,14 @@ S.conquestRecruitPanel <- function( _screen )
         return;
     }
     local price = this.recruitCost();
+    if (!this.canRecruitUndead(null))
+        return;
     foreach (skeleton in [true, false])
-        if (this.canRecruitUndead(null))
-            this.option(_screen, "征召" + (skeleton ? "骷髅" : "行尸") + "（" + price + " 点尸骸）",
-                @() S.recruitUndead(null, skeleton) ? "新兵已加入战团。" : "无法征召。");
+    {
+        local recruitSkeleton = skeleton;
+        this.option(_screen, "征召" + (recruitSkeleton ? "骷髅" : "行尸") + "（" + price + " 点尸骸）",
+            @() S.recruitUndead(null, recruitSkeleton) ? "新兵已加入战团。" : "无法征召。");
+    }
 };
 
 local startSiege = C.startSiege;
@@ -411,23 +425,85 @@ S.Mod.hook("scripts/events/events/conquest_manage_event", function(q)
                     } });
                     return;
                 }
+                local status = this.Text.find("\n" + C.T("manage_garrison"));
+                if (status != null)
+                {
+                    local nextLine = this.Text.find("\n", status + 1);
+                    local suffix = nextLine == null ? "" : this.Text.slice(nextLine);
+                    this.Text = this.Text.slice(0, status) + "\n亡灵驻军 " + C.getGarrisonLevel(town) + " 级，每周消耗 3 点防腐尸骸。" + suffix;
+                }
                 this.Text += mode == 1 ? "\n\n统治 · 恐惧税 +25%，繁荣度每周 −1。" : "\n\n亡者之城 · 可征召常驻亡灵，无活人招募、合同或税收。";
-                this.Text += "\n亡灵驻军 " + C.getGarrisonLevel(town) + " 级；每周消耗 3 点防腐尸骸。";
                 this.Options = this.Options.filter(@(_, option) option.Text.find(C.T("opt_garrison")) != 0);
-                local close = this.Options.len() - 1;
-                if (getGarrison(town) < maxGarrison)
-                    this.Options.insert(close++, { Text = "增编亡灵驻军（无金币费用）", function getResult( _event ) {
-                        town.getFlags().set("ConquestGarrison", getGarrison(town) + 1); return "A";
-                    } });
-                if (mode == 2)
-                    this.Options.insert(close++, { Text = "征召常驻亡灵", function getResult( _event ) {
-                        S.CastlePage = "conquest_recruit"; return 0;
-                    } });
-                if (S.oath() == S.Oath.Champion)
-                    this.Options.insert(close, { Text = "冠军坐镇", function getResult( _event ) {
-                        S.CastlePage = "conquest_governor"; return 0;
-                    } });
+                this.Options.insert(this.Options.len() - 1, {
+                    Text = "管理亡灵驻防",
+                    function getResult( _event ) { return "PaleDefense"; }
+                });
             };
         }
+
+        this.m.Screens.push({
+            ID = "PaleDefense",
+            Text = "",
+            Banner = "",
+            Characters = [],
+            Options = [],
+            function start( _event )
+            {
+                local town = _event.m.Town.get();
+                local mode = S.conquestMode(town);
+                local level = getGarrison(town);
+                this.Banner = "ui/banners/" + ::World.Assets.getBanner() + "s.png";
+                local strength = C.getGarrisonLevel(town);
+                this.Text = "基础亡灵驻军 " + level + " 级";
+                if (strength > level)
+                    this.Text += "，计入冠军坐镇为 " + strength + " 级";
+                this.Text += "。防腐尸骸储备 " + S.get("Reserve") + " 点。驻军每周消耗 3 点防腐尸骸。";
+                this.Options = [];
+                if (mode > 0 && level < maxGarrison)
+                {
+                    local price = undeadHireCosts[level];
+                    local text = "增编至 " + (level + 1) + " 级（" + price + " 点尸骸）";
+                    if (S.get("Reserve") >= price)
+                    {
+                        this.Options.push({
+                            Text = text,
+                            function getResult( _event )
+                            {
+                                C.hireGarrison(town);
+                                return "PaleDefense";
+                            }
+                        });
+                    }
+                    else
+                        this.Text += "\n" + text + "，当前储备不足。";
+                }
+                if (mode == 2)
+                {
+                    this.Options.push({
+                        Text = "征召常驻亡灵",
+                        function getResult( _event )
+                        {
+                            S.CastlePage = "conquest_recruit";
+                            return 0;
+                        }
+                    });
+                }
+                if (mode > 0 && S.oath() == S.Oath.Champion)
+                {
+                    this.Options.push({
+                        Text = "冠军坐镇",
+                        function getResult( _event )
+                        {
+                            S.CastlePage = "conquest_governor";
+                            return 0;
+                        }
+                    });
+                }
+                this.Options.push({
+                    Text = "返回城镇管理",
+                    function getResult( _event ) { return "A"; }
+                });
+            }
+        });
     };
 });

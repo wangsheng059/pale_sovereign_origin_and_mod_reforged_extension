@@ -13,15 +13,7 @@ this.pale_conquest_choice_event <- ::inherit("scripts/events/event", {
             {
                 this.Options = [];
                 local town = ::Conquest.Target == null || ::Conquest.Target.isNull() ? null : ::Conquest.Target.get();
-                foreach (mode in [1, 2])
-                    this.Options.push({
-                        Text = mode == 1 ? "统治 · 征收恐惧税" : "屠城 · 建立亡者之城",
-                        function getResult( _event )
-                        {
-                            ::PaleSovereign.conquestChoose(town, mode);
-                            return 0;
-                        }
-                    });
+                ::PaleSovereign.conquestChoices(this, town);
             }
         });
     }

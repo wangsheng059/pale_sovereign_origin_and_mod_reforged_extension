@@ -1,0 +1,8 @@
+{
+  "source": "mod_conquest_cn攻城.zip",
+  "member": "conquest/siege.nut",
+  "before": "7f38fa8acab795d556561ae0eebaad243ca36d4444db261786c46329550193cf",
+  "after": "70fcbaa5d17cb0c284a144a11c333dc51afe134436a8c0867c588a78df5359fb",
+  "old": "local chance = ::Conquest.SiegeDailyChance - ::Conquest.getGarrisonLevel(s);",
+  "new": "local chance = ::Math.max(1, ::Conquest.SiegeDailyChance - ::Conquest.getGarrisonLevel(s));"
+}

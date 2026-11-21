@@ -101,8 +101,12 @@ S.governorPanel <- function( _screen )
         return;
     }
     foreach (coffin in ::World.Assets.getStash().getItems())
-        if (this.isCoffin(coffin))
-            this.option(_screen, "留下 " + coffin.m.Name, @() S.assignGovernor(town, coffin));
+    {
+        if (!this.isCoffin(coffin))
+            continue;
+        local candidate = coffin;
+        this.option(_screen, "留下 " + candidate.m.Name, @() S.assignGovernor(town, candidate));
+    }
 };
 
 S.conquestWorldTick = function()
@@ -129,7 +133,10 @@ S.addGovernorToCombat <- function( _properties, _town )
         _entity.setName(coffin.m.Name);
         _entity.setVariant(coffin.getVariant());
         coffin.setEntity(_entity);
-        S.Battle.Governor = { Town = _town, Pet = coffin, Entity = _entity };
+        S.Battle.Governor = {
+            Town = _town, Pet = coffin, Entity = _entity, EntityID = _entity.getID(),
+            Died = false, Settled = false
+        };
     };
     _properties.Entities.push(troop);
 };
@@ -164,22 +171,42 @@ S.Mod.hook("scripts/entity/tactical/tactical_entity_manager", function(q)
     };
 });
 
+S.settleBattleGovernor <- function()
+{
+    local governor = this.Battle == null ? null : this.Battle.Governor;
+    if (governor == null || governor.Settled)
+        return;
+
+    // An invalid entity reference during teardown does not imply a casualty.
+    if (governor.Died)
+        this.clearGovernor(governor.Town);
+    else
+    {
+        local entity = governor.Entity;
+        if (entity == null || ::MSU.isNull(entity) || !entity.isAlive())
+            return;
+        governor.Pet.m.Wounds = ::Math.max(0, ::Math.floor((1.0 - entity.getHitpointsPct()) * 100.0));
+        this.storeGovernor(governor.Town, governor.Pet);
+    }
+    governor.Settled = true;
+};
+
+S.Mod.hook("scripts/states/tactical_state", function(q)
+{
+    q.onBattleEnded = @(__original) function( ... )
+    {
+        S.settleBattleGovernor();
+        local args = [this];
+        args.extend(vargv);
+        return __original.acall(args);
+    };
+});
+
 S.Mod.hook("scripts/states/world_state", function(q)
 {
     q.onCombatFinished = @(__original) function()
     {
-        local governor = S.Battle == null ? null : S.Battle.Governor;
-        if (governor != null)
-        {
-            local entity = governor.Entity;
-            if (!::MSU.isNull(entity) && entity.isAlive())
-            {
-                governor.Pet.m.Wounds = ::Math.floor((1.0 - entity.getHitpointsPct()) * 100.0);
-                S.storeGovernor(governor.Town, governor.Pet);
-            }
-            else
-                S.clearGovernor(governor.Town);
-        }
+        S.settleBattleGovernor();
         return __original();
     };
 });

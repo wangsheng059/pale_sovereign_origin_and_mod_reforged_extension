@@ -286,10 +286,11 @@ S.campPanel <- function( _screen )
             {
                 if (!this.isCoffin(item))
                     continue;
-                this.option(_screen, "登记候补 " + item.m.Name, function()
+                local coffin = item;
+                this.option(_screen, "登记候补 " + coffin.m.Name, function()
                 {
-                    S.set("ReservePetID", S.petID(item));
-                    return item.m.Name + " 登记为候补。";
+                    S.set("ReservePetID", S.petID(coffin));
+                    return coffin.m.Name + " 登记为候补。";
                 });
             }
         }
@@ -358,11 +359,12 @@ S.jadePanel <- function( _screen )
     {
         if (i >= 6)
             break;
-        this.option(_screen, bro.getName() + "（" + bro.getLevel() + " 级）", function()
+        local target = bro;
+        this.option(_screen, target.getName() + "（" + target.getLevel() + " 级）", function()
         {
-            if (bro.getFlags().has("PaleJade") || !S.removeMaterial("jade"))
+            if (target.getFlags().has("PaleJade") || !S.removeMaterial("jade"))
                 return null;
-            local b = bro.getBaseProperties();
+            local b = target.getBaseProperties();
             b.Hitpoints += 12;
             b.Stamina += 2;
             b.Bravery += 2;
@@ -371,9 +373,9 @@ S.jadePanel <- function( _screen )
             b.RangedSkill += 2;
             b.MeleeDefense += 2;
             b.RangedDefense += 2;
-            bro.getFlags().add("PaleJade");
-            bro.getSkills().update();
-            return bro.getName() + " 空洞的眼窝里亮起一点碧光。\n\n（8 项属性各 +2，生命再 +10）";
+            target.getFlags().add("PaleJade");
+            target.getSkills().update();
+            return target.getName() + " 空洞的眼窝里亮起一点碧光。\n\n（8 项属性各 +2，生命再 +10）";
         });
     }
     this.option(_screen, "收起魂玉", @() "@camp");

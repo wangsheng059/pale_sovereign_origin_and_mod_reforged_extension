@@ -493,6 +493,9 @@ mod.hook("scripts/entity/tactical/actor", function(q)
         try
         {
             local result = __original(_killer, _skill, _fatality, _silent);
+            local governor = battle.Governor;
+            if (governor != null && governor.EntityID == battle.Death.ID && !this.isAlive())
+                governor.Died = true;
             local eligible = battle.Death.Eligible;
             battle.Death = former;
             if (eligible && (!this.isAlive() || this.isDying()))

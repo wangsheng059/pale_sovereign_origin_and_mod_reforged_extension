@@ -727,7 +727,6 @@
     {
       "number": 55,
       "name": "mod_conquest_cn攻城.zip",
-      "archive": "data_removed_mods/mod_conquest_cn攻城.zip",
       "modular_only": true,
       "sha256": "266c2da20f7bd1f3a4a4a7d3c0c8474fcf1907e84d06641b0714dceb384319e6",
       "output": "zz_local_campaign.zip",
@@ -1298,6 +1297,8 @@
   ],
   "patches": [
     "patches/conquest/hide_blocked_assault.json",
+    "patches/conquest/keep_siege_risk.json",
+    "patches/conquest/cap_weekly_cleanup.json",
     "patches/pandora/champion_sample.json",
     "patches/companions/tame_mult_setting.json",
     "patches/companions/tame_mult_fallback.json",

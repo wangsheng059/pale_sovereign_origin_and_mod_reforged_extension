@@ -1,0 +1,8 @@
+{
+  "source": "mod_conquest_cn攻城.zip",
+  "member": "conquest/taxes.nut",
+  "before": "5280986e42bf866de103855b3d98902b10dc4f8496352a5efa50b22073d41662",
+  "after": "ccb788a7c5d3a65949a61d968b6f6c551f3cf040f24a6731251f4133258f3e25",
+  "old": "if (lvl == 0 || ::Math.rand(1, 100) > lvl * 25)",
+  "new": "if (lvl == 0 || ::Math.rand(1, 100) > ::Math.min(75, lvl * 25))"
+}

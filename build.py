@@ -70,7 +70,7 @@ def inventory(manifest, archive, stack):
     sources = {}
     for source in manifest["sources"]:
         name = source["name"]
-        path = ROOT.parent / source["archive"] if "archive" in source else archive / name
+        path = archive / name
         if file_sha(path) != source["sha256"]:
             raise ValueError(f"Changed source archive: {name}")
         z = stack.enter_context(ZipFile(path))
