@@ -1,5 +1,5 @@
 this.pale_undead_background <- ::inherit("scripts/skills/backgrounds/character_background", {
-    m = { PaleSkeleton = false },
+    m = { PaleSkeleton = false, PaleTier = 1, PaleBranch = "" },
     function create()
     {
         this.character_background.create();

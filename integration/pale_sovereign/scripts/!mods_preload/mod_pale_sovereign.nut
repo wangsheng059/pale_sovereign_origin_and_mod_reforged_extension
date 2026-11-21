@@ -22,7 +22,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.4.1", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.5.0", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.4");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
@@ -30,7 +30,7 @@
 {
     if (!::BGP.HasAC)
         return;
-    foreach (file in ["company", "combat", "souls", "sites", "events", "hooks", "champion_ai", "loading", "ambition_data", "ambitions", "battle_rewards"])
+    foreach (file in ["company", "combat", "souls", "sites", "tier_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat"])
         ::include("pale_sovereign/" + file);
     if ("Stronghold" in ::getroottable())
         foreach (file in ["stronghold", "castle_services", "castle_armor", "castle_siege"])
@@ -59,4 +59,30 @@
         }
         return eligible(_item);
     };
+    if ("ApplyFusionArmorItem" in ::BBFusion)
+    {
+        local applyArmorStats = ::BBFusion.ApplyFusionArmorItem;
+        ::BBFusion.ApplyFusionArmorItem = function( _item, _stats, _properties = null )
+        {
+            if (_item == null || _stats == null || !("PaleGildedBonus" in _item.m) || !::BBFusion.IsEligible(_item))
+                return applyArmorStats(_item, _stats, _properties);
+            // Fusion rebuilds durability from its own base. Keep the soul furnace bonus outside that base.
+            local condition = _item.m.Condition;
+            local maximum = _item.m.ConditionMax;
+            local bonus = _item.m.PaleGildedBonus;
+            _item.m.ConditionMax -= bonus;
+            _item.m.Condition = ::Math.minf(condition, _item.m.ConditionMax);
+            local result;
+            try { result = applyArmorStats(_item, _stats, _properties); }
+            catch (e)
+            {
+                _item.m.ConditionMax = maximum;
+                _item.m.Condition = condition;
+                throw e;
+            }
+            _item.m.ConditionMax += bonus;
+            _item.m.Condition = ::Math.minf(condition, _item.m.ConditionMax);
+            return result;
+        };
+    }
 });

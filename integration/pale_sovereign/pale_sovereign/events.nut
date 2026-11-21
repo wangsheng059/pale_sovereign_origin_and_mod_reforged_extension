@@ -168,7 +168,7 @@ S.diceBrother <- function()
 S.hasSkeleton <- function()
 {
     foreach (bro in this.undead())
-        if (bro.getBackground().getID() == "background.pale_skeleton")
+        if (this.getUndeadBackground(bro) != null && bro.getBackground().m.PaleSkeleton)
             return true;
     return false;
 };
@@ -227,7 +227,7 @@ S.HarvestOpenings <- [
     "夜风卷过寂静的战场，又一批沉默的储备被悄然封进了裹尸布。"
 ];
 
-S.campPanel <- function( _screen )
+S.campPanel <- function( _event, _screen )
 {
     local oath = this.oath();
     local pet = this.mainPet();
@@ -321,6 +321,8 @@ S.campPanel <- function( _screen )
                 return "卫士将残旗系在矛杆上，眼中的魂火骤然明亮了几分。\n\n（获得专属称号与【护驾遗志】：每战首次在导师身旁遭受敌方攻击时，生命与护甲伤害减半）";
             });
     }
+    if (this.undead().len() > 0)
+        this.option(_screen, "常驻亡灵升阶", function() { _event.m.TierPage = 0; return "@tier_roster"; });
     if (oath == this.Oath.Scourge && jade > 0 && this.jadeTargets().len() > 0)
         this.option(_screen, "魂玉点睛 · 用 1 枚古代魂玉强化一名常驻亡灵", @() "@jade");
     if (site != null && oath != this.Oath.None)
@@ -394,7 +396,21 @@ S.renderEvent <- function( _event, _screen )
     {
         case "camp":
             title = "亡者的营地";
-            this.campPanel(_screen);
+            this.campPanel(_event, _screen);
+            break;
+
+        case "tier_roster":
+            title = "亡灵升阶";
+            art = "ascension_rite";
+            this.tierLedgerPanel(_event, _screen);
+            break;
+
+        case "tier_branch":
+        case "tier_confirm":
+            title = "升阶仪式";
+            art = "ascension_rite";
+            this.tierBranchPanel(_event, _screen);
+            closing = false;
             break;
 
         case "castle":
@@ -855,7 +871,8 @@ S.renderEvent <- function( _event, _screen )
     }
     _event.m.Title = title;
     _event.m.PaleArt = art;
-    _screen.Text = "[img]gfx/ui/events/pale/" + art + ".jpg[/img]" + _screen.Text;
+    local illustration = art == "ascension_rite" ? "gfx/ui/events/pale_ascension_rite.png" : "gfx/ui/events/pale/" + art + ".jpg";
+    _screen.Text = "[img]" + illustration + "[/img]" + _screen.Text;
     if (closing)
         this.option(_screen, _screen.ID == "camp" ? "合上账簿" : "返回营地",
             _screen.ID == "whispers" ? function() { S.set("WhispersAfter", S.worldHours() + 24); return null; } : @() null);

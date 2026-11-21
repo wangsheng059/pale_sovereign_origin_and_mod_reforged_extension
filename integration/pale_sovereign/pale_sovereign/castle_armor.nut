@@ -15,9 +15,9 @@ S.gildArmor <- function( _actor, _fill = true )
             continue;
         local shell = ["armor.pale_gilded_bones", "helmet.pale_gilded_skull"].find(item.getID()) != null;
         local bonus = shell ? 19 : 20;
-        item.m.PaleGildedBonus <- bonus;
         local condition = item.getCondition();
         item.m.ConditionMax += bonus;
+        item.m.PaleGildedBonus <- bonus;
         item.setCondition(condition + bonus);
         if (empty)
             items.equip(item);
@@ -65,8 +65,10 @@ S.Mod.hook("scripts/entity/tactical/player", function(q)
                 continue;
             local condition = item.getCondition();
             this.getFlags().set("PaleGildedCondition." + slot, condition);
-            restore.push({ Item = item, Condition = condition });
-            item.m.ConditionMax -= item.m.PaleGildedBonus;
+            local bonus = item.m.PaleGildedBonus;
+            restore.push({ Item = item, Condition = condition, Bonus = bonus });
+            delete item.m.PaleGildedBonus;
+            item.m.ConditionMax -= bonus;
             item.setCondition(::Math.minf(condition, item.getConditionMax()));
         }
         try
@@ -77,14 +79,16 @@ S.Mod.hook("scripts/entity/tactical/player", function(q)
         {
             foreach (entry in restore)
             {
-                entry.Item.m.ConditionMax += entry.Item.m.PaleGildedBonus;
+                entry.Item.m.ConditionMax += entry.Bonus;
+                entry.Item.m.PaleGildedBonus <- entry.Bonus;
                 entry.Item.setCondition(entry.Condition);
             }
             throw e;
         }
         foreach (entry in restore)
         {
-            entry.Item.m.ConditionMax += entry.Item.m.PaleGildedBonus;
+            entry.Item.m.ConditionMax += entry.Bonus;
+            entry.Item.m.PaleGildedBonus <- entry.Bonus;
             entry.Item.setCondition(entry.Condition);
         }
     };

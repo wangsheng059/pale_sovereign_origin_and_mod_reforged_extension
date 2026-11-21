@@ -209,15 +209,17 @@ mod.hook("scripts/entity/tactical/player", function(q)
         if (S.isUndead(this))
         {
             this.m.MoraleState = ::Const.MoraleState.Ignore;
+            S.restoreTierSkills(this);
             S.applyUndeadLook(this);
         }
     };
 
     q.onUpdateInjuryLayer = @(__original) function()
     {
-        __original();
         if (!::BGP.NecroPet.IsLoading && S.isUndead(this))
             S.applyUndeadLook(this);
+        else
+            __original();
     };
 });
 

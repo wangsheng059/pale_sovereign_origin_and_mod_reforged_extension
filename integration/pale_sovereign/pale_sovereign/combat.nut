@@ -193,25 +193,44 @@ S.onVictory <- function( _loot )
 
 S.applyUndeadLook <- function( _bro )
 {
-    local skills = _bro.getSkills();
-    local skeleton = skills.hasSkill("background.pale_skeleton");
-    if ((!skeleton && !skills.hasSkill("background.pale_zombie")) || !_bro.hasSprite("body") || !_bro.hasSprite("head"))
+    local background = this.getUndeadBackground(_bro);
+    if (background == null || !_bro.hasSprite("body") || !_bro.hasSprite("head"))
         return;
+    local skeleton = background.m.PaleSkeleton;
+    local key = background.m.PaleBranch;
+    local branch = background.m.PaleTier > 1 ? this.TierBranches[key] : null;
     local body = _bro.getSprite("body");
     local head = _bro.getSprite("head");
     if (skeleton)
     {
         body.setBrush("bust_skeleton_body_01");
         head.setBrush("bust_skeleton_head");
-        body.Color = ::createColor("#ffffff");
-        head.Color = body.Color;
         _bro.getItems().getAppearance().Corpse = "bust_skeleton_body_01_dead";
     }
     else
     {
         head.setBrush("bgpu_bust_head_01");
-        body.Color = ::createColor("#b4c4a5");
-        head.Color = body.Color;
+    }
+    if (branch != null)
+    {
+        local stem = "pale_" + (key in this.TierBrushStems ? this.TierBrushStems[key] : key);
+        body.setBrush(stem + "_body");
+        head.setBrush(stem + "_head");
+    }
+    body.Color = ::createColor(branch != null || skeleton ? "#ffffff" : "#b4c4a5");
+    head.Color = body.Color;
+    if (branch != null && branch.Scale != 1.0)
+    {
+        foreach (layer in ["body", "head", "armor", "helmet", "armor_upgrade", "body_blood", "head_blood"])
+            if (_bro.hasSprite(layer))
+                _bro.getSprite(layer).Scale = branch.Scale;
+    }
+    if (background.m.PaleBranch == "skeleton_king" && _bro.hasSprite("helmet")
+        && _bro.getItems().getItemAtSlot(::Const.ItemSlot.Head) == null)
+    {
+        local crown = _bro.getSprite("helmet");
+        crown.setBrush("pale_skeleton_king_crown");
+        crown.Visible = true;
     }
     foreach (layer in ["hair", "beard", "beard_top", "tattoo_body", "tattoo_head", "injury", "injury_body"])
     {

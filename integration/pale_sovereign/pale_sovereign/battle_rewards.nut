@@ -71,6 +71,9 @@ S.deferBattleSpawn <- function( _actor, _spawn )
 
 S.Mod.hookTree("scripts/skills/skill", function(q)
 {
+    // Inherited variadic methods must keep their original argument forwarding.
+    if (!q.contains("attackEntity"))
+        return;
     q.attackEntity = @(__original) function( ... )
     {
         if (S.Battle != null && S.Battle.SiegeFight && this.m.IsShowingProjectile && this.m.ProjectileType != 0)

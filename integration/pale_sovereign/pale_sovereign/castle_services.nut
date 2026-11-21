@@ -99,6 +99,7 @@ S.queueCastleForge <- function( _town, _job, _target, _isPet )
     flags.set("PaleForgeEnd", this.worldHours() + 24);
     flags.set("PaleForgeIsCoffin", _isPet);
     flags.set("PaleForgeTarget", _isPet ? this.petID(_target) : _target.getFlags().getAsInt("PaleUnitID"));
+    flags.set("PaleForgeTier", _isPet ? 0 : this.getUndeadTier(_target));
     flags.set("PaleForgeNotice", "");
     return "开始为 " + this.forgeTargetName(_target, _isPet) + " 准备" + recipe.Name
         + "。在古堡地格扎营或停留一天，完工后扣除材料。离开地格会重新计时。";
@@ -172,7 +173,8 @@ S.castleForgeTick <- function( _town, _present, _now )
         local targetID = pet ? target.m.PaleID : target.getFlags().getAsInt("PaleUnitID");
         if (id != targetID)
             continue;
-        if (!this.castleHas(_town, "pale_soul_furnace") || !this.castleCanForge(job, target, pet)
+        if ((!pet && this.getUndeadTier(target) != ::Math.max(1, flags.getAsInt("PaleForgeTier")))
+            || !this.castleHas(_town, "pale_soul_furnace") || !this.castleCanForge(job, target, pet)
             || !this.takeItems(recipe.ID, recipe.Amount))
             break;
         this.forgeApply(job, target, pet);
