@@ -4,7 +4,7 @@
     ChiefScript = "scripts/skills/backgrounds/pale_necromancer_background",
     ChiefName = "亡灵法师导师",
     RosterLimit = 12,
-    UndeadLimit = 6,
+    ChampionUndeadLimit = 3,
     ReserveLimit = 40,
     Oath = { None = 0, Champion = 1, Scourge = 2 },
     OathNames = ["尚未立誓", "亡灵冠军", "亡灵天灾"],
@@ -13,7 +13,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.0.2", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.0.3", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.3");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");

@@ -152,7 +152,7 @@ S.onVictory <- function( _loot )
         if (mark != null && "PaleSoul" in corpse && corpse.PaleSoul == mark.Target && corpse.IsHeadAttached)
             soulFound = true;
     }
-    if (this.oath() == this.Oath.Scourge)
+    if (this.oath() != this.Oath.None)
     {
         local before = this.get("Reserve");
         this.changeReserve((corpses.len() / 2).tointeger());

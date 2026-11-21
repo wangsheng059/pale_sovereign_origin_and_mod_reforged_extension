@@ -12,7 +12,7 @@ this.pale_zombie_background <- ::inherit("scripts/skills/backgrounds/pale_undead
     function onChangeAttributes()
     {
         return {
-            Hitpoints = [20, 30], Bravery = [5, 10], Stamina = [5, 10],
+            Hitpoints = [20, 30], Bravery = this.getStartingBraveryAdjustment(), Stamina = [5, 10],
             MeleeSkill = [-7, -3], RangedSkill = [-10, -5], MeleeDefense = [-3, 0],
             RangedDefense = [-3, 0], Initiative = [-30, -20]
         };

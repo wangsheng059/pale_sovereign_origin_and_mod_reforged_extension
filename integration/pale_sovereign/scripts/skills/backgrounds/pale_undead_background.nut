@@ -11,6 +11,12 @@ this.pale_undead_background <- ::inherit("scripts/skills/backgrounds/character_b
         this.m.ExcludedTalents = [::Const.Attributes.Bravery];
     }
 
+    function getStartingBraveryAdjustment()
+    {
+        local defaultBravery = this.m.BaseAttributes.Bravery;
+        return [120 - defaultBravery[0], 120 - defaultBravery[1]];
+    }
+
     function onBuildDescription()
     {
         return "{%name% 从盐封棺中醒来。它记不清自己的名字，却还记得如何列阵。}";

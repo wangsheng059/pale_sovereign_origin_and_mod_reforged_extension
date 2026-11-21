@@ -208,8 +208,11 @@ S.campPanel <- function( _screen )
     local pet = this.mainPet();
     local reserve = this.reservePet();
     local site = this.localSite(0, true);
+    local limit = this.permanentUndeadLimit();
+    local undeadCount = this.undead().len() + (limit == null ? "" : " / " + limit);
     _screen.Text = "誓约　" + this.OathNames[oath] + "\n防腐尸骸　" + this.get("Reserve") + " / " + this.ReserveLimit
-        + "\n常驻亡灵　" + this.undead().len() + " / " + this.UndeadLimit
+        + "\n常驻亡灵　" + undeadCount
+        + "　战团编制　" + ::World.getPlayerRoster().getSize() + " / " + ::World.Assets.getBrothersMax()
         + "\n缚魂锁链　" + this.countItems("misc.pale_chain") + "　古代魂玉　" + this.countItems("misc.pale_jade")
         + (site == null ? "" : "\n附近登记地点　" + site.Name);
     if (oath == this.Oath.Champion)

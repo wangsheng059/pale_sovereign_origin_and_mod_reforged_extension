@@ -33,9 +33,9 @@
         }
         var warning = null;
         if (champion.indexOf(perk.ID) !== -1) {
-            warning = "确认立下亡灵冠军誓约，开放缚魂锁链、冠军和候补管理。亡灵天灾永久锁定，洗点后仍遵守誓约。";
+            warning = "确认立下亡灵冠军誓约，开放缚魂锁链、冠军和候补管理，可征召至多 3 名常驻亡灵。亡灵天灾永久锁定，洗点后仍遵守誓约。";
         } else if (scourge.indexOf(perk.ID) !== -1) {
-            warning = "确认立下亡灵天灾誓约，开放尸弹、尸骸储备、常驻亡灵的征召和修补。亡灵冠军永久锁定，洗点后仍遵守誓约。";
+            warning = "确认立下亡灵天灾誓约，开放尸弹，可用全部空余战团编制征召常驻亡灵。亡灵冠军永久锁定，洗点后仍遵守誓约。";
         }
         if (warning !== null) {
             content.find(".right-column").append(

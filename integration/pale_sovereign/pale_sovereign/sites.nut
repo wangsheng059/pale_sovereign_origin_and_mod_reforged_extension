@@ -131,8 +131,9 @@ S.inspectAncient <- function( _site )
 
 S.canRecruitUndead <- function( _site )
 {
-    return _site != null && this.oath() == this.Oath.Scourge && this.get(_site.Key + "Recruited") == 0
-        && this.get("Reserve") >= 3 && this.undead().len() < this.UndeadLimit
+    local limit = this.permanentUndeadLimit();
+    return _site != null && this.get(_site.Key + "Recruited") == 0
+        && this.get("Reserve") >= 3 && (limit == null || this.undead().len() < limit)
         && ::World.getPlayerRoster().getSize() < ::World.Assets.getBrothersMax();
 };
 

@@ -211,7 +211,7 @@ mod.hook("scripts/states/world/asset_manager", function(q)
             throw e;
         }
         S.BlockWorldHealing = false;
-        if (this.m.LastDayPaid != dayBefore && S.oath() == S.Oath.Scourge)
+        if (this.m.LastDayPaid != dayBefore && S.oath() != S.Oath.None)
             S.repairUndead();
 
         if (this.m.LastDayPaid != dayBefore && S.get("StenchUntil") > S.worldHours())

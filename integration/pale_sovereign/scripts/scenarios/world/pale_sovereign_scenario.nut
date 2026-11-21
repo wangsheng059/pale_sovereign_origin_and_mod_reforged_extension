@@ -4,7 +4,7 @@ this.pale_sovereign_scenario <- ::inherit("scripts/scenarios/world/starting_scen
     {
         this.m.ID = ::PaleSovereign.ID;
         this.m.Name = "亡灵主宰";
-        this.m.Description = "[p=c][img]gfx/ui/events/pale_sovereign.png[/img][/p][p]你从一具不肯安息的尸骨学会了第一道法术。如今，两名盗墓贼驾着载棺的旧车跟随你，等待你为这支战团立下誓言。\n\n[color=#bcad8c]两条誓约[/color]　亡灵法师导师学会路线独有特技后永久立誓。亡灵冠军缚魂养成一名棺椁护卫，亡灵天灾经营尸骸、补充尸群。\n[color=#bcad8c]人少而精[/color]　编制和部署各限 12 名兄弟，常驻亡灵计入编制。\n[color=#bcad8c]召唤[/color]　饰品宠物与临时复活亡灵的在场数量不限。\n[color=#bcad8c]夜行[/color]　亡灵法师导师夜战决心 +20，地图夜间视野惩罚减半。\n[color=#bcad8c]化身[/color]　亡灵法师导师无法解雇，一旦战死，战役结束。[/p]";
+        this.m.Description = "[p=c][img]gfx/ui/events/pale_sovereign.png[/img][/p][p]你从一具不肯安息的尸骨学会了第一道法术。如今，两名盗墓贼驾着载棺的旧车跟随你，等待你为这支战团立下誓言。\n\n[color=#bcad8c]两条誓约[/color]　亡灵法师导师学会路线独有特技后永久立誓。亡灵冠军缚魂养成一名棺椁护卫，亡灵天灾经营尸骸、补充尸群。\n[color=#bcad8c]人少而精[/color]　编制和部署各限 12 名兄弟。亡灵冠军最多征召 3 名常驻亡灵，亡灵天灾可用全部空余编制。\n[color=#bcad8c]召唤[/color]　饰品宠物与临时复活亡灵的在场数量不限。\n[color=#bcad8c]夜行[/color]　亡灵法师导师夜战决心 +20，地图夜间视野惩罚减半。\n[color=#bcad8c]化身[/color]　亡灵法师导师无法解雇，一旦战死，战役结束。[/p]";
         this.m.Difficulty = 2;
         this.m.Order = 108;
         this.m.IsFixedLook = false;

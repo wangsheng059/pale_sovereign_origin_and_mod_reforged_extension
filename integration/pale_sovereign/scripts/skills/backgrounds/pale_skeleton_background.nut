@@ -13,7 +13,7 @@ this.pale_skeleton_background <- ::inherit("scripts/skills/backgrounds/pale_unde
     function onChangeAttributes()
     {
         return {
-            Hitpoints = [-12, -8], Bravery = [10, 15], Stamina = [0, 5],
+            Hitpoints = [-12, -8], Bravery = this.getStartingBraveryAdjustment(), Stamina = [0, 5],
             MeleeSkill = [-4, 0], RangedSkill = [-8, -4], MeleeDefense = [2, 5],
             RangedDefense = [0, 3], Initiative = [-5, 0]
         };

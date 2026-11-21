@@ -68,6 +68,14 @@ S.undead <- function()
     return ::World.getPlayerRoster().getAll().filter(@(_, bro) ::PaleSovereign.isUndead(bro));
 };
 
+S.permanentUndeadLimit <- function()
+{
+    local oath = this.oath();
+    if (oath == this.Oath.Champion)
+        return this.ChampionUndeadLimit;
+    return oath == this.Oath.Scourge ? null : 0;
+};
+
 S.changeReserve <- function( _delta )
 {
     local before = this.get("Reserve");
