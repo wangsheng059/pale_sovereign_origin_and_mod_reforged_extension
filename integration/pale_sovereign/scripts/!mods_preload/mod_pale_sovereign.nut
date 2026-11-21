@@ -6,7 +6,7 @@
     RosterLimit = 18,
     CombatLimit = 12,
     ScourgeRosterLimit = 20,
-    ScourgeCombatLimit = 16,
+    ScourgeCombatLimit = 14,
     ChampionUndeadLimit = 3,
     ReserveLimit = 40,
     Oath = { None = 0, Champion = 1, Scourge = 2 },
