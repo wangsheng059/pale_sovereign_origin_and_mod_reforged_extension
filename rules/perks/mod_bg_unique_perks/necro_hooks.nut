@@ -55,7 +55,7 @@
 });
 
 
-// 1.6.2 支配亡灵（本 mod 死灵法师施放的）按施放时的决心 W：近战技能 +W/5，受到伤害 -(W/4 - 5)%（0~30%），
+// 1.6.2 支配亡灵（本 mod 死灵法师施放的）按施放时的 W（决心 − 20，见 necro.nut）：近战技能 +W/5，受到伤害 -(W/4 - 5)%（0~30%），
 // 替换原版 / 重铸的 +15 和 -25%；行动点 12、近防 / 远防 +10、主动 +50 不变。敌方死灵法师的支配不受影响（BGP_Will 为 null）。
 ::BGP.HooksMod.hook("scripts/skills/effects/possessed_undead_effect", function(q)
 {
@@ -95,9 +95,9 @@
 			if (!("id" in row))
 				continue;
 			if (row.id == 11)
-				row.text = ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + " 近战技能（按施放者决心 " + w + "）";
+				row.text = ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + " 近战技能（W = 施放者决心 − " + ::BGP.Necro.WillOffset + " = " + w + "）";
 			else if (row.id == 16)
-				row.text = "受到的所有伤害降低 " + ::MSU.Text.colorPositive(::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + "（按施放者决心 " + w + "）";
+				row.text = "受到的所有伤害降低 " + ::MSU.Text.colorPositive(::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + "（W = 施放者决心 − " + ::BGP.Necro.WillOffset + " = " + w + "）";
 		}
 		return ret;
 	}

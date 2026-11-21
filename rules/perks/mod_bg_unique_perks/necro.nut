@@ -598,10 +598,13 @@
 	_target.onDamageReceived(_user, _skill, hitInfo);
 }
 
-// 1.6.2 决心加成：W = 死灵法师当前决心（含装备、光环；取整，最低 0）
+// 1.6.2 决心加成：W = 死灵法师当前决心 − WillOffset（1.6.3 起 20；1.6.2 不减）。决心含装备、光环，取整；W 最低 0
 //   主动技能在施放时取值；不死再生每回合取主人当前值（主人不在场时用复活时记下的值）；
 //   钢铁之躯在复活时取值；岁月诅咒在施放时记进效果。
-::BGP.Necro.getWill <- function( _actor )
+::BGP.Necro.WillOffset <- 20;
+
+// 当前决心（含装备、光环，取整）
+::BGP.Necro.getResolve <- function( _actor )
 {
 	if (_actor == null)
 		return 0;
@@ -623,6 +626,11 @@
 		}
 	}
 	return ::Math.max(0, ::Math.floor(w));
+}
+
+::BGP.Necro.getWill <- function( _actor )
+{
+	return ::Math.max(0, ::BGP.Necro.getResolve(_actor) - ::BGP.Necro.WillOffset);
 }
 
 ::BGP.Necro.WillScale <- {
@@ -655,7 +663,7 @@
 
 ::BGP.Necro.willText <- function( _w )
 {
-	return "（按当前决心 " + _w + " 计算）";
+	return "（W = 当前决心 − " + ::BGP.Necro.WillOffset + " = " + _w + "）";
 }
 
 // 支配亡灵按决心替换原版的近战技能和受伤减免：先记下改动前的值，原函数跑完后把改了的项换成新倍率

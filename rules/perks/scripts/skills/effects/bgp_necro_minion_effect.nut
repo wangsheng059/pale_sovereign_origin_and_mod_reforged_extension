@@ -1,6 +1,6 @@
 // 死灵仆从：死灵法师复活的单位身上挂的效果
 // 复活时按主人的特技决定：不死再生（每回合 +5 + W/5 生命）、钢铁之躯（复活时护甲 +10% + W/4 %，有不死再生时每回合再 +7%）、
-// （1.6.2 起 W = 主人决心：不死再生每回合取主人当前值，主人不在场时用复活时记下的；钢铁之躯在复活时取值。原为固定 10 / 30%）
+// （1.6.2 起 W = 主人决心（1.6.3 起再减 20，见 necro.nut）：不死再生每回合取主人当前值，主人不在场时用复活时记下的；钢铁之躯在复活时取值。原为固定 10 / 30%）
 // 嗜血者（获得吸血）、心灵交融（复制主人的部分被动特技）
 this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 	m = {
@@ -105,7 +105,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 			ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "听命于" + this.m.MasterName });
 		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "不会出血、中毒，不受伤势和夜晚影响，没有士气" });
 		if (this.m.HasRegen)
-			ret.push({ id = 12, type = "text", icon = "ui/icons/health.png", text = "每回合开始时回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.Regen(this.getWill())) + " 点生命（按主人决心 " + this.m.Will + "）" });
+			ret.push({ id = 12, type = "text", icon = "ui/icons/health.png", text = "每回合开始时回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.Regen(this.getWill())) + " 点生命（W = 主人决心 − " + ::BGP.Necro.WillOffset + " = " + this.m.Will + "）" });
 		if (this.m.HasArmorRegen)
 			ret.push({ id = 13, type = "text", icon = "ui/icons/armor_body.png", text = "每回合开始时头甲、身甲各回复上限的 " + ::MSU.Text.colorPositive("7%") });
 		if (this.m.HasBloodSucking)
