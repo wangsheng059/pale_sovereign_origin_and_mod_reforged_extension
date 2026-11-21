@@ -25,6 +25,12 @@ S.worldEvent <- function()
         return;
     this.NextWorldCheck = clock + 0.4;
 
+    if (this.get("IntroPending") != 0)
+    {
+        if (::World.Events.canFireEvent(true, true) && ::World.Events.fire("event.pale_sovereign_intro", false))
+            this.set("IntroPending", 0);
+        return;
+    }
     if (this.get("PendingSoul") != 0 && !this.canUseSoul())
         this.set("PendingSoul", 0);
     if (this.canUseSoul() && this.openEvent("soul"))
@@ -34,6 +40,8 @@ S.worldEvent <- function()
         this.set("HarvestNotice", 0);
         return;
     }
+    if (this.canAscend() && this.openEvent("ascend"))
+        return;
 
     local camp = ::World.Assets.isCamping();
     local flags = ::World.Flags;
@@ -65,6 +73,13 @@ S.worldEvent <- function()
         this.openEvent("whispers");
     else if (!day && this.canLantern())
         this.openEvent("lantern");
+};
+
+S.canAscend <- function()
+{
+    local chief = this.chief();
+    return chief != null && this.get("Ascended") == 0 && chief.getLevel() >= 11
+        && this.get("Legend.Hunt") != 0 && this.get("Legend.Goblin") != 0 && this.get("Legend.Monolith") != 0;
 };
 
 S.canWhisper <- function( _pet )
@@ -167,6 +182,8 @@ S.option <- function( _screen, _text, _apply )
                 return 0;
             if (result == "@camp")
                 return "camp";
+            if (result == "@jade")
+                return "jade";
             _event.m.Message = result;
             return "result";
         }
@@ -185,7 +202,7 @@ S.swapPets <- function( _reserve )
     local stash = ::World.Assets.getStash();
     local old = items.getItemAtSlot(::Const.ItemSlot.Accessory);
     if (old != null && !this.isCoffin(old))
-        return "请先把首席身上的其他饰品放回仓库。";
+        return "请先把导师身上的其他饰品放回仓库。";
     stash.remove(_reserve);
     if (old != null)
         items.unequip(old);
@@ -199,8 +216,16 @@ S.swapPets <- function( _reserve )
     if (old != null)
         stash.add(old);
     this.set("ReservePetID", old == null ? 0 : this.petID(old));
-    return _reserve.m.Name + " 随首席出战。";
+    return _reserve.m.Name + " 随导师出战。";
 };
+
+S.HarvestOpenings <- [
+    "盗墓贼们熟练地翻检着尚有余温的战场，挑出骨架完整的倒霉鬼撒上粗盐。",
+    "你抬手止住了乌鸦的盘旋，命人将还能派上用场的躯壳一一装车。",
+    "战火平息后，真正的收割才刚刚开始——马车里的盐袋又沉了几分。",
+    "活人忙着清点金币，而你的目光只落在那些尚未残缺的尸骸上。",
+    "夜风卷过寂静的战场，又一批沉默的储备被悄然封进了裹尸布。"
+];
 
 S.campPanel <- function( _screen )
 {
@@ -210,18 +235,24 @@ S.campPanel <- function( _screen )
     local site = this.localSite(0, true);
     local limit = this.permanentUndeadLimit();
     local undeadCount = this.undead().len() + (limit == null ? "" : " / " + limit);
-    _screen.Text = "誓约　" + this.OathNames[oath] + "\n防腐尸骸　" + this.get("Reserve") + " / " + this.ReserveLimit
+    local jade = this.countItems("misc.pale_jade");
+    local opening = [
+        "旧棺静静停在火光之外，盐袋与锁链各安其位。两条道路尚未落定，账簿上还留着大片空白。",
+        "铜箍紧锁的旧棺里传来低沉的共鸣。你翻开染血的账簿，清点着为铸就不朽冠军而筹备的一切。",
+        "营地边缘弥漫着粗盐与防腐药草的刺鼻气味。你翻开厚重的名册，清点着随时准备淹没战场的亡者储备。"
+    ][oath];
+    _screen.Text = opening + "\n\n誓约　" + this.OathNames[oath] + "\n防腐尸骸　" + this.get("Reserve") + " / " + this.reserveLimit()
         + "\n常驻亡灵　" + undeadCount
         + "　战团编制　" + ::World.getPlayerRoster().getSize() + " / " + ::World.Assets.getBrothersMax()
-        + "\n缚魂锁链　" + this.countItems("misc.pale_chain") + "　古代魂玉　" + this.countItems("misc.pale_jade")
+        + "\n缚魂锁链　" + this.countItems("misc.pale_chain") + "　古代魂玉　" + jade
         + (site == null ? "" : "\n附近登记地点　" + site.Name);
     if (oath == this.Oath.Champion)
     {
-        _screen.Text += "\n出战　" + (pet == null ? "空棺" : pet.m.Name + "（吞魂 " + this.petGet(pet, "Devours") + "/3）")
+        _screen.Text += "\n出战　" + (pet == null ? "空棺" : pet.m.Name + "（吞魂 " + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）")
             + "\n候补　" + (reserve == null ? "无" : reserve.m.Name)
-            + "\n开局护卫并肩胜仗　" + this.get("GuardWins") + " / 5";
+            + "\n古墓守卫并肩胜仗　" + this.get("GuardWins") + " / 5";
         if (reserve != null)
-            this.option(_screen, "让候补换到首席身边", @() S.swapPets(reserve));
+            this.option(_screen, "让候补换到导师身边", @() S.swapPets(reserve));
         else
         {
             foreach (item in ::World.Assets.getStash().getItems())
@@ -235,25 +266,41 @@ S.campPanel <- function( _screen )
                 });
             }
         }
-        if (pet != null && pet.m.PaleID == this.get("StarterID") && this.get("GuardWins") >= 5 && this.petGet(pet, "Promoted") == 0 && this.countItems("misc.pale_jade") > 0)
-            this.option(_screen, "用 1 枚魂玉晋升墓穴守卫", function()
+        if (pet != null && pet.m.PaleID == this.get("StarterID") && this.get("GuardWins") >= 5 && this.petGet(pet, "Promoted") == 0 && jade > 0)
+            this.option(_screen, "用 1 枚古代魂玉将古墓守卫晋升为尸妖王", function()
             {
                 if (!S.removeMaterial("jade"))
                     return null;
-                S.petSet(pet, "Promoted", 1);
-                pet.m.Name = "墓穴冠军";
-                pet.updateCompanion();
-                return "首席将魂玉推入守卫的胸腔。它稳稳立起长矛，向你致礼。";
+                S.promoteGuard(pet);
+                return "导师将魂玉推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：永久 +15 生命、+5 近战技能、+5 近战防御、+10 决心）";
+            });
+        if (pet != null && jade > 0 && this.petGet(pet, "JadeCap") == 0)
+            this.option(_screen, "魂玉嵌棺 · 1 枚古代魂玉，" + pet.m.Name + " 吞魂上限 +1", function()
+            {
+                if (!S.removeMaterial("jade"))
+                    return null;
+                S.petSet(pet, "JadeCap", 1);
+                return "你把魂玉嵌进棺盖内侧的铜箍。棺中残魂的低语多了一层回声，它还能再容下一缕亡魂。\n\n（吞魂上限 +1，每个冠军限 1 次）";
+            });
+        if (pet != null && jade > 0 && this.petGet(pet, "JadeTemper") < 2)
+            this.option(_screen, "魂玉淬骨 · 1 枚古代魂玉，" + pet.m.Name + " 8 项属性各 +2", function()
+            {
+                if (!S.removeMaterial("jade"))
+                    return null;
+                S.temperPet(pet);
+                return "魂玉在你掌心碎成冰冷的碧粉，被一点点抹进冠军的骨缝。枯骨发出细密的爆响，比先前更沉、更硬。\n\n（8 项属性各 +2，每个冠军限 2 次，已用 " + S.petGet(pet, "JadeTemper") + " 次）";
             });
         if (this.get("BannerReward") != 0 && pet != null && pet.m.PaleID == this.get("StarterID"))
-            this.option(_screen, "授予守卫第三面残旗", function()
+            this.option(_screen, "授予古墓守卫第三面残旗", function()
             {
                 S.set("BannerReward", 0);
                 S.petSet(pet, "Species.4", 1);
                 S.setPetTitle(pet, "执旗者");
-                return "护卫将残旗系在矛上，每战首次在首席身边挨打时所受伤害减半。";
+                return "卫士将残旗系在矛杆上，眼中的魂火骤然明亮了几分。\n\n（获得专属称号与【护驾遗志】：每战首次在导师身旁遭受敌方攻击时，生命与护甲伤害减半）";
             });
     }
+    if (oath == this.Oath.Scourge && jade > 0 && this.jadeTargets().len() > 0)
+        this.option(_screen, "魂玉点睛 · 用 1 枚古代魂玉强化一名常驻亡灵", @() "@jade");
     if (site != null && oath != this.Oath.None)
     {
         if (this.get(site.Key + "Inspected") == 0 && (site.Kind == 1 || oath == this.Oath.Scourge))
@@ -270,10 +317,45 @@ S.campPanel <- function( _screen )
             });
         if (this.canRecruitUndead(site))
         {
-            this.option(_screen, "征召常驻骷髅（3 点防腐尸骸）", @() S.recruitUndead(site, true) ? "一名骷髅加入了战团。" : "无法征召。");
-            this.option(_screen, "征召常驻行尸（3 点防腐尸骸）", @() S.recruitUndead(site, false) ? "一名行尸加入了战团。" : "无法征召。");
+            this.option(_screen, "征召常驻骷髅（3 点防腐尸骸）", @() S.recruitUndead(site, true) ? "一具骷髅从盐封棺中坐起，加入了战团。" : "无法征召。");
+            this.option(_screen, "征召常驻行尸（3 点防腐尸骸）", @() S.recruitUndead(site, false) ? "一具行尸拖着僵硬的步子，加入了战团。" : "无法征召。");
         }
     }
+};
+
+S.jadeTargets <- function()
+{
+    return this.undead().filter(@(_, bro) !bro.getFlags().has("PaleJade"));
+};
+
+S.jadePanel <- function( _screen )
+{
+    _screen.Text = "魂玉在火光下泛着阴冷的碧光。把它碾碎、抹进哪一具躯壳，它就会比同伴多记起一分生前的力量。\n\n（选定的常驻亡灵 8 项属性各 +2、生命再 +10，每名限 1 次）";
+    local targets = this.jadeTargets();
+    targets.sort(@(_a, _b) _b.getLevel() <=> _a.getLevel());
+    foreach (i, bro in targets)
+    {
+        if (i >= 6)
+            break;
+        this.option(_screen, bro.getName() + "（" + bro.getLevel() + " 级）", function()
+        {
+            if (bro.getFlags().has("PaleJade") || !S.removeMaterial("jade"))
+                return null;
+            local b = bro.getBaseProperties();
+            b.Hitpoints += 12;
+            b.Stamina += 2;
+            b.Bravery += 2;
+            b.Initiative += 2;
+            b.MeleeSkill += 2;
+            b.RangedSkill += 2;
+            b.MeleeDefense += 2;
+            b.RangedDefense += 2;
+            bro.getFlags().add("PaleJade");
+            bro.getSkills().update();
+            return bro.getName() + " 空洞的眼窝里亮起一点碧光。\n\n（8 项属性各 +2，生命再 +10）";
+        });
+    }
+    this.option(_screen, "收起魂玉", @() "@camp");
 };
 
 S.renderEvent <- function( _event, _screen )
@@ -282,9 +364,9 @@ S.renderEvent <- function( _event, _screen )
     local chief = this.chief();
     local assets = ::World.Assets;
     local flags = ::World.Flags;
-    local after = null;
     local title = "亡灵主宰";
-    local art = _screen.ID == "lantern" ? "event_43.png" : "event_33.png";
+    local art = _screen.ID == "lantern" ? "event_43.png" : _screen.ID == "ascend" ? "pale_sovereign.png" : "event_33.png";
+    local closing = true;
     switch (_screen.ID)
     {
         case "camp":
@@ -292,32 +374,45 @@ S.renderEvent <- function( _event, _screen )
             this.campPanel(_screen);
             break;
 
+        case "jade":
+            title = "魂玉点睛";
+            this.jadePanel(_screen);
+            closing = false;
+            break;
+
         case "result":
             _screen.Text = _event.m.Message;
-            this.option(_screen, "查看营地账簿", @() "@camp");
+            this.option(_screen, "翻阅亡者账簿", @() "@camp");
             break;
 
         case "harvest":
             title = "遗骸采集";
-            _screen.Text = "战后清点出 " + this.get("LastCorpseCount") + " 具合格遗骸，封存 " + this.get("LastHarvest") + " 点。防腐尸骸库存 " + (this.get("Reserve") - this.get("LastHarvest")) + " → " + this.get("Reserve") + "。";
+            _screen.Text = this.HarvestOpenings[::Math.rand(0, this.HarvestOpenings.len() - 1)]
+                + "\n\n战后清点出 " + this.get("LastCorpseCount") + " 具合格遗骸，封存 " + this.get("LastHarvest") + " 点。防腐尸骸库存 " + (this.get("Reserve") - this.get("LastHarvest")) + " → " + this.get("Reserve") + "。";
             break;
 
         case "soul":
             title = "锁链里的余魂";
-            _screen.Text = flags.get("Pale.SoulName") + " 的遗骸还在，锁链正对着 " + pet.m.Name + " 鸣响。选定注魂方式后消耗 1 条锁链。";
-            this.option(_screen, "强化躯体 · 随机三项属性各 +1", @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
-            if (this.petGet(pet, "Devours") < 3)
-                this.option(_screen, "吞魂 · 继承该亡灵的特质", @() S.resolveSoul("soul") ? "一缕残魂沉入冠军的躯体。" : "这次注魂未完成。");
+            closing = false;
+            local species = this.get("SoulSpecies");
+            local soul = species > 0 && species < this.Souls.len() ? this.Souls[species] : null;
+            _screen.Text = "硝烟尚未散尽，" + flags.get("Pale.SoulName") + " 残破的遗骸仍躺在血泊之中，缠绕其上的黑铁锁链正发出急促而尖锐的嗡鸣。马车里的旧棺随之剧烈震颤，" + pet.m.Name + " 仿佛闻到了某种令它渴望已久的古老气息。\n\n趁这缕残魂尚未彻底消散，你握紧法杖，决定如何将其彻底榨干并注入冠军体内。（选定注魂方式后消耗 1 条缚魂锁链）";
+            local gain = this.isAscended() && this.oath() == this.Oath.Champion ? 2 : 1;
+            this.option(_screen, "强化躯体 · 随机三项属性各 +" + gain, @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
+            if (soul != null && this.canDevour(pet))
+                this.option(_screen, "吞魂 · 获得【" + soul.Name + "】：" + soul.Desc, @() S.resolveSoul("soul") ? "一缕残魂沉入冠军的躯体。（获得【" + soul.Name + "】）" : "这次注魂未完成。");
+            else if (soul != null && this.petGet(pet, "Species." + species) != 0)
+                _screen.Text += "\n\n该冠军已拥有【" + soul.Name + "】。";
             else
-                _screen.Text += "\n该冠军已吞魂 3 次。";
+                _screen.Text += "\n\n该冠军的吞魂次数已满（" + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）。";
             this.option(_screen, "承誓 · 继承冠军加成及具名武器", @() S.resolveSoul("inherit") ? "冠军接过亡者的誓言与武艺。" : "这次注魂未完成。");
             this.option(_screen, "放走残魂，保留锁链", function() { S.set("PendingSoul", 0); return null; });
             break;
 
         case "shovels":
             title = "两把军铲";
-            _screen.Text = "两名盗墓贼各拿出一把军铲。一人想找出守卫生前的墓碑，另一人想用盐试试这批遗骸。";
-            this.option(_screen, "寻碑", function()
+            _screen.Text = "营火噼啪作响，刚经历过第一场血战的两名盗墓贼却没有急着分赃，而是各自拎着一把沾满泥土的军铲走到了你面前。\n\n矮个子那个指着马车里的旧棺，压低声音说他在棺底摸到了半块刻着家族纹章的铜片，顺着线索或许能找到那名卫士生前的埋骨地。另一个则踢了踢地上刚收拢来的战利品，搓着手提议趁遗骸还没发臭，不如用随车带着的粗盐先封存一批，留着日后派上用场。\n\n两人各自盯着你手中的法杖，等待你的决断。";
+            this.option(_screen, "“先去看看它生前的墓碑。”", function()
             {
                 S.set("Shovels", 1);
                 if (pet != null && pet.m.PaleID == S.get("StarterID"))
@@ -326,49 +421,57 @@ S.renderEvent <- function( _event, _screen )
                     pet.updateCompanion();
                 }
                 local lead = S.revealAncient();
-                return lead == null ? "护卫的伤处已经处理。" : "护卫的伤处已经处理。地图上标出了 " + lead + "。";
+                return "盗墓贼收起盐袋，借着火光把铜片上的纹路抄在羊皮纸上，很快在地图边缘圈出了一处荒废的古墓，顺手还替卫士重新绑紧了松脱的甲片。\n\n（" + (lead == null ? "附近没有找到可标记的遗址" : "地图上标出了 " + lead) + "；古墓守卫的伤势已处理）";
             });
-            this.option(_screen, "试封 · 取得 4 点防腐尸骸", function()
+            this.option(_screen, "“把盐拿来，先封好这批遗骸。”", function()
             {
                 S.set("Shovels", 1);
                 S.changeReserve(4);
-                return "盗墓贼将盐封好的遗骸抬进马车。";
+                return "两人立刻麻利地干起了老本行。半夜过后，车厢角落里多了几捆裹得严严实实的盐封裹尸布，空气里弥漫着刺鼻的咸腥味。\n\n（获得 4 点防腐尸骸）";
             });
             break;
 
         case "evolve":
             title = "法杖蜕变";
-            _screen.Text = "你把骨杖横在火堆上。颅骨里的魂光回应你的誓言，法杖在火里重新成形。";
-            this.option(_screen, "接过蜕变后的法杖", @() S.evolveStaff() ? "你接过了 " + (S.oath() == S.Oath.Champion ? "骸骨权杖。" : "千魂法杖。") : "法杖仍在原处。");
+            if (this.oath() == this.Oath.Champion)
+            {
+                _screen.Text = "夜深人静，你将初生骷髅法杖横架在渐渐转暗的篝火之上。跳动的橘红火焰并未灼伤枯骨，反而像是遇见了天敌般剧烈蜷缩，随即被杖头那缕愈发炽烈的幽蓝魂火尽数吞没。\n\n随着你低声重申亡灵冠军的誓约，车厢里那具钉满铜箍的旧棺猛然一震，卫士的兵刃在棺内发出低沉而狂热的金属共鸣。法杖表面原本纵横交错的裂纹在魂火中寸寸弥合，粗糙的铁箍融化成暗沉的镀铜，那颗苍白的颅骨缓缓睁开空洞的眼眶，一股令人窒息的君王威压顺着杖身涌入你的掌心。它不再是荒冢里拼凑出的简陋法器，而是足以加冕并号令不朽冠军的【骸骨权杖】。";
+                this.option(_screen, "“以此权杖，加冕我的冠军。”", @() S.evolveStaff() ? "初生骷髅法杖蜕变为【骸骨权杖】。" : "法杖仍在原处。");
+            }
+            else
+            {
+                _screen.Text = "你独自走到营地边缘，将初生骷髅法杖深深插进浸满腐土与盐水的泥地之中。随着你沙哑地念出亡灵天灾的誓词，四周温暖的篝火骤然熄灭，刺骨的寒意瞬间席卷了整座营地。\n\n无数肉眼难辨的苍白虚影从地底与黑暗中涌出，像饥饿的蝗虫般疯狂钻进杖身的裂隙。枯骨在成百上千道凄厉的哀嚎与低语中扭曲、延展，原本松动的铁箍被迫重铸成密密麻麻的符环，勉强锁住其中翻涌不息的亡魂浪潮。彻骨的阴冷顺着你的指尖蔓延至全身——从今往后，整片战场都将回荡着【千魂法杖】的无尽诅咒。";
+                this.option(_screen, "“听吧，亡者的潮水正在呼唤。”", @() S.evolveStaff() ? "初生骷髅法杖蜕变为【千魂法杖】。" : "法杖仍在原处。");
+            }
             break;
 
         case "banner":
             title = "第三面残旗";
-            _screen.Text = "残旗内侧缝着仪仗队的名字。护卫看到旗后，拾起长矛，站到首席身前。";
+            _screen.Text = "清理完地宫深处的瓦砾后，盗墓贼从一具倒塌的石像臂弯里扯出了一面早已褪色的残旗。布料虽然脆得一碰就碎，内侧却用金线密密麻麻地缝着一支古帝国仪仗队的番号与名录。\n\n你正要将其收入行囊，身后的卫士却突然停住了脚步。它空洞的眼窝死死盯着残旗上的徽记，喉骨间发出几声生锈齿轮般的轻响。下一刻，它竟无视了你的指令，自己弯腰拾起长矛，沉稳地横跨一步，挡在了你的身前。";
             local site = this.localSite(1, true);
-            this.option(_screen, "让它重新执旗", function()
+            this.option(_screen, "“既然你还记得怎么护驾，就重新执起这面旗吧。”", function()
             {
                 S.set("BannerEvent", 1);
                 S.set("BannerTrials", 3);
                 S.set("BannerSuccess", 0);
                 S.set(site.Key + "Inspected", 1);
-                return "接下来三场胜仗中，护卫须至少两场与首席同场存活。达成后在营地授旗。";
+                return "你将残旗系在卫士的矛杆上，它眼中的魂火骤然明亮了几分。\n\n（接下来 3 场胜仗中，让古墓守卫至少 2 场与导师一同出战并存活，完成后在营地授旗，解锁专属称号与【护驾遗志】）";
             });
-            this.option(_screen, "把旗留在墓里 · 取得 1 枚古代魂玉", function()
+            this.option(_screen, "“死人不需要旧日荣耀，把旗留在墓里。”", function()
             {
                 if (!S.addMaterials("jade", 1))
                     return "仓库没有空位，魂玉仍留在原处。";
                 S.set("BannerEvent", 1);
                 S.set(site.Key + "Inspected", 1);
-                return "你从旗脚下的石盒里取出一枚古代魂玉。";
+                return "你令卫士退下，将残旗盖回石棺，却在旗杆折断的底座里摸出了一块触手冰凉的碧石。\n\n（获得 1 枚古代魂玉）";
             });
             break;
 
         case "crown":
             title = "王座的余烬";
-            _screen.Text = "深夜，" + pet.m.Name + " 在营地边缘一遍遍演练失传的皇家战技。你从它的动作里看见了沉睡的记忆。";
+            _screen.Text = "深夜，守夜的兄弟轻手轻脚地叫醒了你。顺着他颤抖的手指望去，月光下的营地边缘，" + pet.m.Name + " 正独自站在一块空地上，手中握着兵刃，一遍又一遍地演练着一套早已被世人遗忘的皇家战技。\n\n它的动作起初僵硬生涩，随着每一次劈砍与转身，那具枯骨却仿佛重新找回了昔日驰骋沙场的韵律。你走近几步，清晰地感觉到一缕残存的王室武艺记忆正盘踞在它的颅骨深处，蠢蠢欲动。";
             if (assets.getMoney() >= 400)
-                this.option(_screen, "以魂火重铸其战意（400 金，首席全属性 −15% 持续两天）", function()
+                this.option(_screen, "“以我的魂火，为你重铸昔日的战意。”（400 金币，导师 2 天内全属性 −15%）", function()
                 {
                     assets.addMoney(-400);
                     S.set("Crown", 1);
@@ -379,34 +482,39 @@ S.renderEvent <- function( _event, _screen )
                     S.petSet(pet, "Mastery", 1);
                     pet.updateCompanion();
                     chief.getSkills().update();
-                    return "冠军永久获得 +4 近战技能、+4 近战防御，以及主手武器专精。";
+                    return "你咬破指尖，将昂贵的死灵秘药与自身魂火一并灌入 " + pet.m.Name + " 的躯体。漫长的仪式几乎榨干了你的精力，但当它重新抬起头时，每一寸骨骼都散发着令人胆寒的锋芒。\n\n（冠军获得专属称号，永久 +4 近战技能、+4 近战防御，并获得主手武器专精；导师 2 天内全属性 −15%）";
                 });
-            this.option(_screen, "窃取 " + pet.m.Name + "（" + pet.m.Level + " 级）的战斗本能 · 永久牺牲", function()
+            this.option(_screen, "“把你的本能交给我，我比你更需要它。”（永久牺牲 " + pet.m.Name + "，" + pet.m.Level + " 级）", function()
             {
+                local name = pet.m.Name;
                 chief.getItems().unequip(pet);
                 chief.getBaseProperties().Bravery += 8;
                 chief.getSkills().update();
                 S.set("Crown", 1);
                 S.set("LostChampion", 1);
-                return "棺盖下再也没有声响。首席永久获得 +8 决心。";
+                return "你抬手按住它的天灵盖，强行抽干了那缕沉淀百年的战魂记忆。" + name + " 的身躯在你脚下寸寸崩解，化作一捧再无生机的尘土，而你的双眸中却燃起了前所未有的冰冷清明。\n\n（导师永久 +8 决心）";
             });
-            this.option(_screen, "等它练完这套剑法", function() { S.set("CrownDeferred", 1); return null; });
+            this.option(_screen, "“先别打扰它，等它练完这套剑法。”", function()
+            {
+                S.set("CrownDeferred", 1);
+                return "你示意守夜人退回篝火旁，静静看着它在月光下收招归位。\n\n（下次在古代遗址扎营时可再次触发）";
+            });
             break;
 
         case "empty":
             title = "空棺回营";
-            _screen.Text = "盗墓贼抬回了空棺。他们问你是去找一名精锐，还是重新唤醒一具熟悉的身躯。";
+            _screen.Text = "两名盗墓贼垂头丧气地把那具沉重的旧棺抬回了营地。棺盖大敞着，里面空空如也，只剩下几片碎裂的骨渣和一缕尚未散尽的青烟。\n\n曾经替你挡下无数刀锋的冠军已经彻底化作尘埃。矮个子盗墓贼抹了把脸上的灰，小心翼翼地问你：是花钱去黑市打听另一处藏着古代精锐的古墓，还是干脆就地唤醒一具普通的卫士，先填上身边的空缺。";
             if (assets.getMoney() >= 250)
-                this.option(_screen, "花 250 金买线索", function()
+                this.option(_screen, "“花 250 金，去买一处古墓精锐的线索。”", function()
                 {
                     local name = S.revealAncient();
                     if (name == null)
-                        return "这一带无人知道可用的遗址。";
+                        return "盗墓贼在黑市转了一夜，这一带却无人知道可用的遗址。（未花费金币）";
                     assets.addMoney(-250);
                     S.set("EmptyCoffin", 1);
-                    return "地图上标出了 " + name + "。";
+                    return "盗墓贼揣上钱袋钻进夜色，天亮前带回了一张画满红叉的旧地图，上面标着一处据说沉睡着古代悍将的遗址。\n\n（消耗 250 金币，地图上标出了 " + name + "）";
                 });
-            this.option(_screen, "唤醒普通墓穴守卫", function()
+            this.option(_screen, "“先唤醒一具普通的卫士顶上。”", function()
             {
                 local replacement = S.makeGuard(false);
                 if (chief.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) == null)
@@ -417,102 +525,104 @@ S.renderEvent <- function( _event, _screen )
                     S.set("ReservePetID", replacement.m.PaleID);
                 }
                 else
-                    return "首席的饰品栏和仓库都没有空位。";
+                    return "导师的饰品栏和仓库都没有空位。";
                 S.set("EmptyCoffin", 1);
-                return "一名未训练的墓穴守卫听从了你的召唤。";
+                return "你用残存的魂火拼凑出一具新的骨架，虽不如往日那般悍勇，但至少旧棺不再空荡荡的。\n\n（获得 1 名未训练的古墓守卫）";
             });
             break;
 
         case "smith":
             title = "黑铁的私活";
-            _screen.Text = "铁匠认得棺上的铜箍，却没有问车里运的是什么。他愿意私下打几条锁链。";
+            _screen.Text = "镇上的铁匠蹲在马车旁敲了敲旧棺上的铜箍，浑浊的眼睛里闪过一丝精明。他没有多问车厢里运的究竟是死人还是货物，只是吐了口唾沫，低声说这种老式封魂箍配的锁链如今市面上不好找，但他炉子里正好还有几块掺了墓土的生铁，愿意私下替你打几条。\n\n话音未落，他又瞥了眼你腰间隐约泛着碧光的布袋，显然是个识货的老手。";
             if (assets.getMoney() >= 350 && assets.getArmorParts() >= 10)
-                this.option(_screen, "付 350 金和 10 工具，定制一条锁链", function()
+                this.option(_screen, "“350 金再加 10 点工具，给我打一条结实的。”", function()
                 {
                     if (!S.addMaterials("chain", 1))
                         return "仓库没有空位。";
                     assets.addMoney(-350);
                     assets.addArmorParts(-10);
-                    S.set("SmithAfter", S.worldHours() + 48);
-                    return "铁匠交给你一条缚魂锁链。";
+                    S.set("SmithAfter", S.worldHours() + 240);
+                    return "铁匠拉上铺门，叮叮当当忙活了半宿。天亮时，一条沉重冰冷的黑铁锁链被油布包着塞进了你的马车。\n\n（消耗 350 金币与 10 点工具，获得 1 条缚魂锁链；墓土生铁用完了，10 天内不会再有铁匠接这种活）";
                 });
             if (this.countItems("misc.pale_jade") > 0)
-                this.option(_screen, "以一枚旧魂玉换两条锁链", function()
+                this.option(_screen, "“这块古代魂玉归你，给我打两条锁链。”", function()
                 {
                     if (!S.addMaterials("chain", 2))
                         return "仓库需要两个空位。";
                     S.removeMaterial("jade");
-                    S.set("SmithAfter", S.worldHours() + 48);
-                    return "铁匠交给你两条缚魂锁链。";
+                    S.set("SmithAfter", S.worldHours() + 240);
+                    return "铁匠接过魂玉对着油灯照了照，嘴角咧开一个贪婪的弧度，二话不说便从炉底拖出了两条早已备好的上等锁链。\n\n（消耗 1 枚古代魂玉，获得 2 条缚魂锁链）";
                 });
-            this.option(_screen, "婉拒", function() { S.set("SmithAfter", S.worldHours() + 48); return null; });
+            this.option(_screen, "“太贵了，我还不缺这东西。”", function()
+            {
+                S.set("SmithAfter", S.worldHours() + 48);
+                return "铁匠耸耸肩，转身回到了火炉边，权当什么也没看见。";
+            });
             break;
 
         case "whispers":
             title = "棺中低语";
-            _screen.Text = "两种声音从铜箍下争先恐后地冒出，一声在发号施令，另一声在磨牙。";
-            this.option(_screen, "以首席意志强行镇压", function()
+            _screen.Text = "半夜的营地安静得反常，连虫鸣都停了。唯独马车里的旧棺剧烈地晃动起来，铜箍发出不堪重负的吱嘎声。\n\n你掀开油布走近，听见两种截然不同的声音正从棺缝里争先恐后地挤出来——一声低沉威严，仿佛在沙场上厉声号令军阵；另一声却尖锐疯狂，夹杂着令人毛骨悚然的磨牙声。被你强行塞进同一具躯壳里的数道残魂，正在为争夺主导权互相撕咬。";
+            this.option(_screen, "“都给我闭嘴！这具躯壳只听我一人的号令。”", function()
             {
                 S.petSet(pet, "WhispersDone", 1);
-                if (::Math.rand(1, 100) <= ::Math.max(5, ::Math.min(95, ::BGP.Necro.getResolve(chief))))
-                {
-                    pet.m.Attributes.Bravery += 3;
-                    pet.m.Attributes.MeleeSkill += 3;
-                    pet.updateCompanion();
-                    return "冠军平静下来，永久获得 +3 决心、+3 近战技能。";
-                }
                 S.set("WhispersUntil", S.worldHours() / 24.0 + 2.0);
+                chief.getBaseProperties().Bravery += 3;
                 chief.getSkills().update();
-                return "首席疲劳上限 −10，持续 2 天。";
+                pet.m.Attributes.MeleeSkill += 1;
+                pet.m.Attributes.Stamina += 1;
+                pet.updateCompanion();
+                return "你将法杖重重顿在棺盖上，倾泻而出的冰冷意志如重锤般砸进棺内。凄厉的嘶吼戛然而止，残魂在你的威压下彻底驯服，你的心神经此一役愈发坚不可摧，只是短期内难免有些力竭。\n\n（导师 2 天内全属性 −10%，导师永久 +3 决心；冠军永久 +1 近战技能、+1 疲劳）";
             });
-            this.option(_screen, "让强者吞噬弱者", function()
+            this.option(_screen, "“随它们去，让更强的那个吞掉弱者。”", function()
             {
+                local names = { Hitpoints = "生命", Stamina = "疲劳", Bravery = "决心", Initiative = "主动值", MeleeSkill = "近战技能", RangedSkill = "远程技能", MeleeDefense = "近战防御", RangedDefense = "远程防御" };
                 local stats = clone S.Attributes;
                 local up = stats.remove(::Math.rand(0, stats.len() - 1));
                 local down = stats[::Math.rand(0, stats.len() - 1)];
-                pet.m.Attributes[up] += 4;
-                pet.m.Attributes[down] -= 2;
+                pet.m.Attributes[up] += 10;
+                pet.m.Attributes[down] -= 5;
                 S.setPetTitle(pet, ::Math.rand(0, 1) != 0 ? "暴骨" : "冷魂");
                 S.petSet(pet, "WhispersDone", 1);
                 pet.updateCompanion();
-                return "一种声音消失了。冠军随机一项属性 +4，另一项 −2。";
+                return "棺内的撞击声持续了整整半个时辰，最终只剩下一声充满暴戾气息的低吼。弱小的残魂已被彻底咀嚼殆尽，留下的意志变得前所未有地极端而凶悍。\n\n（冠军获得专属称号，" + names[up] + " +10，" + names[down] + " −5）";
             });
             if (assets.getArmorParts() >= 5)
-                this.option(_screen, "用 5 点工具加固铜箍", function()
+                this.option(_screen, "“拿工具来，把铜箍再钉死几寸。”（5 点工具）", function()
                 {
                     assets.addArmorParts(-5);
                     S.set("WhispersAfter", S.worldHours() + 72);
-                    return "棺盖暂时安静了。";
+                    return "盗墓贼满头大汗地钉进几根铁楔，棺材终于重新安静了下来，只是里面的低语恐怕迟早还会再次响起。";
                 });
             break;
 
         case "mortuary":
             title = "封死的停尸间";
-            _screen.Text = "门内还有一批盐封遗骸。门外站着抱名册的人，他们一直在等死者回家。";
+            _screen.Text = "在古战场边缘扎营时，斥候在半塌的石砌地窖里发现了一间被木板封死的停尸间。门缝里飘出熟悉的粗盐与防腐药草味，里面整齐码放着一批尚未腐烂的遗骸。\n\n可就在你们准备撬门时，几个衣衫褴褛的乡民抱着发黄的名册找了过来。他们站在火光边缘不敢靠近，只哽咽着说里面躺着他们的父兄，恳求你们行行好，让他们把亲人带回去入土为安。";
             local site = this.localSite(2, true);
             if (assets.getArmorParts() >= 5)
-                this.option(_screen, "开门取材（5 点工具，在这里扎营半天）", function()
+                this.option(_screen, "“死人归我管，把门撬开。”（5 点工具，在此扎营半天）", function()
                 {
                     assets.addArmorParts(-5);
                     S.set(site.Key + "Mortuary", 1);
                     S.set("MortuaryFinish", S.worldHours() + 12);
                     S.set("MortuarySite", site.Key);
-                    return "营地开始清理石门。让这里经过半天，库存会增加 4 点。";
+                    return "乡民们在盗墓贼的呵斥下哭着退进了夜色。你们花了半天工夫和不少工具拆开封板，将里面保存完好的遗骸尽数装车。\n\n（在这里继续扎营半天后，获得 4 点防腐尸骸）";
                 });
-            this.option(_screen, "交还遗骸名册", function()
+            this.option(_screen, "“把名册和门钥匙留给他们，我们走。”", function()
             {
                 local town = S.nearTown(10000);
                 if (town != null)
                     town.getFactionOfType(::Const.FactionType.Settlement).addPlayerRelation(3, "交还遗骸名册");
                 S.set(site.Key + "Mortuary", 1);
-                return "人们从名单上认出了自己的家人。";
+                return "你拦住了蠢蠢欲动的盗墓贼。那些乡民千恩万谢地接过名册，临走前反复念叨着这支怪异的佣兵团倒还有几分良心。\n\n（附近定居点的关系改善）";
             });
             break;
 
         case "parts":
             title = "缝合台上的多余零件";
-            _screen.Text = "你把能用的骨片和筋腱摊在缝合台上。几名活人拎起铺盖，往远处挪了挪。";
-            this.option(_screen, "精挑细选加固躯干（5 点防腐尸骸）", function()
+            _screen.Text = "连日征战下来，马车里囤积的防腐尸骸早已堆得快要顶破帆布。趁着今夜扎营，你在火堆旁支起两张厚重的木板当作缝合台，将精心挑选出来的粗壮股骨、完好肋排与浸过药水的柔韧筋腱一字排开。暗红的火光下，几名常驻亡灵像木桩般安静地排成一列，任由你拿着沾满黑油的弯针、铁钳与铜钉在它们身上反复比划。\n\n刺鼻的腐臭混合着浓烈的粗盐气味顺风飘散，铁钩刮过骨面的尖锐摩擦声更是让人头皮发麻。几个正在啃干粮的活人兄弟终于彻底忍受不住，黑着脸骂骂咧咧地拎起铺盖，默不作声地往逆风处又挪了好几丈远。";
+            this.option(_screen, "“挑最好的料子，把它的躯干再加固一层。”（5 点防腐尸骸）", function()
             {
                 if (!S.changeReserve(-5))
                     return null;
@@ -525,9 +635,9 @@ S.renderEvent <- function( _event, _screen )
                     bro.getBaseProperties().MeleeDefense += 5;
                 bro.getSkills().update();
                 S.set("Parts", 1);
-                return bro.getName() + (hp ? " 永久 +15 生命。" : " 永久 +5 近战防御。");
+                return "你耗费了不少库存，用双层骨板与浸盐筋腱彻底重塑了 " + bro.getName() + " 的胸膛，它如今站起来像堵移动的石墙。\n\n（" + bro.getName() + (hp ? " 永久 +15 生命）" : " 永久 +5 近战防御）");
             });
-            this.option(_screen, "拆东墙补西墙", function()
+            this.option(_screen, "“用边角料把所有伤员都补一补。”", function()
             {
                 foreach (bro in S.undead())
                     bro.setHitpointsPct(1.0);
@@ -535,106 +645,164 @@ S.renderEvent <- function( _event, _screen )
                     bro.worsenMood(0.75, "受不了缝合台的气味");
                 S.set("StenchUntil", S.worldHours() + 48);
                 S.set("Parts", 1);
-                return "常驻亡灵的生命全部补满。两天内，活人同伴的心情受缝合气味影响。";
+                return "你动作麻利地替所有受损的亡灵缝合了裂口，省下了珍贵的储备，代价是整座营地接下来两天都弥漫着令人作呕的酸臭味。\n\n（不消耗储备，常驻亡灵的生命全部补满；活人兄弟 2 天内心情下降）";
             });
-            this.option(_screen, "按原样封存", function() { S.set("Parts", 1); return null; });
+            this.option(_screen, "“算了，把这些都封回去，留着上战场用。”", function()
+            {
+                S.set("Parts", 1);
+                return "你收起针线，将多余的材料重新塞回盐袋。";
+            });
             break;
 
         case "porter":
             title = "谁来扛这具胖子";
-            _screen.Text = "轮班表又被人钉回了棺盖。两个抬尸的人谁也不肯先伸手。";
-            this.option(_screen, "演示发力和防腐技巧（1 点防腐尸骸）", function()
+            _screen.Text = "天还没彻底黑透，营地中央就爆发出一阵激烈的争吵。原本贴在马车辕上的搬运轮班表，不知被谁用一把生锈的匕首狠狠钉回了旧棺的盖子上。篝火旁，两名负责替战团搬运防腐尸骸的活人兄弟正梗着脖子互相推搡，谁也不肯先伸手去碰地上那具又沉又胖、裹尸布还不断往外渗着浑浊盐水的尸弹。\n\n“上回就是老子背着它走了五里烂泥路，连裤裆都腌透了！”其中一人气急败坏地吼道，“今天轮也该轮到你扛着它上战场了！”另一个也不甘示弱，当场撸起袖子破口大骂。周围的兄弟们纷纷捂着鼻子看热闹，眼看两人就要抄起家伙动真格的。";
+            this.option(_screen, "“蠢货，连尸体都不会搬。看好了。”（1 点防腐尸骸）", function()
             {
                 if (!S.changeReserve(-1))
                     return null;
                 local porters = S.porters();
+                local lines = [];
                 for (local i = 0; i < 2; ++i)
                 {
-                    porters[i].improveMood(1.0, "学会搬运防腐遗骸");
-                    porters[i].getBaseProperties().RangedSkill += 2;
-                    porters[i].getSkills().update();
+                    local bro = porters[i];
+                    bro.improveMood(1.0, "学会搬运防腐遗骸");
+                    if (::Math.rand(0, 1) != 0)
+                    {
+                        bro.getBaseProperties().RangedSkill += 2;
+                        lines.push(bro.getName() + " 永久 +2 远程技能");
+                    }
+                    else
+                    {
+                        bro.getBaseProperties().Stamina += 3;
+                        lines.push(bro.getName() + " 永久 +3 疲劳上限");
+                    }
+                    bro.getSkills().update();
                 }
                 S.set("Porter", 1);
-                return "两名搬运者各永久 +2 远程技能。";
+                return "你冷哼一声，亲自挑出一具尸骸，当场演示了如何借力扛肩、如何攥紧衣领抛出最远的弧线。两人看得目瞪口呆，吵架的火气顿时消了大半，顺便还学到了几分实打实的发力窍门。\n\n（" + lines[0] + "；" + lines[1] + "）";
             });
             if (assets.getMoney() >= 100)
-                this.option(_screen, "发 100 金封口费", function()
+                this.option(_screen, "“一人五十金，拿了钱就闭嘴干活。”（100 金币）", function()
                 {
                     assets.addMoney(-100);
                     foreach (bro in S.humans())
                         bro.improveMood(0.75, "得到了搬运赏钱");
                     S.set("Porter", 1);
-                    return "抱怨声停了。";
+                    return "叮当作响的金币瞬间平息了这场风波。两人麻利地揣好赏钱，甚至开始互相客气起来。\n\n（全团活人兄弟心情提升）";
+                });
+            if (this.undead().len() > 0)
+                this.option(_screen, "“既然活人娇气，就让骷髅来搬。”", function()
+                {
+                    S.set("Porter", 1);
+                    return "你挥手唤来几名常驻亡灵接手苦力，活人兄弟们顿时松了口气，只是亡灵们在行军途中显得格外笨重。";
                 });
             break;
 
         case "lantern":
             title = "黑夜里的提灯人";
-            _screen.Text = "几杆长枪挡住路口。一盏提灯伸过来，巡逻兵闻到了马车里的防腐气味。";
-            this.option(_screen, "利用夜色甩开巡逻队", function()
+            _screen.Text = "夜色浓稠如墨，车队刚拐过一处林间岔口，几杆雪亮的长枪便骤然从道旁的灌木丛里刺了出来，紧接着一盏耀眼的油灯高高举到了马车正前方。一队神色警惕的城镇巡逻兵死死拦住了去路，领头的老队长皱着眉头凑近车厢，用力吸了两口潮湿的夜风，原本还算客气的脸色瞬间阴沉得能滴出水来。\n\n“大半夜不点灯赶路，拉着一口钉满黑铁铜箍的旧棺材，车斗里还飘着死人堆里才有的粗盐与腐肉味……”他缓缓拔出半截长剑，冷冷地盯着你兜帽下的阴影，身后的长枪手也齐刷刷地压低了枪尖，“别装哑巴，掀开油布，让我们瞧瞧里面装的究竟是什么货色。”";
+            this.option(_screen, "“熄灭营灯，趁夜色甩开他们。”", function()
             {
                 local town = S.nearTown(10000);
                 if (town != null)
                     town.getFactionOfType(::Const.FactionType.Settlement).addPlayerRelation(-2, "夜里绕过了巡逻队");
                 S.set("Lantern", 1);
-                return "马车趁夜色离开大路。";
+                return "你低喝一声，借着自己远胜常人的夜间视力，领着车队猛然拐进一条漆黑的林间小道。巡逻兵举着提灯在泥泞里徒劳地追了几十步，只能对着黑暗破口大骂。\n\n（无损脱身，与最近城镇的关系微降）";
             });
             if (assets.getMoney() >= 200)
-                this.option(_screen, "花 200 金买路", function() { assets.addMoney(-200); S.set("Lantern", 1); return "巡逻队放行了。"; });
-            this.option(_screen, "就地开战", function() { S.set("Lantern", 1); S.startPatrolFight(); return null; });
+                this.option(_screen, "“夜路难走，这点茶水钱请诸位行个方便。”（200 金币）", function()
+                {
+                    assets.addMoney(-200);
+                    S.set("Lantern", 1);
+                    return "沉甸甸的钱袋准确落进队长怀里。他掂了掂分量，眼神立刻柔和了下来，挥手示意手下收起长枪：“看来只是批腌坏了的咸鱼，赶紧滚出我的地界。”";
+                });
+            this.option(_screen, "“正好，马车里还缺几具新鲜货色。”（夜间遭遇战）", function() { S.set("Lantern", 1); S.startPatrolFight(); return null; });
             break;
 
         case "dice":
             title = "少了一枚指骨的骰子";
-            _screen.Text = "盗墓贼醉得站不稳。他把骰子推给不会说话的亡灵，没想到它抬手把骰子推了回来。";
-            this.option(_screen, "随他们去", function()
+            _screen.Text = "深夜的营地角落里突然爆出一阵古怪而放肆的哄笑声，打破了往日的死寂。你披上黑袍循声走去，只见那名平日里最爱吹牛的盗墓贼喝得满脸通红、东倒西歪，正抱着半壶劣质麦酒，摇摇晃晃地蹲在一具站岗的亡灵面前，硬拉着这位不会说话的死人掷骰子消遣。\n\n原本只是醉汉的胡闹，可当盗墓贼把破木碗推到脚边时，令人意外的一幕发生了：那具沉默的亡灵竟然真的咔哒咔哒地弯下腰，用一只缺了半截指骨的枯手稳稳抓起木碗摇了两下，随即精准地将骰子推了回来，赫然掷出了个满点。盗墓贼拍着大腿哈哈大笑，连周围几个原本对亡灵避之不及的活人兄弟也忍不住凑过来啧啧称奇。";
+            this.option(_screen, "“随他们去吧，习惯了死人，上战场才不会腿软。”", function()
             {
                 local bro = S.diceBrother();
                 bro.improveMood(0.75, "和亡灵一起掷骰子");
                 bro.getBaseProperties().Bravery += 2;
                 bro.getSkills().update();
                 S.set("Dice", 1);
-                return bro.getName() + " 永久 +2 决心。";
+                return "你没有打断这场荒诞的赌局。那天晚上，" + bro.getName() + " 输光了兜里的铜板，胆子却比从前壮了不少。\n\n（" + bro.getName() + " 心情变好，永久 +2 决心）";
             });
-            this.option(_screen, "严厉制止", function()
+            this.option(_screen, "“够了！战团不是酒馆，滚回去守夜。”", function()
             {
                 foreach (bro in S.humans())
-                    bro.worsenMood(0.25, "首席禁止和亡灵掷骰子");
+                    bro.worsenMood(0.25, "导师禁止和亡灵掷骰子");
                 chief.getBaseProperties().Bravery += 1;
                 chief.getSkills().update();
                 S.set("Dice", 1);
-                return "首席永久 +1 决心。";
+                return "你冰冷的呵斥瞬间冻住了营地的笑声。盗墓贼讪讪地收起骰子溜回铺盖，所有人都重新记起了你究竟是什么人。\n\n（活人兄弟心情微降，导师永久 +1 决心）";
             });
             break;
 
         case "apprentice":
             title = "握灯的人";
-            _screen.Text = "你负伤后，一名流浪亡灵法师带着提灯来到营地。他说自己可以从守夜学起。";
+            _screen.Text = "今夜寒风刺骨，你身上的旧伤隐隐作痛。就在营火快要燃尽时，一个提着幽绿油灯的瘦削身影穿过警戒线，安静地停在了火光边缘。\n\n来人穿着一件沾满泥浆的旧黑袍，眼神里既没有圣职的狂热，也没有常人的恐惧。他盯着你身旁的骷髅法杖看了许久，低声道出你早已失传的旧名，并表示自己慕名寻了很久——哪怕只替你打下手、看管盐袋与召唤杂兵，也愿追随你见识真正的死灵秘术。";
             if (assets.getMoney() >= 250 && ::World.getPlayerRoster().getSize() < assets.getBrothersMax())
-                this.option(_screen, "付 250 金安家费收徒", function()
+                this.option(_screen, "“付你一笔安家费。拿好提灯，替我分担些杂活。”（250 金币）", function()
                 {
                     local apprentice = S.spawnBrother("bgp_necromancer_background", ["armor/wizard_robe", "weapons/wooden_stick"]);
                     apprentice.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
                     assets.addMoney(-250);
                     assets.updateFormation(true);
                     S.set("Apprentice", 1);
-                    return "流浪亡灵法师加入战团，占 1 个编制位。";
+                    return "流浪亡灵法师深深鞠了一躬，熄灭了旧灯，安静地站到了战团队列之中。多一双懂行的手，战场上的死人也能听话几分。\n\n（招募 1 名亡灵法师，占 1 个编制位）";
                 });
             if (assets.getMoney() >= 75)
-                this.option(_screen, "给 75 金旅费，交换遗址情报", function()
+                this.option(_screen, "“我不需要学徒。拿上盘缠，把你知道的遗址消息留下。”（75 金币）", function()
                 {
                     local lead = S.revealAncient();
                     if (lead == null)
-                        return "旅人没能指出一处新的遗址。";
+                        return "他想了很久，却没能指出一处新的遗址。（未花费金币）";
                     assets.addMoney(-75);
                     S.set("Apprentice", 1);
-                    return "旅人标出了 " + lead + "。";
+                    return "他略显失落地收下金币，临行前在地图上为你标出了一处人迹罕至的古墓位置，随后重新消失在苍茫的夜色中。\n\n（地图上标出了 " + lead + "）";
                 });
+            break;
+
+        case "ascend":
+            title = "飞升仪式";
+            closing = false;
+            _screen.Text = "通过对传奇生物、人类、绿皮和亡灵的不断研究，你已经站在这个位面亡灵术的巅峰。\n\n狩猎场里那头古老神兽崩碎时溢出的狂野残魂，让你彻底洞悉了血肉演化与野性本源的终极奥秘；哥布林王城深处那些诡谲恶毒的萨满巫术，替你补全了诅咒、瘟疫与灵魂侵蚀的最后一块拼图；而踏平黑色巨石、击碎古帝国千年死寂的那一刻，无数沉睡在历史尘埃中的幽冥伟力尽数涌入你的识海，终于为你亲手推开了超越生死界限的最后一道大门。\n\n今夜，营地的篝火无风自灭，刺骨的寒霜沿着马车车轮悄然蔓延，天穹之上的群星在幽蓝的雾霭中黯然失色。营地里无论是活人还是亡灵，都本能地低下头颅，不敢直视法阵中央的身影。你独自站在以古帝国铭文、黑盐与传奇魔血绘就的巨大仪轨之中，手中的法杖发出震耳欲聋的共鸣。你无比清晰地感觉到，那具曾饱受围剿、流血与衰老折磨的凡人躯壳早已成了束缚灵魂的沉重枷锁——只要念出最后一句禁忌真名，你便能彻底褪去肉身凡胎，踏上凌驾于生死之上的不朽神座。";
+            _screen.Options.push({
+                Text = "“凡胎已尽，今夜我便踏上神座。”（战役胜利结束）",
+                function getResult( _event )
+                {
+                    S.set("Ascended", 2);
+                    local c = S.chief();
+                    if (c != null)
+                        c.getSkills().update();
+                    ::World.State.getMenuStack().pop(true);
+                    ::World.State.showGameFinishScreen(true);
+                    return 0;
+                }
+            });
+            this.option(_screen, "“尘世的清算尚未结束，我还不能离开。”", function()
+            {
+                S.set("Ascended", 1);
+                chief.setTitle("苍白主宰");
+                chief.getBaseProperties().Bravery += 10;
+                chief.getSkills().update();
+                local route = S.oath() == S.Oath.Champion
+                    ? "冠军吞魂上限 +1，缚魂锁链可标记生命不高于 50% 的目标，“强化躯体”改为随机三项属性各 +2"
+                    : S.oath() == S.Oath.Scourge
+                        ? "所有常驻亡灵与复活单位 +20 生命、+10% 伤害，防腐尸骸上限提至 " + S.reserveLimit()
+                        : "尚未立誓，路线加成在立誓后生效";
+                return "你没有念出那句彻底割裂尘世的真名。相反，在法阵的光芒攀升至顶峰的刹那，你猛然收紧五指，将那股足以让寻常凡人瞬间化作飞灰的磅礴神性洪流，硬生生压回了这具残破却熟悉的躯壳之中。狂暴的幽蓝魂火顺着你的血脉疯狂奔涌，骨骼在令人牙酸的脆响中重铸，衰老与疲惫被彻底逐出体外，原本跳动的心脏在胸腔里归于死一般的沉寂，取而代之的是一团永不熄灭的苍白冷焰。法阵渐渐暗淡，群星重新浮现，而你依然稳稳立在这片沾满泥泞与血污的大地之上。你亲手推开了触手可及的神座，只因尘世的清算尚未结束，那些高傲的领主、伪善的圣职与隐匿在暗处的强敌，还配不上你仓促离场。自今夜起，你不再是凡人，而是行走于人间的【苍白主宰】。\n\n（导师获得称号【苍白主宰】，永久 +10 决心、每回合额外恢复 3 点疲劳；" + route + "）";
+            });
             break;
     }
     _event.m.Title = title;
     _screen.Text = "[img]gfx/ui/events/" + art + "[/img]" + _screen.Text;
-    if (_screen.ID != "soul")
-        this.option(_screen, _screen.ID == "camp" ? "收起账簿" : "回到营地",
+    if (closing)
+        this.option(_screen, _screen.ID == "camp" ? "合上账簿" : "返回营地",
             _screen.ID == "whispers" ? function() { S.set("WhispersAfter", S.worldHours() + 24); return null; } : @() null);
 };

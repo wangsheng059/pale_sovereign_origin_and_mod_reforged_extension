@@ -4,7 +4,7 @@ this.pale_weaken <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "actives.pale_weaken";
         this.m.Name = "衰弱术";
-        this.m.Description = "魂火削弱敌人的力量。自动命中，不造成伤势，每回合一次。";
+        this.m.Description = "无需视线的阴冷诅咒，如无形枯手扼住目标的咽喉，令其挥刃沉重、步履蹒跚。自动命中，不造成伤势，每回合一次。";
         this.m.Icon = "skills/pale_weaken.png";
         this.m.IconDisabled = "skills/pale_weaken_sw.png";
         this.m.Type = ::Const.SkillType.Active;
@@ -32,7 +32,7 @@ this.pale_weaken <- ::inherit("scripts/skills/skill", {
         ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "距离 2–" + this.m.MaxRange + " 格，无需视野。造成 12–20 点无视护甲伤害。" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/melee_skill.png", text = "近战技能、远程技能、近战防御各 −" + (2 + ::Math.floor(w / 20.0)) + "，持续 2 回合。" });
         if (this.m.Champion)
-            ret.push({ id = 12, type = "text", icon = "ui/icons/hitchance.png", text = "标记唯一的冠军猎物。首席与冠军对其命中 +10、伤害 +20%。" });
+            ret.push({ id = 12, type = "text", icon = "ui/icons/hitchance.png", text = "标记唯一的冠军猎物。导师与冠军对其命中 +10、伤害 +20%。" });
         if (this.m.Scourge)
             ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "相邻敌人承受一半伤害和完整的衰弱效果。" });
         return ret;

@@ -643,8 +643,8 @@
 	// 死灵灌注：回 10 + W/4 生命、减 10 + W/6 疲劳
 	InfusionHeal = function( _w ) { return 10 + ::Math.floor(_w / 4.0); },
 	InfusionFatigue = function( _w ) { return 10 + ::Math.floor(_w / 6.0); },
-	// 不灭号令：复活后生命、头甲、身甲 20% + W/2 %，最多 80%（返回比例）
-	RevivePct = function( _w ) { return ::Math.minf(0.8, 0.2 + _w / 200.0); },
+	// 不灭号令：复活后生命、头甲、身甲 15% + W/3 %，最多 80%（返回比例；1.6.4 前为 20% + W/2 %）
+	RevivePct = function( _w ) { return ::Math.minf(0.8, 0.15 + _w / 300.0); },
 	// 不死再生：每回合 5 + W/5 生命
 	Regen = function( _w ) { return 5 + ::Math.floor(_w / 5.0); },
 	// 钢铁之躯：复活时头甲、身甲各恢复上限的 10% + W/4 %（返回比例；恢复量本身不超过上限）

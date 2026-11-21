@@ -7,6 +7,22 @@ S.isAncientSite <- function( _location )
         || name.find("undead_crypt") != null || name.find("undead_ruin") != null || name.find("undead_tomb") != null);
 };
 
+// 飞升仪式要求通关的传奇地点（按地点脚本名；狩猎场另外认击杀伊吉罗克）
+S.LegendSites <- {
+    tundra_elk_location = "Hunt",
+    goblin_city_location = "Goblin",
+    unique_goblin_city_location = "Goblin",
+    black_monolith_location = "Monolith",
+    undead_monolith_location = "Monolith"
+};
+
+S.recordLegend <- function( _location )
+{
+    local fileName = this.scriptBase(::IO.scriptFilenameByHash(_location.ClassNameHash));
+    if (fileName in this.LegendSites)
+        this.set("Legend." + this.LegendSites[fileName], 1);
+};
+
 S.siteKey <- function( _tile )
 {
     return "Site." + _tile.SquareCoords.X + "." + _tile.SquareCoords.Y + ".";
@@ -109,11 +125,25 @@ S.inspectAncient <- function( _site )
 
     if (this.oath() == this.Oath.Champion)
     {
-        if (!this.addMaterials("jade", 1))
-            return "仓库没有空位，魂玉仍留在遗址里。";
+        // 魂玉 15%、锁链 35%、其余是陪葬的古钱
+        local roll = ::Math.rand(1, 100);
+        local found = null;
+        if (roll <= 50)
+        {
+            local jade = roll <= 15;
+            if (!this.addMaterials(jade ? "jade" : "chain", 1))
+                return "仓库没有空位，石棺里的东西仍留在遗址里。";
+            found = jade ? "撬开石棺，从中取出一枚冰冷的古代魂玉。" : "撬开石棺，从枯骨的腕间解下一条尚能使用的缚魂锁链。";
+        }
+        else
+        {
+            local coins = ::Math.rand(60, 120);
+            ::World.Assets.addMoney(coins);
+            found = "撬开石棺，里面只剩一些陪葬的古钱，折合 " + coins + " 克朗。";
+        }
         this.set(_site.Key + "Inspected", 1);
         local lead = this.revealAncient();
-        return "从石棺中找到 1 枚古代魂玉。" + (lead == null ? "" : "墓砖上的铭文指向 " + lead + "。");
+        return found + (lead == null ? "" : "墓砖上的残缺铭文指向了 " + lead + "。");
     }
 
     if (this.oath() == this.Oath.Scourge)
@@ -124,10 +154,16 @@ S.inspectAncient <- function( _site )
             supply = (supply / 2).tointeger();
         this.changeReserve(supply);
         this.set(_site.Key + "Inspected", 1);
-        return "从遗址回收 " + (this.get("Reserve") - before) + " 点防腐尸骸。库存 " + before + " → " + this.get("Reserve") + "。";
+        local text = "清点地宫角落后，从遗址中回收了 " + (this.get("Reserve") - before) + " 点防腐尸骸。库存 " + before + " → " + this.get("Reserve") + "。";
+        if (this.get(_site.Key + "Kind") == 1 && ::Math.rand(1, 100) <= 10 && this.addMaterials("jade", 1))
+            text += "盗墓贼还在一具裹尸布里摸到了一枚古代魂玉。";
+        return text;
     }
     return "立誓后可勘察这处遗址。";
 };
+
+S.SkeletonTitles <- ["盐封骷髅", "铜索枯骨", "墓穴哨兵", "锈刃骸骨", "无名骨卒", "荒冢白骨"];
+S.ZombieTitles <- ["缝合行尸", "盐渍尸卒", "腐土力士", "裹尸重步", "僵步死士", "墓泥行尸"];
 
 S.canRecruitUndead <- function( _site )
 {
@@ -149,7 +185,8 @@ S.recruitUndead <- function( _site, _skeleton )
     bro.getFlags().set("PalePermanentUndead", true);
     bro.getFlags().set("undead", true);
     bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
-    bro.setTitle(_skeleton ? "盐封骷髅" : "缝合行尸");
+    local titles = _skeleton ? this.SkeletonTitles : this.ZombieTitles;
+    bro.setTitle(titles[::Math.rand(0, titles.len() - 1)]);
     bro.m.MoraleState = ::Const.MoraleState.Ignore;
     this.applyUndeadLook(bro);
     this.changeReserve(-3);

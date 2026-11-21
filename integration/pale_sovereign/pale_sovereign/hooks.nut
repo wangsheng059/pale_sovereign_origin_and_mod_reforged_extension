@@ -11,7 +11,7 @@ foreach (id in ::BGP.Necro.ChampionPerks)
     {
         if (::PaleSovereign.isChief(_bro) && ::PaleSovereign.oath() == ::PaleSovereign.Oath.Scourge)
         {
-            _tooltip.push({ id = 3, type = "hint", icon = "ui/icons/icon_locked.png", text = "战役已立下亡灵天灾誓约。" });
+            _tooltip.push({ id = 3, type = "hint", icon = "ui/icons/icon_locked.png", text = "誓约已定：本战役已立下亡灵天灾誓约。" });
             return false;
         }
         return original(_bro, _tooltip);
@@ -25,7 +25,7 @@ foreach (id in ::BGP.Necro.ScourgePerks)
     {
         if (::PaleSovereign.isChief(_bro) && ::PaleSovereign.oath() == ::PaleSovereign.Oath.Champion)
         {
-            _tooltip.push({ id = 3, type = "hint", icon = "ui/icons/icon_locked.png", text = "战役已立下亡灵冠军誓约。" });
+            _tooltip.push({ id = 3, type = "hint", icon = "ui/icons/icon_locked.png", text = "誓约已定：本战役已立下亡灵冠军誓约。" });
             return false;
         }
         return original(_bro, _tooltip);
@@ -79,7 +79,12 @@ local oldRaise = ::BGP.Necro.raise;
 {
     local entity = oldRaise(_actor, _tile);
     if (entity != null && S.Battle != null)
+    {
         entity.getFlags().set("PaleRaised", true);
+        if (S.isAscended() && S.oath() == S.Oath.Scourge && _actor != null && _actor.isPlayerControlled()
+            && !entity.getSkills().hasSkill("effects.pale_dominion"))
+            entity.getSkills().add(::new(S.SkillDir + "effects/pale_dominion_effect"));
+    }
     return entity;
 };
 
@@ -275,6 +280,15 @@ mod.hook("scripts/items/item_container", function(q)
 {
     q.equip = @(__original) function( _item )
     {
+        local tame = S.TameStash;
+        if (tame != null && _item != null && tame.Item == null && this.m.Actor != null && !::MSU.isNull(this.m.Actor)
+            && this.m.Actor.getID() == tame.Actor.getID() && ("getType" in _item) && ::BGP.NecroPet.isOwnType(_item.getType())
+            && this.getItemAtSlot(::Const.ItemSlot.Accessory) != null && ::World.Assets.getStash().hasEmptySlot())
+        {
+            ::World.Assets.getStash().add(_item);
+            tame.Item = _item;
+            return true;
+        }
         if (!::BGP.NecroPet.IsLoading && _item != null && _item.getID().find("weapon.pale_staff") == 0)
         {
             local actor = this.m.Actor;
@@ -386,6 +400,8 @@ mod.hookTree("scripts/entity/world/location", function(q)
         if (S.Battle != null && S.isAncientSite(this) && this.isAlive() && this.getTroops().len() == 0
             && ::World.Statistics.getFlags().getAsInt("LastCombatResult") == 1)
             S.registerSite(this.getTile(), 1, this.getName(), 4, true);
+        if (S.Battle != null && ::World.Statistics.getFlags().getAsInt("LastCombatResult") == 1)
+            S.recordLegend(this);
         return __original();
     };
 });
@@ -416,6 +432,14 @@ mod.hook("scripts/entity/tactical/actor", function(q)
             Info = ::BGP.Necro.makeDeathInfo(this),
             Fatality = _fatality
         };
+        if (battle.Death.Eligible)
+        {
+            local fileName = S.scriptBase(battle.Death.Info.Script);
+            if (S.BossScripts.find(fileName) != null)
+                ++battle.Bosses;
+            if (fileName == "trickster_god")
+                S.set("Legend.Hunt", 1);
+        }
         try
         {
             local result = __original(_killer, _skill, _fatality, _silent);
@@ -519,6 +543,105 @@ mod.hook("scripts/skills/actives/bgp_necro_bind_skill", function(q)
                 foreach (item in stash.getItems())
                     if (S.isCoffin(item) && prior.find(item) == null)
                         S.petSet(item, "Elite", 1);
+        }
+        return ret;
+    };
+});
+
+// 导师的饰品栏已有死灵宠物时，驱役亡灵 / 驯服亡灵仍可使用，收服的亡灵放进仓库（普通亡灵法师不行）
+S.TameStash <- null;
+S.canStashPet <- function( _actor )
+{
+    if (!this.isActive() || !this.isChief(_actor))
+        return false;
+    local acc = _actor.getItems().getItemAtSlot(::Const.ItemSlot.Accessory);
+    return acc != null && ::BGP.NecroPet.isOwnItem(acc) && ::World.Assets.getStash().hasEmptySlot();
+};
+S.StashRule <- "亡灵法师导师：饰品栏已有死灵宠物时仍可使用，收服的亡灵放进仓库";
+
+mod.hook("scripts/skills/actives/bgp_necro_bind_skill", function(q)
+{
+    q.hasDestination = @(__original) function( _user )
+    {
+        return __original(_user) || S.canStashPet(_user);
+    };
+
+    q.getTooltip = @(__original) function()
+    {
+        local ret = __original();
+        if (S.isActive() && S.isChief(this.getContainer().getActor()))
+            ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = S.StashRule });
+        return ret;
+    };
+});
+
+mod.hook("scripts/companions/player/companions_tame", function(q)
+{
+    q.isStashMode <- function()
+    {
+        local actor = this.getContainer().getActor();
+        return actor.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) != null && actor.getSkills().hasSkill("perk.bgp_necro_mastery")
+            && S.canStashPet(actor);
+    };
+
+    q.isHidden = @(__original) function()
+    {
+        return __original() && !this.isStashMode();
+    };
+
+    q.getTooltip = @(__original) function()
+    {
+        local ret = __original();
+        local actor = this.getContainer().getActor();
+        if (S.isActive() && S.isChief(actor) && actor.getSkills().hasSkill("perk.bgp_necro_mastery"))
+            ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = S.StashRule + "（只能驯服亡灵）" });
+        return ret;
+    };
+
+    q.onVerifyTarget = @(__original) function( _originTile, _targetTile )
+    {
+        if (!__original(_originTile, _targetTile))
+            return false;
+        if (!this.isStashMode())
+            return true;
+        local prev = ::BGP.NecroPet.TamingActor;
+        ::BGP.NecroPet.TamingActor = this.getContainer().getActor();
+        local type = null;
+        try { type = ::Const.Companions.resolveTameType(_targetTile.getEntity()); } catch (e) { type = null; }
+        ::BGP.NecroPet.TamingActor = prev;
+        return type != null && ::BGP.NecroPet.isOwnType(type);
+    };
+
+    q.onUse = @(__original) function( _user, _targetTile )
+    {
+        if (!this.isStashMode())
+            return __original(_user, _targetTile);
+        local actor = this.getContainer().getActor();
+        local target = _targetTile.getEntity();
+        local elite = S.Battle != null && target != null && S.isElite(target);
+        local unleash = actor.getSkills().getSkillByID("actives.unleash_companion");
+        local used = unleash == null ? null : unleash.m.IsUsed;
+        S.TameStash = { Actor = actor, Item = null };
+        local ret = false;
+        try { ret = __original(_user, _targetTile); }
+        catch (e)
+        {
+            S.TameStash = null;
+            throw e;
+        }
+        local item = S.TameStash.Item;
+        S.TameStash = null;
+        if (unleash != null)
+        {
+            unleash.m.IsUsed = used;
+            unleash.m.IsHidden = unleash.isUsed();
+        }
+        if (item != null)
+        {
+            try { ::BGP.NecroPet.fillFromEntity(item, target); } catch (e) { ::logError("[PaleSovereign] 驯服入库: " + e); }
+            if (elite)
+                S.petSet(item, "Elite", 1);
+            ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(actor) + "把" + item.m.Name + "封进棺椁，放进了仓库");
         }
         return ret;
     };

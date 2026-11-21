@@ -4,7 +4,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "actives.pale_corpse_shot";
         this.m.Name = "尸弹";
-        this.m.Description = "消耗 1 点防腐尸骸。命中造成 20–30 点钝器伤害。投出的尸体可以复活或引爆。";
+        this.m.Description = "将一具沉重的防腐尸骸奋力掷向敌阵。砸乱敌方阵形的同时，落地的尸体随时可以重新站起，或化作血肉炸弹。";
         this.m.Icon = "skills/pale_corpse_shot.png";
         this.m.IconDisabled = "skills/pale_corpse_shot_sw.png";
         this.m.Type = ::Const.SkillType.Active;
@@ -31,7 +31,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
     function getTooltip()
     {
         local ret = this.getDefaultTooltip();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "距离最多 4 格。战团还有 " + ::PaleSovereign.get("Reserve") + " 点防腐尸骸。" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "消耗 1 点防腐尸骸，距离最多 4 格，命中造成 20–30 点钝器伤害。尸体会落在被砸中的人脚下，没砸中就落在目标格；落地的尸体可以复活或引爆。战团还有 " + ::PaleSovereign.get("Reserve") + " 点防腐尸骸。" });
         return ret;
     }
 

@@ -6,7 +6,7 @@ this.pale_skeleton_background <- ::inherit("scripts/skills/backgrounds/pale_unde
         this.m.ID = "background.pale_skeleton";
         this.m.Name = "常驻骷髅";
         this.m.Icon = "ui/backgrounds/pale_skeleton.png";
-        this.m.BackgroundDescription = "几根铜索把瘦削的枯骨缠成了一名守卫。";
+        this.m.BackgroundDescription = "几根浸过死灵药水与黑盐的铜索，把瘦削的枯骨捆成了一名不知疲倦的战士。";
         this.m.PaleSkeleton = true;
     }
 

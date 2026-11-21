@@ -4,7 +4,7 @@ this.pale_weaken_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_weaken";
         this.m.Name = "衰弱";
-        this.m.Description = "敌人的手脚被魂火缠住。";
+        this.m.Description = "阴冷的魂火缠绕四肢，每一次呼吸与格挡都显得格外吃力。";
         this.m.Icon = "skills/pale_weaken_effect.png";
         this.m.IconDisabled = "skills/pale_weaken_effect_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;

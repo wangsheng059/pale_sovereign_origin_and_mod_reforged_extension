@@ -2,7 +2,7 @@ local S = ::PaleSovereign;
 
 S.beginBattle <- function( _night )
 {
-    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, Death = null };
+    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, Death = null, Bosses = 0 };
 };
 
 S.area <- function( _center )
@@ -135,8 +135,10 @@ S.onVictory <- function( _loot )
     if (strategic != null && strategic.CombatID == "PaleLantern" && this.oath() == this.Oath.Champion && ::Math.rand(1, 100) <= 50)
     {
         ::World.Assets.addArmorParts(8);
-        ::Tactical.EventLog.log("从巡逻队的物资里找到了 8 点工具。");
+        ::Tactical.EventLog.log("从巡逻队的遗物里搜刮出 8 点工具。");
     }
+    if (this.Battle.Bosses > 0 && this.oath() != this.Oath.None && ::Math.rand(1, 100) <= 50 && this.addMaterials("jade", 1))
+        ::Tactical.EventLog.log("首领的遗骸里滚出一枚冰冷的古代魂玉。");
 
     local corpses = {};
     local soulFound = false;
@@ -161,7 +163,7 @@ S.onVictory <- function( _loot )
         this.set("LastHarvest", gathered);
         this.set("LastCorpseCount", corpses.len());
         this.set("HarvestNotice", 1);
-        ::Tactical.EventLog.log("遗骸采集：" + corpses.len() + " 具；防腐尸骸 " + before + " → " + this.get("Reserve") + "。");
+        ::Tactical.EventLog.log("清点合格遗骸 " + corpses.len() + " 具，封存防腐尸骸：" + before + " → " + this.get("Reserve") + "。");
     }
     local pet = this.mainPet();
     local chief = this.chief();

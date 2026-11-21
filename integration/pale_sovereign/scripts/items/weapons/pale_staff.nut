@@ -5,7 +5,7 @@ this.pale_staff <- ::inherit("scripts/items/weapons/weapon", {
         this.weapon.create();
         this.m.ID = "weapon.pale_staff";
         this.m.Name = "初生骷髅法杖";
-        this.m.Description = "铁箍上的裂痕中透出一丝魂火。首席的法杖，与主人一同成长。";
+        this.m.Description = "由风化兽骨与裂开的铁箍拼凑而成，缝隙间跳动着一缕幽蓝魂火。这是导师重返人间后的第一件法器，也将随你的誓约一同蜕变。";
         this.m.SlotType = ::Const.ItemSlot.Mainhand;
         this.m.BlockedSlotType = ::Const.ItemSlot.Offhand;
         this.m.WeaponType = ::Const.Items.WeaponType.Polearm;
@@ -48,7 +48,7 @@ this.pale_staff <- ::inherit("scripts/items/weapons/weapon", {
     function getTooltip()
     {
         local ret = this.weapon.getTooltip();
-        ret.push({ id = 17, type = "text", icon = "ui/icons/bravery.png", text = "决心 +" + this.getPaleResolve() + "。仅首席可装备。" });
+        ret.push({ id = 17, type = "text", icon = "ui/icons/bravery.png", text = "决心 +" + this.getPaleResolve() + "。仅亡灵法师导师可装备。" });
         return ret;
     }
 

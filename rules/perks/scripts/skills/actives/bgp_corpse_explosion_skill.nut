@@ -2,11 +2,12 @@
 //   钝器伤害 = 尸体生前最大生命 × 35%（对护甲效率 100%）；
 //   尸体死亡时头甲 + 身甲还有剩余耐久时，再加一次劈砍伤害 = 剩余耐久总和 × 25%（对护甲效率 150%）；
 //   命中的敌人陷入“趔趄”（原版效果，下回合行动顺位延后）。
+// 1.6.4 起基础消耗改为 3 行动点、8 疲劳（死灵精通再 -1 行动点、-25% 疲劳）。
 // 1.6.2 起按施放者决心 W：钝器伤害改为生前最大生命 ×(20% + W/4 %)（原 35%）；被炸到还活着的敌人做一次士气检定，难度 -W/4。
 this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 	m = {
-		BaseAP = 4,
-		BaseFatigue = 20,
+		BaseAP = 3,
+		BaseFatigue = 8,
 		HitpointsPct = 0.2,
 		ArmorPct = 0.25,
 		ArmorEfficiency = 1.5

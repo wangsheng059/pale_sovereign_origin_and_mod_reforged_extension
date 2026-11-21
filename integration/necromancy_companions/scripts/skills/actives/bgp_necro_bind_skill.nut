@@ -35,13 +35,13 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 		local ret = this.skill.getDefaultUtilityTooltip();
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "目标为 " + ::MSU.Text.colorPositive("6") + " 格内仍在场的单位：你亲手复活的友军不限生命值；敌方亡灵须尚未死亡，且当前生命不高于最大生命的 30%。目标须有对应的死灵宠物类型" },
-			{ id = 11, type = "text", icon = "ui/icons/special.png", text = "饰品栏空着时直接装备（本场不能再放出），否则放进仓库；属性、名字、伤势沿用这个单位" },
+			{ id = 11, type = "text", icon = "ui/icons/special.png", text = "只能在饰品栏空着时使用，收服后直接装备（本场不能再放出）；属性、名字、伤势沿用这个单位" },
 			{ id = 12, type = "text", icon = "ui/icons/special.png", text = "之后和配件兄弟的宠物一样放出、收回、升级，升级时从亡灵特质池抽特质，11 级得到死灵契约" },
 			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "记住它现在的武器和护甲：每次放出都是满耐久的同款，不会掉落；原来那套随它一起消失" }
 		]);
 		local user = this.getContainer().getActor();
 		if (!this.hasDestination(user))
-			ret.push({ id = 20, type = "text", icon = "ui/icons/warning.png", text = ::MSU.Text.colorNegative("饰品栏和仓库都没有空位") });
+			ret.push({ id = 20, type = "text", icon = "ui/icons/warning.png", text = ::MSU.Text.colorNegative("饰品栏已被占用") });
 		return ret;
 	}
 
@@ -49,9 +49,8 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 	{
 		try
 		{
-			if (_user.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) == null)
-				return true;
-			return ::World.Assets.getStash().hasEmptySlot();
+			// 1.6.4 普通亡灵法师只能收进空着的饰品栏；亡灵主宰的导师另有规则（pale_sovereign/hooks.nut）
+			return _user.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) == null;
 		}
 		catch (e)
 		{

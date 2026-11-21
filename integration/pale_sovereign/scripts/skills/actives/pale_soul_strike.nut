@@ -4,7 +4,7 @@ this.pale_soul_strike <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "actives.pale_soul_strike";
         this.m.Name = "魂火敲击";
-        this.m.Description = "用法杖砸击敌人。魂火穿过护甲，并使目标增加 5 点疲劳。";
+        this.m.Description = "以法杖重击敌人。杖头迸发的幽蓝魂火将穿透护甲，直刺生者的筋骨与心神。";
         this.m.Icon = "skills/pale_strike.png";
         this.m.IconDisabled = "skills/pale_strike_sw.png";
         this.m.Overlay = "active_01";

@@ -4,6 +4,77 @@ S.Attributes <- ["Hitpoints", "Stamina", "Bravery", "Initiative", "MeleeSkill", 
 S.WeaponFields <- ["RegularDamage", "RegularDamageMax", "DirectDamageMult", "ArmorDamageMult", "StaminaModifier", "ConditionMax", "ChanceToHitHead", "ShieldDamage", "FatigueOnSkillUse", "AdditionalAccuracy", "Variant"];
 S.PetTag <- "\npale_id=";
 
+// 吞魂特质。编号存进存档（Pet.<id>.Species.<n>），只能往后追加，不能改顺序。
+// Scripts 按脚本文件名精确匹配（不含路径）；4 号只由“第三面残旗”授予。
+S.Souls <- [
+    null,
+    { Name = "荣誉卫队之魂", Icon = "skills/pale_honor", Desc = "昔日古帝国仪仗队至死未散的列阵本能。装备盾牌时，其近战防御和远程防御加成提高 25%。",
+      Scripts = ["rf_skeleton_heavy_elite", "rf_skeleton_heavy_elite_bodyguard", "rf_skeleton_medium_elite", "rf_skeleton_medium_elite_polearm", "skeleton_heavy_bodyguard", "rf_skeleton_centurion", "rf_skeleton_decanus"] },
+    { Name = "堕落英雄之魂", Icon = "skills/pale_fallen", Desc = "残存着旧日悍将的暴戾杀意与蛮力。近战技能 +5，近战伤害 +10%。",
+      Scripts = ["zombie_knight", "zombie_knight_bodyguard", "rf_zombie_hero", "rf_zombie_hero_bodyguard", "zombie_betrayer", "zombie_boss", "rf_draugr_hero", "rf_draugr_huskarl", "rf_draugr_huskarl_bodyguard"] },
+    { Name = "血族之魂", Icon = "skills/pale_vampire", Desc = "源自暗夜捕食者的无尽饥渴，以生者鲜血滋养枯骨。攻击造成生命伤害时，恢复相当于该生命伤害 25% 的生命。",
+      Scripts = ["vampire", "vampire_low", "rf_vampire_lord"] },
+    { Name = "护驾遗志", Icon = "skills/pale_banner", Desc = "哪怕身躯化作枯骨，它依然记得自己曾立在君王身前。每场战斗首次在导师身旁遭受敌方攻击时，生命与护甲伤害减半。",
+      Scripts = [] },
+    { Name = "军团统帅之魂", Icon = "ui/perks/perk_rf_legatus", Desc = "古帝国军团统帅的号令仍在骨缝间回响。近战技能 +5，近战防御 +5，决心 +10。",
+      Scripts = ["rf_skeleton_legatus", "skeleton_boss"] },
+    { Name = "古帝祭司之魂", Icon = "ui/perks/perk_rf_terrifying_visage", Desc = "祭司与巫妖的禁咒烙在了它的骨头上。决心 +15；攻击命中后，目标以 −10 的难度做一次士气检定。",
+      Scripts = ["skeleton_priest", "skeleton_lich", "rf_draugr_shaman"] },
+    { Name = "督军之魂", Icon = "ui/perks/perk_rf_feral_rage", Desc = "绿皮督军永不餍足的战意。击杀敌人后，立刻恢复 3 点行动点数。",
+      Scripts = ["orc_warlord", "orc_berserker", "rf_zombie_orc_warlord", "rf_zombie_orc_berserker"] },
+    { Name = "天选者之魂", Icon = "ui/perks/perk_rf_vengeful_spite", Desc = "北地天选战士越伤越狂的血性。生命低于 50% 时，近战伤害 +25%。",
+      Scripts = ["barbarian_chosen", "barbarian_champion"] },
+    { Name = "古龙之魂", Icon = "ui/perks/perk_rf_unstoppable", Desc = "林德蠕龙沉重而不可撼动的躯体记忆。生命 +30，免疫击退与抓取。",
+      Scripts = ["lindwurm"] },
+    { Name = "巨魔之魂", Icon = "ui/perks/perk_rf_second_wind", Desc = "巨魔骨肉疯长的再生本能。每回合开始时恢复 10% 最大生命。",
+      Scripts = ["unhold", "unhold_frost", "unhold_bog", "unhold_armored", "unhold_frost_armored"] },
+    { Name = "古树之魂", Icon = "ui/perks/perk_rf_bulwark", Desc = "树人盘根错节的木质身躯。受到的远程伤害 −25%，生命 +15。",
+      Scripts = ["schrat"] },
+    { Name = "梦魇之魂", Icon = "ui/perks/perk_rf_ghostlike", Desc = "梦魇与女巫游走于虚实之间的诡影。近战防御、远程防御 +7。",
+      Scripts = ["alp", "hexe"] },
+    { Name = "噬尸鬼之魂", Icon = "ui/perks/perk_rf_sanguinary", Desc = "食尸鬼啃食血肉的贪婪。击杀敌人后，恢复 20% 最大生命。",
+      Scripts = ["ghoul_high"] },
+    { Name = "剑圣之魂", Icon = "ui/perks/perk_rf_fencer", Desc = "一代剑术宗师千锤百炼的身法。近战技能 +7，主动值 +10。",
+      Scripts = ["swordmaster", "rf_fencer", "gladiator", "executioner", "desert_devil", "assassin", "desert_stalker"] },
+    { Name = "骑士之魂", Icon = "ui/perks/perk_rf_man_of_steel", Desc = "重甲骑士顶着刀锋冲阵的定力。近战防御 +5，受到的近战伤害 −10%。",
+      Scripts = ["knight", "hedge_knight", "rf_knight_anointed", "rf_marshal"] },
+    { Name = "狼王之魂", Icon = "ui/perks/perk_rf_onslaught", Desc = "狂暴兽王扑杀猎物的迅捷。主动值 +20，近战技能 +3。",
+      Scripts = ["direwolf_high", "rf_hollenhund", "hyena_high"] },
+    { Name = "上古神兽之魂", Icon = "ui/perks/perk_rf_formidable_approach", Desc = "古老神兽残存的神性。受到的所有伤害 −15%。",
+      Scripts = ["trickster_god", "kraken"] }
+];
+// 打倒后有机会掉落古代魂玉的首领
+S.BossScripts <- ["rf_skeleton_legatus", "skeleton_boss", "skeleton_lich", "rf_vampire_lord", "zombie_betrayer", "zombie_boss", "trickster_god", "kraken"];
+
+S.scriptBase <- function( _script )
+{
+    if (_script == null)
+        return "";
+    local cut = 0;
+    local at = _script.find("/");
+    while (at != null)
+    {
+        cut = at + 1;
+        at = _script.find("/", cut);
+    }
+    return _script.slice(cut);
+};
+
+S.isAscended <- function()
+{
+    return this.get("Ascended") == 1;
+};
+
+S.devourCap <- function( _pet )
+{
+    return 3 + this.petGet(_pet, "JadeCap") + (this.isAscended() && this.oath() == this.Oath.Champion ? 1 : 0);
+};
+
+S.markThreshold <- function()
+{
+    return this.isAscended() && this.oath() == this.Oath.Champion ? 50 : 35;
+};
+
 S.isCoffin <- function( _item )
 {
     if (!::BGP.NecroPet.isOwnItem(_item))
@@ -70,7 +141,7 @@ S.makeGuard <- function( _starting )
     local type = ::BGP.NecroPet.getTypeForScript("scripts/entity/tactical/enemies/skeleton_light", true);
     local pet = ::new(this.ItemDir + "accessory/wardog_item");
     pet.setType(type);
-    pet.m.Name = _starting ? "残破的墓穴守卫" : "墓穴守卫";
+    pet.m.Name = _starting ? "残破的古墓守卫" : "古墓守卫";
     pet.m.BGP_Gear = "S:scripts/items/weapons/militia_spear;S:scripts/items/shields/wooden_shield";
     if (_starting)
         pet.m.Wounds = 25;
@@ -98,16 +169,28 @@ S.isTameEliteScript <- function( _script )
 
 S.soulSpecies <- function( _script )
 {
-    if (_script.find("vampire") != null)
+    if (_script == null)
+        return 0;
+    local fileName = this.scriptBase(_script);
+    foreach (i, soul in this.Souls)
+        if (soul != null && soul.Scripts.find(fileName) != null)
+            return i;
+    // 其他模组的同类精锐
+    if (fileName.find("vampire") != null)
         return 3;
-    if (_script.find("zombie") != null)
+    if (fileName.find("zombie_hero") != null || fileName.find("zombie_knight") != null)
         return 2;
-    return 1;
+    if (fileName.find("skeleton_heavy_elite") != null || fileName.find("skeleton_medium_elite") != null)
+        return 1;
+    return 0;
 };
 
 S.canMarkEnemy <- function( _actor )
 {
-    return this.isElite(_actor) && _actor.getHitpoints() * 100 <= _actor.getHitpointsMax() * 35;
+    if (_actor == null || !_actor.isAlive() || _actor.isDying())
+        return false;
+    local script = ::IO.scriptFilenameByHash(_actor.ClassNameHash);
+    return this.soulSpecies(script) != 0 && _actor.getHitpoints() * 100 <= _actor.getHitpointsMax() * this.markThreshold();
 };
 
 S.canMarkSoul <- function()
@@ -138,7 +221,7 @@ S.markSoul <- function( _target )
         PetID = this.petID(this.mainPet()), Named = named,
         Champion = _target.getSkills().hasSkill("racial.champion")
     };
-    ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_target) + "已被缚魂锁链标记。");
+    ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_target) + "已被黑铁缚魂锁链牢牢锚定。");
     return true;
 };
 
@@ -167,20 +250,28 @@ S.canUseSoul <- function()
     return pet != null && this.get("PendingSoul") > 0 && pet.m.PaleID == this.get("PendingSoul") && this.countItems("misc.pale_chain") > 0;
 };
 
+S.canDevour <- function( _pet )
+{
+    local species = this.get("SoulSpecies");
+    return species > 0 && species < this.Souls.len() && this.petGet(_pet, "Devours") < this.devourCap(_pet)
+        && this.petGet(_pet, "Species." + species) == 0;
+};
+
 S.resolveSoul <- function( _choice )
 {
     if (!this.canUseSoul())
         return false;
     local pet = this.mainPet();
-    if (_choice == "soul" && this.petGet(pet, "Devours") >= 3)
+    if (_choice == "soul" && !this.canDevour(pet))
         return false;
     if (_choice == "body")
     {
         local stats = clone this.Attributes;
+        local gain = this.isAscended() && this.oath() == this.Oath.Champion ? 2 : 1;
         for (local i = 0; i < 3; ++i)
         {
             local index = ::Math.rand(0, stats.len() - 1);
-            ++pet.m.Attributes[stats.remove(index)];
+            pet.m.Attributes[stats.remove(index)] += gain;
         }
     }
     else if (_choice == "soul")
@@ -253,9 +344,10 @@ S.applyPetProgress <- function( _pet, _entity )
     }
 
     local skills = _entity.getSkills();
+    local maxBefore = _entity.getHitpointsMax();
     if (this.petGet(_pet, "ChampionRacial") != 0 && !skills.hasSkill("racial.champion"))
         skills.add(::new(this.SkillDir + "racial/champion_racial"));
-    foreach (species in [1, 2, 3, 4])
+    for (local species = 1; species < this.Souls.len(); ++species)
     {
         if (this.petGet(_pet, "Species." + species) == 0)
             continue;
@@ -275,4 +367,27 @@ S.applyPetProgress <- function( _pet, _entity )
         }
     }
     skills.update();
+    local gain = _entity.getHitpointsMax() - maxBefore;
+    if (gain > 0)
+        _entity.setHitpoints(::Math.min(_entity.getHitpointsMax(), _entity.getHitpoints() + gain));
+};
+
+// 古代魂玉的冠军用途
+S.promoteGuard <- function( _pet )
+{
+    this.petSet(_pet, "Promoted", 1);
+    _pet.m.Name = "尸妖王";
+    _pet.m.Attributes.Hitpoints += 15;
+    _pet.m.Attributes.MeleeSkill += 5;
+    _pet.m.Attributes.MeleeDefense += 5;
+    _pet.m.Attributes.Bravery += 10;
+    _pet.updateCompanion();
+};
+
+S.temperPet <- function( _pet )
+{
+    foreach (key in this.Attributes)
+        _pet.m.Attributes[key] += 2;
+    this.petSet(_pet, "JadeTemper", this.petGet(_pet, "JadeTemper") + 1);
+    _pet.updateCompanion();
 };

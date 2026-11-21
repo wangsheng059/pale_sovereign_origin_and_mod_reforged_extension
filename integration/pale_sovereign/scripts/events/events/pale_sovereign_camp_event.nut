@@ -5,7 +5,7 @@ this.pale_sovereign_camp_event <- ::inherit("scripts/events/event", {
         this.m.ID = "event.pale_sovereign_camp";
         this.m.Title = "亡灵主宰";
         this.m.Cooldown = 0;
-        foreach (page in ["camp", "soul", "shovels", "evolve", "banner", "crown", "empty", "smith", "whispers", "mortuary", "parts", "porter", "lantern", "dice", "apprentice", "harvest", "result"])
+        foreach (page in ["camp", "soul", "shovels", "evolve", "banner", "crown", "empty", "smith", "whispers", "mortuary", "parts", "porter", "lantern", "dice", "apprentice", "harvest", "result", "jade", "ascend"])
         {
             this.m.Screens.push({
                 ID = page, Text = "", Image = "", List = [], Characters = [], Options = [],

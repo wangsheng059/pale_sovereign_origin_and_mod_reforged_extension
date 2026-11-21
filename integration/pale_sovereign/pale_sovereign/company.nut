@@ -76,12 +76,17 @@ S.permanentUndeadLimit <- function()
     return oath == this.Oath.Scourge ? null : 0;
 };
 
+S.reserveLimit <- function()
+{
+    return this.ReserveLimit + (this.get("Ascended") == 1 && this.oath() == this.Oath.Scourge ? 20 : 0);
+};
+
 S.changeReserve <- function( _delta )
 {
     local before = this.get("Reserve");
     if (before + _delta < 0)
         return false;
-    this.set("Reserve", ::Math.min(this.ReserveLimit, before + _delta));
+    this.set("Reserve", ::Math.min(this.reserveLimit(), before + _delta));
     return true;
 };
 

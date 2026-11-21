@@ -5,8 +5,20 @@ this.pale_necromancer_background <- ::inherit("scripts/skills/backgrounds/bgp_ne
         this.bgp_necromancer_background.create();
         this.m.ID = ::PaleSovereign.Chief;
         this.m.Icon = "ui/backgrounds/pale_necromancer.png";
-        this.m.BackgroundDescription = "你是这支战团的首席。两道誓约都向你敞开，直到你择其一。";
+        this.m.BackgroundDescription = "你从那场围剿的灰烬中归来，执掌着这支战团的生死。凡挡在亡者之路前的一切，终将归于死寂。";
+        this.m.GoodEnding = ::PaleSovereign.Endings.Champion;
+        this.m.BadEnding = ::PaleSovereign.Endings.Bad;
         this.m.DailyCost = 0;
+    }
+
+    function updateEnding()
+    {
+        local s = ::PaleSovereign;
+        if (!s.isActive())
+            return;
+        local ascended = s.get("Ascended");
+        this.m.GoodEnding = ascended == 2 ? s.Endings.Ascend : s.oath() == s.Oath.Scourge ? s.Endings.Scourge : s.Endings.Champion;
+        this.m.BadEnding = ascended == 2 ? s.Endings.Ascend : s.Endings.Bad;
     }
 
     function onBuildDescription()
@@ -62,7 +74,13 @@ this.pale_necromancer_background <- ::inherit("scripts/skills/backgrounds/bgp_ne
                     _properties[stat] *= 0.85;
             }
             if (::World.Flags.getAsFloat("Pale.WhispersUntil") > now)
-                _properties.Stamina -= 10;
+            {
+                foreach (stat in ["HitpointsMult", "StaminaMult", "BraveryMult", "InitiativeMult", "MeleeSkillMult", "RangedSkillMult", "MeleeDefenseMult", "RangedDefenseMult"])
+                    _properties[stat] *= 0.9;
+            }
+            if (::PaleSovereign.isAscended())
+                _properties.FatigueRecoveryRate += 3;
+            this.updateEnding();
         }
     }
 });
