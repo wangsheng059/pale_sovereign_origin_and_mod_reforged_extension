@@ -25,10 +25,7 @@ this.pale_sovereign_scenario <- ::inherit("scripts/scenarios/world/starting_scen
     function onSpawnAssets()
     {
         local s = ::PaleSovereign;
-        local chief = s.spawnBrother("pale_necromancer_background", ["armor/wizard_robe", "weapons/pale_staff"], 13, false);
-        // setStartValuesEx(..., false) skips talents together with traits; the chief keeps no traits but rolls talents.
-        chief.fillTalentValues();
-        chief.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
+        local chief = s.spawnBrother("pale_necromancer_background", ["armor/wizard_robe", "weapons/pale_staff"], 13);
         chief.getSkills().add(::new("scripts/skills/traits/player_character_trait"));
         chief.getFlags().set("IsPlayerCharacter", true);
         chief.getFlags().set("PaleChief", true);
