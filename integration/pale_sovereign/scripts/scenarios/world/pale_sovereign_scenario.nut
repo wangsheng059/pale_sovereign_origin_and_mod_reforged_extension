@@ -66,7 +66,7 @@ this.pale_sovereign_scenario <- ::inherit("scripts/scenarios/world/starting_scen
         if (start == null)
             start = ::World.EntityManager.getSettlements()[0].getTile();
         ::World.State.m.Player = ::World.spawnEntity("scripts/entity/world/player_party", start.Coords.X, start.Coords.Y);
-        ::World.Assets.updateLook(0);
+        ::World.Assets.updateLook(1);
         ::World.getCamera().setPos(::World.State.m.Player.getPos());
     }
 

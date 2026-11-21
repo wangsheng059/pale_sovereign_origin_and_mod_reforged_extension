@@ -195,9 +195,30 @@ mod.hook("scripts/entity/tactical/player", function(q)
     };
 });
 
+S.PartyFigure <- "figure_necromancer_01";
+S.applyPartyLook <- function()
+{
+    if (!this.isActive() || !("State" in ::World) || ::World.State == null)
+        return;
+    local player = ::World.State.getPlayer();
+    if (player == null || ::MSU.isNull(player))
+        return;
+    try { player.getSprite("body").setBrush(this.PartyFigure); }
+    catch (e) { ::logWarning("[PaleSovereign] party look: " + e); }
+};
+
 S.BlockWorldHealing <- false;
 mod.hook("scripts/states/world/asset_manager", function(q)
 {
+    q.updateLook = @(__original) function( ... )
+    {
+        local args = [this];
+        args.extend(vargv);
+        local ret = __original.acall(args);
+        S.applyPartyLook();
+        return ret;
+    };
+
     q.update = @(__original) function( _state )
     {
         if (!S.isActive())
@@ -313,6 +334,13 @@ mod.hook("scripts/states/world_state", function(q)
             S.Battle = null;
         }
         return result;
+    };
+
+    q.onDeserialize = @(__original) function( _in )
+    {
+        local ret = __original(_in);
+        S.applyPartyLook();
+        return ret;
     };
 
     q.loadCampaign = @(__original) function( _file )

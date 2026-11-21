@@ -1269,6 +1269,14 @@
       "source": "quicker_1.4（加速MOD）.zip",
       "members": [],
       "output": "zz_local_interface.zip"
+    },
+    {
+      "directory": "interface/seed_tool",
+      "source": "z_mod_开局批量筛选种子_重制威力加强版v1.79_fast.zip",
+      "members": [
+        "scripts/!mods_preload/mod_bb_seed_tool.nut",
+        "ui/mods/bb_seed_tool/seed_tool.js"
+      ]
     }
   ],
   "patches": [
