@@ -49,7 +49,7 @@ this.bgp_necromancer_background <- this.inherit("scripts/skills/backgrounds/char
 		local ret = this.character_background.getTooltip();
 		ret.push({ id = 10, type = "text", icon = "ui/icons/morale.png", text = "盟友死亡时不会触发士气检查" });
 		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "自带“复活死者”，能复活人类，以及野兽、亡灵、兽人、地精的尸体；复活的单位击杀敌人时，经验和击杀数算给他" });
-		ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "“死灵仆从”相关特技（不死再生、钢铁之躯、嗜血者、心灵交融）对他放出的死灵宠物同样生效" });
+		ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "亡灵天灾的不死再生、钢铁之躯、腐毒蝇群，以及亡灵冠军的心灵交融，对他放出的死灵宠物同样生效" });
 		return ret;
 	}
 
