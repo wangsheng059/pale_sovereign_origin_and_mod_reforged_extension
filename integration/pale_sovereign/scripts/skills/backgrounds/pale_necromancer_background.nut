@@ -9,6 +9,11 @@ this.pale_necromancer_background <- ::inherit("scripts/skills/backgrounds/bgp_ne
         this.m.DailyCost = 0;
     }
 
+    function onBuildDescription()
+    {
+        return "在诸邦的酒馆与教堂里，%name%的名字曾是一段被严令禁止提起的噩梦。人们坚信他已殒命于那场惨烈的围剿，却不知他早已在荒冢深处与更古老的死寂缔结了契约。数年来，他以腐土为席、以枯骨为伴，直到指间重新燃起令生者战栗的幽蓝魂火。如今，%name%披着破旧的巫师袍重返人间，带着一具封存古墓卫士的旧棺和一柄初生的骷髅法杖重现荒野。随行的不过是两名唯利是图的盗墓贼，车厢里那具沉重的旧棺却早已蠢蠢欲动。生者以为噩梦早已终结，却不知属于亡者的时代，正待他亲手落子。";
+    }
+
     function onChangeAttributes()
     {
         local attrs = this.bgp_necromancer_background.onChangeAttributes();
