@@ -112,7 +112,7 @@ S.TierTalents <- {
     death_burst = { Name = "死亡自爆", Description = "死亡时引爆自己的尸体。判定同尸爆，伤害为两倍，波及 2 格内的敌人，不伤友军。", Script = "effects/pale_tier_body_effect" },
     unyielding = { Name = "不屈残躯", Description = "生命低于 50% 时受到的伤害降低 15%。", Script = "effects/pale_tier_body_effect" },
     flesh_frenzy = { Name = "血肉狂热", Description = "每损失 10% 最大生命，攻击伤害 +5%，最多 +30%。", Script = "effects/pale_tier_attack_effect" },
-    heavy_stomp = { Name = "沉重践踏", Description = "重踏相邻敌人，无视一半盾防，命中时使其眩晕 1 回合，并波及它身旁的一名敌人。", Script = "actives/pale_heavy_stomp" },
+    heavy_stomp = { Name = "沉重践踏", Description = "重踏相邻敌人，钝击伤害为最大生命 ÷ 4 加头甲与身甲的疲劳惩罚，穿甲 45%、破甲 140%，无视一半盾防。命中时使其眩晕 1 回合，并波及它身旁的一名敌人。", Script = "actives/pale_heavy_stomp" },
     stench_aura = { Name = "腐臭光环", Description = "相邻敌人在回合开始时获得 8 点疲劳，本回合决心 −5。", Script = "effects/pale_tier_aura" },
     rending_pounce = { Name = "撕裂扑击", Description = "跃至 2 格内敌人身旁的空格并连续砍击，每次命中叠加流血。", Script = "actives/pale_rending_pounce" }
 };

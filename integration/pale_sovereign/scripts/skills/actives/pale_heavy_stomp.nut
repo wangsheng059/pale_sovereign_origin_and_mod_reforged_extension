@@ -8,8 +8,8 @@ this.pale_heavy_stomp <- ::inherit("scripts/skills/actives/pale_tier_attack", {
         this.m.ActionPointCost = 6;
         this.m.FatigueCost = 25;
         this.m.MaxRange = 1;
-        this.m.DamageLow = 80;
-        this.m.DamageHigh = 120;
+        this.m.DamageLow = 0;
+        this.m.DamageHigh = 0;
         this.m.ArmorEfficiency = 1.4;
         this.m.DirectDamageMult = 0.45;
         this.m.InjuriesOnBody = ::Const.Injury.BluntBody;
@@ -20,13 +20,39 @@ this.pale_heavy_stomp <- ::inherit("scripts/skills/actives/pale_tier_attack", {
     function getTooltip()
     {
         local ret = this.getDefaultTooltip();
+        local actor = this.getContainer().getActor();
+        ret.push({ id = 12, type = "text", icon = "ui/icons/regular_damage.png", text = "基础伤害 = 最大生命 ÷ 4 + 头甲与身甲的疲劳惩罚之和。当前为 "
+            + ::Math.floor(actor.getHitpointsMax() / 4.0) + " + " + this.getArmorWeight(actor) + " = " + this.getStompDamage(actor) + "。" });
         ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "命中时使主目标眩晕 1 回合。主目标身旁随机一名敌人承受一半伤害并踉跄，行动推迟至回合末。" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/hitchance.png", text = "无视主目标一半的盾牌防御加成。" });
         return ret;
     }
 
+    function getArmorWeight( _actor )
+    {
+        local weight = 0;
+        foreach (slot in [::Const.ItemSlot.Head, ::Const.ItemSlot.Body])
+        {
+            local item = _actor.getItems().getItemAtSlot(slot);
+            if (item != null)
+                weight += ::Math.abs(item.getStaminaModifier());
+        }
+        return weight;
+    }
+
+    function getStompDamage( _actor )
+    {
+        return ::Math.floor(_actor.getHitpointsMax() / 4.0) + this.getArmorWeight(_actor);
+    }
+
     function onAnySkillUsed( _skill, _target, _properties )
     {
+        if (_skill == this)
+        {
+            local damage = this.getStompDamage(this.getContainer().getActor());
+            this.m.DamageLow = damage;
+            this.m.DamageHigh = damage;
+        }
         this.pale_tier_attack.onAnySkillUsed(_skill, _target, _properties);
         if (_skill == this && _target != null)
         {
