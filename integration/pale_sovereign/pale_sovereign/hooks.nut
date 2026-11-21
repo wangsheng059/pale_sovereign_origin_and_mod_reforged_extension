@@ -90,6 +90,14 @@ local oldRaise = ::BGP.Necro.raise;
 
 mod.hook("scripts/ui/global/data_helper", function(q)
 {
+    q.convertAssetsInformationToUIData = @(__original) function()
+    {
+        local data = __original();
+        if (data != null)
+            data.PaleCampVisible <- S.isActive();
+        return data;
+    };
+
     q.convertEntityToUIData = @(__original) function( _entity, _activeEntity )
     {
         local data = __original(_entity, _activeEntity);
@@ -317,16 +325,19 @@ mod.hook("scripts/ui/screens/world/modules/world_town_screen/town_shop_dialog_mo
     };
 });
 
+mod.hook("scripts/ui/screens/world/modules/topbar/world_screen_topbar_options_module", function(q)
+{
+    q.onPaleCampButtonPressed <- function()
+    {
+        if (!S.isActive() || S.Battle != null || S.chief() == null)
+            return false;
+        local map = ::World.State.m.WorldScreen;
+        return map.isVisible() && !map.isAnimating() && S.openEvent("camp");
+    };
+});
+
 mod.hook("scripts/states/world_state", function(q)
 {
-    q.onCamp = @(__original) function()
-    {
-        local already = ::World.Assets.isCamping();
-        __original();
-        if (S.isActive())
-            S.CampRequested = !already && ::World.Assets.isCamping();
-    };
-
     q.onUpdate = @(__original) function()
     {
         __original();
@@ -364,10 +375,12 @@ mod.hook("scripts/states/world_state", function(q)
 
     q.loadCampaign = @(__original) function( _file )
     {
-        S.CampRequested = false;
         S.Battle = null;
         S.NextWorldCheck = 0;
-        return __original(_file);
+        local result = __original(_file);
+        if (this.m.WorldScreen != null)
+            this.m.WorldScreen.updateAssetsInformation();
+        return result;
     };
 });
 

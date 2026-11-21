@@ -1,7 +1,6 @@
 local S = ::PaleSovereign;
 
 S.CurrentEvent <- "event.pale_sovereign_camp";
-S.CampRequested <- false;
 S.NextWorldCheck <- 0;
 
 S.openEvent <- function( _page )
@@ -54,14 +53,6 @@ S.worldEvent <- function()
             this.set("MortuaryFinish", 0);
         }
     }
-    if (this.CampRequested && camp)
-    {
-        local page = this.campStory();
-        if (this.openEvent(page))
-            this.CampRequested = false;
-        return;
-    }
-
     if (::World.State.isPaused() || camp)
         return;
     local day = ::World.getTime().IsDaytime;
@@ -251,6 +242,28 @@ S.campPanel <- function( _screen )
         _screen.Text += "\n出战　" + (pet == null ? "空棺" : pet.m.Name + "（吞魂 " + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）")
             + "\n候补　" + (reserve == null ? "无" : reserve.m.Name)
             + "\n古墓守卫并肩胜仗　" + this.get("GuardWins") + " / 5";
+    }
+
+    if (!::World.Assets.isCamping())
+    {
+        _screen.Text += "\n\n扎营后可管理亡灵、勘察遗址和处理营地事务。";
+        return;
+    }
+
+    local story = this.campStory();
+    if (story != "camp")
+    {
+        _screen.Options.push({
+            Text = "处理营地事务",
+            function getResult( _event )
+            {
+                return story;
+            }
+        });
+    }
+
+    if (oath == this.Oath.Champion)
+    {
         if (reserve != null)
             this.option(_screen, "让候补换到导师身边", @() S.swapPets(reserve));
         else
@@ -365,7 +378,7 @@ S.renderEvent <- function( _event, _screen )
     local assets = ::World.Assets;
     local flags = ::World.Flags;
     local title = "亡灵主宰";
-    local art = _screen.ID == "lantern" ? "event_43.png" : _screen.ID == "ascend" ? "pale_sovereign.png" : "event_33.png";
+    local art = _screen.ID;
     local closing = true;
     switch (_screen.ID)
     {
@@ -381,6 +394,7 @@ S.renderEvent <- function( _event, _screen )
             break;
 
         case "result":
+            art = _event.m.PaleArt;
             _screen.Text = _event.m.Message;
             this.option(_screen, "翻阅亡者账簿", @() "@camp");
             break;
@@ -435,11 +449,13 @@ S.renderEvent <- function( _event, _screen )
             title = "法杖蜕变";
             if (this.oath() == this.Oath.Champion)
             {
+                art = "evolve_champion";
                 _screen.Text = "夜深人静，你将初生骷髅法杖横架在渐渐转暗的篝火之上。跳动的橘红火焰并未灼伤枯骨，反而像是遇见了天敌般剧烈蜷缩，随即被杖头那缕愈发炽烈的幽蓝魂火尽数吞没。\n\n随着你低声重申亡灵冠军的誓约，车厢里那具钉满铜箍的旧棺猛然一震，卫士的兵刃在棺内发出低沉而狂热的金属共鸣。法杖表面原本纵横交错的裂纹在魂火中寸寸弥合，粗糙的铁箍融化成暗沉的镀铜，那颗苍白的颅骨缓缓睁开空洞的眼眶，一股令人窒息的君王威压顺着杖身涌入你的掌心。它不再是荒冢里拼凑出的简陋法器，而是足以加冕并号令不朽冠军的【骸骨权杖】。";
                 this.option(_screen, "“以此权杖，加冕我的冠军。”", @() S.evolveStaff() ? "初生骷髅法杖蜕变为【骸骨权杖】。" : "法杖仍在原处。");
             }
             else
             {
+                art = "evolve_scourge";
                 _screen.Text = "你独自走到营地边缘，将初生骷髅法杖深深插进浸满腐土与盐水的泥地之中。随着你沙哑地念出亡灵天灾的誓词，四周温暖的篝火骤然熄灭，刺骨的寒意瞬间席卷了整座营地。\n\n无数肉眼难辨的苍白虚影从地底与黑暗中涌出，像饥饿的蝗虫般疯狂钻进杖身的裂隙。枯骨在成百上千道凄厉的哀嚎与低语中扭曲、延展，原本松动的铁箍被迫重铸成密密麻麻的符环，勉强锁住其中翻涌不息的亡魂浪潮。彻骨的阴冷顺着你的指尖蔓延至全身——从今往后，整片战场都将回荡着【千魂法杖】的无尽诅咒。";
                 this.option(_screen, "“听吧，亡者的潮水正在呼唤。”", @() S.evolveStaff() ? "初生骷髅法杖蜕变为【千魂法杖】。" : "法杖仍在原处。");
             }
@@ -801,7 +817,8 @@ S.renderEvent <- function( _event, _screen )
             break;
     }
     _event.m.Title = title;
-    _screen.Text = "[img]gfx/ui/events/" + art + "[/img]" + _screen.Text;
+    _event.m.PaleArt = art;
+    _screen.Text = "[img]gfx/ui/events/pale/" + art + ".jpg[/img]" + _screen.Text;
     if (closing)
         this.option(_screen, _screen.ID == "camp" ? "合上账簿" : "返回营地",
             _screen.ID == "whispers" ? function() { S.set("WhispersAfter", S.worldHours() + 24); return null; } : @() null);

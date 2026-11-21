@@ -1,5 +1,5 @@
 this.pale_sovereign_camp_event <- ::inherit("scripts/events/event", {
-    m = { Page = "camp", Message = "" },
+    m = { Page = "camp", Message = "", PaleArt = "camp" },
     function create()
     {
         this.m.ID = "event.pale_sovereign_camp";

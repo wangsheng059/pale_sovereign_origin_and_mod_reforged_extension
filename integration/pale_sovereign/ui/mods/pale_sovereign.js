@@ -15,6 +15,31 @@
         }
     };
 
+    var createOptionsBar = WorldScreenTopbarOptionsModule.prototype.createDIV;
+    WorldScreenTopbarOptionsModule.prototype.createDIV = function (parent) {
+        createOptionsBar.call(this, parent);
+        var optionsBar = this;
+        this.mPaleCampButton = this.mContainer.createTextButton("亡灵营地", function () {
+            if (optionsBar.mSQHandle !== null) {
+                SQ.call(optionsBar.mSQHandle, "onPaleCampButtonPressed");
+            }
+        }, "pale-camp-button display-none", 1);
+    };
+
+    var destroyOptionsBar = WorldScreenTopbarOptionsModule.prototype.destroyDIV;
+    WorldScreenTopbarOptionsModule.prototype.destroyDIV = function () {
+        destroyOptionsBar.call(this);
+        this.mPaleCampButton = null;
+    };
+
+    var updateOptionsBar = WorldScreenTopbarOptionsModule.prototype.onAssetsInformation;
+    WorldScreenTopbarOptionsModule.prototype.onAssetsInformation = function (source, data) {
+        updateOptionsBar.call(this, source, data);
+        if (this.mPaleCampButton && data && data.current) {
+            this.mPaleCampButton.toggleClass("display-none", !data.current.PaleCampVisible);
+        }
+    };
+
     var champion = [
         "perk.bgp_necro_possess", "perk.bgp_necro_flesh_reforge",
         "perk.bgp_necro_mind_meld", "perk.bgp_necro_infusion", "perk.bgp_necro_undying_champion"
