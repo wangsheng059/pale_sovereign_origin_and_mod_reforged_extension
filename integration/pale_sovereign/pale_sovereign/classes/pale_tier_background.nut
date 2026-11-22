@@ -10,6 +10,7 @@ this.pale_tier_background <- ::inherit("scripts/skills/backgrounds/pale_undead_b
         this.m.Name = branch.Name;
         this.m.PaleTier = branch.Tier;
         this.m.PaleSkeleton = branch.Skeleton;
+        this.m.PaleRanged = "RangedSkill" in branch;
         this.m.Icon = "ui/backgrounds/pale_" + this.m.PaleBranch + ".png";
         this.m.BackgroundDescription = branch.Description;
     }
@@ -17,6 +18,14 @@ this.pale_tier_background <- ::inherit("scripts/skills/backgrounds/pale_undead_b
     function onBuildDescription()
     {
         return this.m.BackgroundDescription;
+    }
+
+    function buildDescription( _isFinal = false )
+    {
+        if (!this.m.PaleRanged)
+            return this.pale_undead_background.buildDescription(_isFinal);
+        this.m.RawDescription = this.m.BackgroundDescription;
+        this.m.Description = this.m.BackgroundDescription;
     }
 
     function getTooltip()
@@ -44,7 +53,7 @@ this.pale_tier_background <- ::inherit("scripts/skills/backgrounds/pale_undead_b
         {
             local group = _groupID.slice(6);
             local branch = S.TierBranches[this.m.PaleBranch];
-            if (S.TierCommonExclusions.find(group) != null || branch.Excluded.find(group) != null)
+            if ((!this.m.PaleRanged && S.TierCommonExclusions.find(group) != null) || branch.Excluded.find(group) != null)
                 return 0; // MSU treats negative weights as forced choices.
             if (branch.Weighted.find(group) != null)
                 return 3;

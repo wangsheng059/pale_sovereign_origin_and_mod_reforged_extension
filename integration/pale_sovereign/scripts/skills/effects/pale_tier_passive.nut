@@ -3,6 +3,8 @@ this.pale_tier_passive <- ::inherit("scripts/skills/skill", {
 
     function create()
     {
+        if (this.m.DamageType == null)
+            this.m.DamageType = ::MSU.Class.DamageType();
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.Order = ::Const.SkillOrder.Any;
         this.m.IsSerialized = false;

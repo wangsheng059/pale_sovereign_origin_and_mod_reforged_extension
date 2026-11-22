@@ -12,6 +12,21 @@ S.getUndeadTier <- function( _bro )
     return background == null ? 0 : background.m.PaleTier;
 };
 
+S.tierChoicesFor <- function( _background )
+{
+    local tier = _background.m.PaleTier;
+    if (tier >= 3)
+        return [];
+    if (_background.m.PaleRanged)
+        return this.RangedTierChoices[tier == 1 ? "archer" : _background.m.PaleBranch];
+    return this.TierChoices[_background.m.PaleSkeleton ? 1 : 0][tier - 1];
+};
+
+S.tierNewLevel <- function( _bro, _background )
+{
+    return _background.m.PaleRanged ? 1 : _bro.getLevel() - this.tierLevelsSpent();
+};
+
 S.restoreTierSkills <- function( _bro )
 {
     local background = this.getUndeadBackground(_bro);
@@ -23,7 +38,9 @@ S.restoreTierSkills <- function( _bro )
     if (branch.Tier == 3 && typeof middle == "string" && middle in this.TierBranches)
     {
         local previous = this.TierBranches[middle];
-        if (previous.Tier == 2 && previous.Skeleton == branch.Skeleton)
+        if (previous.Tier == 2 && previous.Skeleton == branch.Skeleton
+            && ("RangedSkill" in previous) == ("RangedSkill" in branch)
+            && (!background.m.PaleRanged || this.RangedTierChoices[middle].find(background.m.PaleBranch) != null))
             keys.extend(previous.Skills);
     }
     local skills = _bro.getSkills();
@@ -44,10 +61,78 @@ S.tierCanPromote <- function( _bro, _branch )
         || this.undead().find(_bro) == null || !(_branch in this.TierBranches))
         return false;
     local old = this.getUndeadBackground(_bro);
-    local next = this.TierBranches[_branch];
-    return old != null && next.Tier == old.m.PaleTier + 1 && next.Skeleton == old.m.PaleSkeleton
+    return old != null && this.tierChoicesFor(old).find(_branch) != null
         && this.get("Reserve") >= this.tierReserveCost() && this.countItems("misc.pale_jade") >= this.TierCost.Jade
         && ::World.Assets.getMoney() >= this.TierCost.Money;
+};
+
+S.planTierEquipment <- function( _bro, _branch )
+{
+    local slots = ::Const.ItemSlot;
+    local items = _bro.getItems();
+    local weapon = items.getItemAtSlot(slots.Mainhand);
+    local ammo = items.getItemAtSlot(slots.Ammo);
+    local plan = { Issue = [], Store = [] };
+    if (::MSU.isNull(weapon) || !::MSU.isKindOf(weapon, "weapon") || !weapon.isWeaponType(_branch.AllowedWeapons))
+    {
+        if (!::MSU.isNull(weapon))
+            plan.Store.push(weapon);
+        weapon = ::new(this.ItemDir + _branch.Weapon);
+        plan.Issue.push(weapon);
+        if (weapon.getBlockedSlotType() == slots.Offhand)
+        {
+            local offhand = items.getItemAtSlot(slots.Offhand);
+            if (!::MSU.isNull(offhand))
+                plan.Store.push(offhand);
+        }
+    }
+    foreach (kit in this.RangedTierKits)
+    {
+        if (!weapon.isWeaponType(kit.Type))
+            continue;
+        if (::MSU.isNull(ammo) || !::MSU.isKindOf(ammo, "ammo") || ammo.getAmmoType() != kit.Ammo || ammo.getAmmo() == 0)
+        {
+            if (!::MSU.isNull(ammo))
+                plan.Store.push(ammo);
+            plan.Issue.push(::new(this.ItemDir + kit.Quiver));
+        }
+        break;
+    }
+    return plan;
+};
+
+S.equipTierKit <- function( _items, _stash, _plan )
+{
+    local displaced = [];
+    local stored = [];
+    local issued = [];
+    try
+    {
+        foreach (item in _plan.Store)
+        {
+            _items.unequip(item);
+            displaced.push(item);
+            if (_stash.add(item) == null)
+                throw "no space for the displaced equipment";
+            stored.push(item);
+        }
+        foreach (item in _plan.Issue)
+        {
+            if (!_items.equip(item))
+                throw "could not equip " + item.getID();
+            issued.push(item);
+        }
+    }
+    catch (e)
+    {
+        foreach (item in issued)
+            _items.unequip(item);
+        foreach (item in stored)
+            _stash.remove(item);
+        foreach (item in displaced)
+            _items.equip(item);
+        throw e;
+    }
 };
 
 S.resetTierArmor <- function( _bro )
@@ -77,6 +162,14 @@ S.tierPromote <- function( _bro, _branch )
     local oldLevel = _bro.getLevel();
     local oldHealth = _bro.getHitpointsPct();
     local next = this.TierBranches[_branch];
+    local stash = ::World.Assets.getStash();
+    local kit = null;
+    if ("RangedSkill" in next)
+    {
+        kit = this.planTierEquipment(_bro, next);
+        if (stash.getNumberOfEmptySlots() < kit.Store.len())
+            return "仓库没有足够空位存放换下的装备，升阶尚未开始。";
+    }
     local background = ::new(this.SkillDir + "backgrounds/pale_" + _branch + "_background");
     if (!::MSU.isKindOf(background, "pale_tier_background"))
         return "升阶背景未能加载，材料仍在账簿中。";
@@ -85,11 +178,15 @@ S.tierPromote <- function( _bro, _branch )
     local oldStats = props.getClone();
     local saved = { Level = _bro.m.Level, XP = _bro.m.XP, LevelUps = _bro.m.LevelUps,
         Attributes = _bro.m.Attributes, Tree = _bro.m.PerkTree };
-    local level = oldLevel - this.tierLevelsSpent();
+    local level = this.tierNewLevel(_bro, oldBackground);
     // Retain the fraction of progress within the level, using the new level's XP curve.
-    local oldMinimum = ::Const.LevelXP[oldLevel - 1];
-    local oldInterval = ::Math.max(1, _bro.getXPForNextLevel() - oldMinimum);
-    local progress = ::Math.maxf(0.0, ::Math.minf(1.0, (_bro.getXP() - oldMinimum).tofloat() / oldInterval));
+    local progress = 0.0;
+    if (!oldBackground.m.PaleRanged)
+    {
+        local oldMinimum = ::Const.LevelXP[oldLevel - 1];
+        local oldInterval = ::Math.max(1, _bro.getXPForNextLevel() - oldMinimum);
+        progress = ::Math.maxf(0.0, ::Math.minf(1.0, (_bro.getXP() - oldMinimum).tofloat() / oldInterval));
+    }
     local minimum = ::Const.LevelXP[level - 1];
     local interval = ::Const.LevelXP[level] - minimum;
     local statNames = ["Hitpoints", "MeleeSkill", "MeleeDefense", "RangedDefense", "Initiative", "ActionPoints"];
@@ -111,6 +208,8 @@ S.tierPromote <- function( _bro, _branch )
             local delta = adjustments[key];
             props[key] = ::Math.floor((bounds[0] + bounds[1] + delta[0] + delta[1]) * 0.5);
         }
+        if ("RangedSkill" in next)
+            props.RangedSkill = next.RangedSkill;
 
         _bro.m.Level = level;
         _bro.m.XP = minimum + ::Math.min(interval - 1, ::Math.floor(interval * progress));
@@ -122,6 +221,8 @@ S.tierPromote <- function( _bro, _branch )
         tree.setActor(_bro);
         _bro.m.PerkTree = tree;
         tree.build();
+        if (kit != null)
+            this.equipTierKit(_bro.getItems(), stash, kit);
     }
     catch (e)
     {
@@ -168,6 +269,7 @@ S.tierPromote <- function( _bro, _branch )
     foreach (key in ["PaleJade", "PaleGilded", "PaleGemEyes"])
         flags.remove(key);
     this.restoreTierSkills(_bro);
+    this.applyUndeadLook(_bro);
     skills.update();
     _bro.setHitpointsPct(::Math.maxf(oldHealth, 1.0 / _bro.getHitpointsMax()));
 

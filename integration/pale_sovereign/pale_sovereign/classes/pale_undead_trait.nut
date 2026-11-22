@@ -4,13 +4,14 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
     function create()
     {
         this.character_trait.create();
+        if (this.m.DamageType == null)
+            this.m.DamageType = ::MSU.Class.DamageType();
         local def = ::PaleSovereign.UndeadTraits[this.m.PaleKey];
         this.m.ID = "trait.pale_" + this.m.PaleKey;
         this.m.Name = def.Name;
         this.m.Description = def.Description;
         this.m.Excluded = clone def.Excluded;
-        this.m.Icon = "ui/traits/trait_icon_01.png";
-        try { this.m.Icon = ::new("scripts/skills/traits/" + def.Icon).m.Icon; } catch (e) {}
+        this.m.Icon = "ui/traits/pale_" + this.m.PaleKey + ".png";
     }
 
     function getTooltip()

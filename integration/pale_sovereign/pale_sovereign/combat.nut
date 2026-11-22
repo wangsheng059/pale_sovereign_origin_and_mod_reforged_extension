@@ -219,7 +219,12 @@ S.applyUndeadLook <- function( _bro )
     {
         head.setBrush("bgpu_bust_head_01");
     }
-    if (branch != null)
+    if (background.m.PaleRanged)
+    {
+        body.setBrush("pale_skeleton_archer_body");
+        head.setBrush("pale_skeleton_archer_head");
+    }
+    else if (branch != null)
     {
         local stem = "pale_" + (key in this.TierBrushStems ? this.TierBrushStems[key] : key);
         if (look != null)
@@ -254,4 +259,19 @@ S.applyUndeadLook <- function( _bro )
                 _bro.getSprite(layer).Visible = false;
     }
     _bro.setDirty(true);
+};
+
+S.applySummonedLook <- function( _actor, _stem )
+{
+    _actor.getSprite("body").setBrush(_stem + "_body");
+    _actor.getSprite("head").setBrush(_stem + "_head");
+    foreach (layer in ["body", "head"])
+        _actor.getSprite(layer).Color = ::createColor("#ffffff");
+    foreach (layer in ["hair", "beard", "beard_top", "injury", "injury_body", "body_blood_always"])
+        if (_actor.hasSprite(layer))
+            _actor.getSprite(layer).Visible = false;
+    local appearance = _actor.getItems().getAppearance();
+    appearance.HideHair = true;
+    appearance.HideBeard = true;
+    _actor.setDirty(true);
 };

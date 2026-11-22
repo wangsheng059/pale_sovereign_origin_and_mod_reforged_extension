@@ -5,7 +5,6 @@ this.pale_bound_undead_item <- ::inherit("scripts/items/item", {
     {
         this.item.create();
         this.m.ID = "misc.pale_bound_undead";
-        this.m.Icon = "tools/bgp_necro_vessel_70x70.png";
         this.m.SlotType = ::Const.ItemSlot.None;
         this.m.ItemType = ::Const.Items.ItemType.Usable;
         this.m.IsUsable = true;
@@ -26,6 +25,8 @@ this.pale_bound_undead_item <- ::inherit("scripts/items/item", {
     function refresh()
     {
         this.m.Name = "受缚的" + this.getKindName();
+        this.m.Icon = "pale/bound_" + ::PaleSovereign.undeadKindOf(this.m.PaleKind) + ".png";
+        this.m.IconLarge = this.m.Icon;
         this.m.Description = "从亡灵营地的废墟里拖出来的一具" + this.getKindName() + "，魂火被锁在一只封魂瓮里，还没认主。在仓库中右键使用可将其收编为常驻亡灵（属性、天赋与特质随机），也可以在商店卖掉。";
     }
 

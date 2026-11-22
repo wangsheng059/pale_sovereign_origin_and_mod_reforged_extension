@@ -5,10 +5,12 @@
 this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
     m = {
         Script = "", MasteryScript = "", EliteScript = "", MinionName = "", MasteryName = "", EliteName = "", ForNecromancers = false,
-        Gear = null, MasteryGear = null, EliteGear = null, Used = false
+        Gear = null, MasteryGear = null, EliteGear = null, Used = false, ArtStem = ""
     },
     function create()
     {
+        if (this.m.DamageType == null)
+            this.m.DamageType = ::MSU.Class.DamageType();
         this.m.Type = ::Const.SkillType.Active;
         this.m.Order = ::Const.SkillOrder.UtilityTargeted;
         this.m.SoundOnUse = ["sounds/enemies/necromancer_01.wav", "sounds/enemies/necromancer_02.wav", "sounds/enemies/necromancer_03.wav"];
@@ -47,7 +49,8 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         local ret = this.skill.getDefaultUtilityTooltip();
         local rank = this.getRank();
         local names = [this.m.MinionName, this.m.MasteryName, this.m.EliteName];
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "在相邻的空格召出一名" + names[rank] + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
+        ret.push({ id = 10, type = "text", icon = "ui/backgrounds/" + this.m.ArtStem + "_" + rank + ".png",
+            text = "在相邻的空格召出一名" + names[rank] + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
             + "；学会第 7 阶特技（不灭冠军或尸爆）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
@@ -135,6 +138,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         }
         ::BGP.Necro.markGearNoLoot(e);
         e.m.Name = [this.m.MinionName, this.m.MasteryName, this.m.EliteName][rank];
+        s.applySummonedLook(e, this.m.ArtStem + "_" + rank);
         try { e.riseFromGround(); } catch (err) {}
         ::BGP.Necro.copySocket(_user, e);
         ::BGP.Necro.markMinion(_user, e);

@@ -169,7 +169,7 @@ S.Mod.hook("scripts/entity/tactical/player", function(q)
     {
         local background = S.getUndeadBackground(this);
         local bound = S.isSoulbound(this);
-        if (background == null || (background.m.PaleTier < 2 && !bound))
+        if (background == null || background.m.PaleRanged || (background.m.PaleTier < 2 && !bound))
             return __original(_killer, _skill, _tile, _fatality);
 
         local appearance = this.getItems().getAppearance();
