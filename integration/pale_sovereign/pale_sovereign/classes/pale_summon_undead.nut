@@ -5,7 +5,7 @@
 this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
     m = {
         Script = "", MasteryScript = "", EliteScript = "", MinionName = "", MasteryName = "", EliteName = "", ForNecromancers = false,
-        Gear = null, MasteryGear = null, EliteGear = null, Used = false, ArtStem = "", FearInsteadOfOverwhelm = false
+        Gear = null, MasteryGear = null, EliteGear = null, Used = false, ArtStem = "", FearInsteadOfOverwhelm = false, EliteExtraSkills = null, EliteExtraText = ""
     },
     function create()
     {
@@ -55,6 +55,8 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
             + "；学会第 7 阶特技（不灭冠军或尸爆）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
         if (this.m.FearInsteadOfOverwhelm)
             ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”" });
+        if (this.m.EliteExtraText != "")
+            ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = this.m.EliteExtraText });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
         if (this.m.Used)
             ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = "本场已经使用过" });
@@ -159,6 +161,21 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
             if (!skills.hasSkill("perk.fearsome"))
                 skills.add(::new("scripts/skills/perks/perk_fearsome"));
         }
+        // 第 7 阶的额外技能（召唤僵尸：堕落英雄得“恐惧之容”）
+        if (rank == 2 && this.m.EliteExtraSkills != null)
+            foreach (script in this.m.EliteExtraSkills)
+            {
+                try
+                {
+                    local extra = ::new(script);
+                    if (!e.getSkills().hasSkill(extra.getID()))
+                        e.getSkills().add(extra);
+                }
+                catch (err)
+                {
+                    ::logError("[PaleSovereign] 召唤额外技能 " + script + ": " + err);
+                }
+            }
         e.getSkills().update();
         try { s.playBattleArt("resurrect", _targetTile, 28); } catch (err) {}
         if (!_user.isHiddenToPlayer())

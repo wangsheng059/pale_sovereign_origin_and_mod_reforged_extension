@@ -25,6 +25,9 @@ this.pale_summon_zombie <- ::inherit("pale_sovereign/classes/pale_summon_undead"
         };
         this.m.ForNecromancers = true;
         this.m.FearInsteadOfOverwhelm = true;
+        // 恐惧之容（perk.rf_terrifying_visage）：造成生命伤害时目标做一次士气检定，失败则惊骇（effects.horrified）
+        this.m.EliteExtraSkills = ["scripts/skills/perks/perk_rf_terrifying_visage"];
+        this.m.EliteExtraText = "受缚堕落英雄另有“恐惧之容”：造成生命伤害时目标做士气检定，失败则惊骇（直到下回合都无法行动）";
         this.m.Gear = {
             Mainhand = ["weapons/hatchet", "weapons/militia_spear", "weapons/butchers_cleaver", "weapons/wooden_flail", "weapons/knife"],
             Body = ["armor/leather_tunic", "armor/linen_tunic", "armor/padded_surcoat"],
