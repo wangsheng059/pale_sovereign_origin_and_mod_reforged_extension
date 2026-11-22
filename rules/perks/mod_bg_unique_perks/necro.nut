@@ -254,14 +254,15 @@
 	if (info == null)
 	{
 		// 没有记录的尸体（例如本 mod 装上之前的）：只按原版规则当人类尸体处理
-		try { isHuman = _corpse.IsResurrectable && _corpse.Type != null && _corpse.Type.find("orc") == null; } catch (e) { isHuman = false; }
+		try { isHuman = (_corpse.IsResurrectable || ::BGP.Necro.isPendingResurrection(_corpse)) && _corpse.Type != null && _corpse.Type.find("orc") == null; } catch (e) { isHuman = false; }
 	}
 
 	if (isHuman)
 	{
 		try
 		{
-			if (_corpse.IsResurrectable && _corpse.Type != null && _corpse.Type != "")
+			// 1.6.6 被僵尸感染、即将化为行尸爬起的人类尸体（IsResurrectable 被置为 false）也能复活
+			if ((_corpse.IsResurrectable || ::BGP.Necro.isPendingResurrection(_corpse)) && _corpse.Type != null && _corpse.Type != "")
 				return { Mode = "vanilla", Script = _corpse.Type, Category = "human" };
 		}
 		catch (e)
@@ -316,6 +317,7 @@
 		e = ::Tactical.Entities.onResurrect(corpse, true);
 		if (e == null)
 			return null;
+		::BGP.Necro.consumeCorpse(corpse);
 		try { e.setFaction(::Const.Faction.PlayerAnimals); } catch (err) {}
 	}
 	else
