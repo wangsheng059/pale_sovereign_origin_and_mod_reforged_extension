@@ -320,11 +320,11 @@ S.conquestRecruitPanel <- function( _screen )
     local price = this.recruitCost();
     if (!this.canRecruitUndead(null))
         return;
-    foreach (skeleton in [true, false])
+    foreach (kind in this.UndeadKindOrder)
     {
-        local recruitSkeleton = skeleton;
-        this.option(_screen, "征召" + (recruitSkeleton ? "骷髅" : "行尸") + "（" + price + " 点尸骸）",
-            @() S.recruitUndead(null, recruitSkeleton) ? "新兵已加入战团。" : "无法征召。");
+        local recruitKind = kind;
+        this.option(_screen, "征召" + this.UndeadKinds[recruitKind].Name + "（" + price + " 点尸骸）",
+            @() S.recruitUndead(null, recruitKind) ? "新兵已加入战团。" : "无法征召。");
     }
 };
 

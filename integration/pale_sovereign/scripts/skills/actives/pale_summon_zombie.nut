@@ -5,10 +5,23 @@ this.pale_summon_zombie <- ::inherit("pale_sovereign/classes/pale_summon_undead"
         this.pale_summon_undead.create();
         this.m.ID = "actives.pale_summon_zombie";
         this.m.Name = "召唤僵尸";
-        this.m.Description = "导师低声念出一个早被遗忘的名字，泥土翻涌，一具腐烂的尸身挣扎着爬出地面。";
+        this.m.Description = "低声念出一个早被遗忘的名字，泥土翻涌，一具腐烂的尸身攥着生前的兵器挣扎着爬出地面。";
         this.m.Icon = "skills/pale_fallen.png";
         this.m.IconDisabled = "skills/pale_fallen_sw.png";
         this.m.Script = "scripts/entity/tactical/bgp_undead/bgp_undead_zombie";
+        this.m.MasteryScript = "scripts/entity/tactical/bgp_undead/bgp_undead_zombie_yeoman";
         this.m.MinionName = "受缚僵尸";
+        this.m.MasteryName = "受缚披甲僵尸";
+        this.m.ForNecromancers = true;
+        this.m.Gear = {
+            Mainhand = ["weapons/hatchet", "weapons/militia_spear", "weapons/butchers_cleaver", "weapons/wooden_flail", "weapons/knife"],
+            Body = ["armor/leather_tunic", "armor/linen_tunic", "armor/padded_surcoat"],
+            Head = null
+        };
+        this.m.MasteryGear = {
+            Mainhand = ["weapons/hand_axe", "weapons/morning_star", "weapons/boar_spear", "weapons/scramasax", "weapons/military_pick"],
+            Body = ["armor/gambeson", "armor/padded_leather", "armor/basic_mail_shirt"],
+            Head = ["helmets/nasal_helmet", "helmets/padded_kettle_hat", "helmets/padded_nasal_helmet"]
+        };
     }
 });

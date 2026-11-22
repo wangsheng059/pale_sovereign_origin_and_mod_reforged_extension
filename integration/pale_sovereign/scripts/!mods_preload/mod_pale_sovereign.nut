@@ -22,15 +22,15 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.7", "亡灵主宰");
-::PaleSovereign.Mod.require("mod_local_rules >= 1.6.4");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.8", "亡灵主宰");
+::PaleSovereign.Mod.require("mod_local_rules >= 1.6.5");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
 ::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_dynamic_perks", ">mod_AC", ">mod_reforged", ">mod_stronghold", ">mod_pandoras_hobby", ">mod_conquest"], function()
 {
     if (!::BGP.HasAC)
         return;
-    foreach (file in ["company", "combat", "souls", "sites", "tier_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "soulbound", "battle_art"])
+    foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "tier_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "soulbound", "battle_art"])
         ::include("pale_sovereign/" + file);
     if ("Stronghold" in ::getroottable())
         foreach (file in ["stronghold", "castle_services", "castle_armor", "castle_siege"])

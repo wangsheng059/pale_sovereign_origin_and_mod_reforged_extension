@@ -2,7 +2,7 @@ local S = ::PaleSovereign;
 
 S.beginBattle <- function( _night )
 {
-    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0, Soulbound = [], SoulUsed = false };
+    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0, Soulbound = [], SoulUsed = false, HumanKills = 0, UndeadCampLooted = false };
 };
 
 S.area <- function( _center )
@@ -190,6 +190,7 @@ S.onVictory <- function( _loot )
     if (soulFound && pet != null && pet.m.PaleID == mark.PetID)
         this.saveSoul(mark);
     this.followerVictory();
+    this.followerLoot(_loot);
 };
 
 S.applyUndeadLook <- function( _bro )

@@ -440,6 +440,13 @@ mod.hookTree("scripts/entity/world/location", function(q)
 
     q.onCombatLost = @(__original) function()
     {
+        // 1.6.8 攻破亡灵营地：仓库里得到一具受缚亡灵
+        if (S.Battle != null && !S.Battle.UndeadCampLooted && this.isAlive() && this.getTroops().len() == 0
+            && ::World.Statistics.getFlags().getAsInt("LastCombatResult") == 1 && S.isUndeadCamp(this))
+        {
+            S.Battle.UndeadCampLooted = true;
+            S.pendingItem("misc/pale_bound_undead_item");
+        }
         if (S.Battle != null && S.isAncientSite(this) && this.isAlive() && this.getTroops().len() == 0
             && ::World.Statistics.getFlags().getAsInt("LastCombatResult") == 1)
         {
@@ -488,6 +495,7 @@ mod.hook("scripts/entity/tactical/actor", function(q)
         {
             local fileName = S.scriptBase(battle.Death.Info.Script);
             battle.Death.Champion <- this.getSkills().hasSkill("racial.champion");
+            battle.Death.Human <- battle.Death.Info.IsHuman;
             if (battle.Death.Champion)
                 ++battle.Champions;
             if (fileName == "trickster_god")
@@ -501,6 +509,7 @@ mod.hook("scripts/entity/tactical/actor", function(q)
                 governor.Died = true;
             local eligible = battle.Death.Eligible;
             local champion = "Champion" in battle.Death && battle.Death.Champion;
+            local human = "Human" in battle.Death && battle.Death.Human;
             battle.Death = former;
             if (eligible && (!this.isAlive() || this.isDying()))
             {
@@ -508,6 +517,8 @@ mod.hook("scripts/entity/tactical/actor", function(q)
                 S.followerOnKill(_killer);
                 if (champion)
                     S.followerChampionKill(_killer);
+                if (human)
+                    ++battle.HumanKills;
             }
             return result;
         }
@@ -591,6 +602,18 @@ mod.hook("scripts/skills/skill_container", function(q)
             properties.DamageTotalMult *= 1.2;
         }
         return properties;
+    };
+});
+
+// 1.6.8 普通死灵法师（中途加入、捕奴俘获）也会召唤僵尸
+mod.hook("scripts/skills/backgrounds/bgp_necromancer_background", function(q)
+{
+    q.onAdded = @(__original) function()
+    {
+        __original();
+        local skills = this.getContainer();
+        if (!skills.hasSkill("actives.pale_summon_zombie"))
+            skills.add(::new("scripts/skills/actives/pale_summon_zombie"));
     };
 });
 

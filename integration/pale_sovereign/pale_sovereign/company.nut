@@ -81,10 +81,8 @@ S.undead <- function()
 
 S.permanentUndeadLimit <- function()
 {
-    local oath = this.oath();
-    if (oath == this.Oath.Champion)
-        return this.ChampionUndeadLimit;
-    return oath == this.Oath.Scourge ? null : 0;
+    // 1.6.8 立誓前不再限制常驻亡灵（立下冠军誓约后上限 3，已有的保留）
+    return this.oath() == this.Oath.Champion ? this.ChampionUndeadLimit : null;
 };
 
 S.reserveLimit <- function()
@@ -125,6 +123,7 @@ S.followerAssets <- @(_key, _rank) null;
 S.followerMovementMult <- @(_key) 1.0;
 S.isAmbushSafe <- @() false;
 S.isWaryHumanParty <- @(_party) false;
+S.followerLoot <- @(_loot) null;
 
 S.repairUndead <- function( _free = false )
 {

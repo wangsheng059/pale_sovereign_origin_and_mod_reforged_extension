@@ -334,10 +334,7 @@ S.campPanel <- function( _event, _screen )
                 }
             });
         if (this.canRecruitUndead(site))
-        {
-            this.option(_screen, "征召常驻骷髅（" + this.recruitCost() + " 点防腐尸骸）", @() S.recruitUndead(site, true) ? "一具骷髅从盐封棺中坐起，加入了战团。" : "无法征召。");
-            this.option(_screen, "征召常驻行尸（" + this.recruitCost() + " 点防腐尸骸）", @() S.recruitUndead(site, false) ? "一具行尸拖着僵硬的步子，加入了战团。" : "无法征召。");
-        }
+            this.option(_screen, "征召常驻亡灵（" + this.recruitCost() + " 点防腐尸骸）", function() { S.RecruitSite = site; return "@recruit"; });
     }
 };
 
@@ -435,6 +432,13 @@ S.renderEvent <- function( _event, _screen )
             art = "soul_refine";
             closing = false;
             this.refinePanel(_screen);
+            break;
+
+        case "recruit":
+            title = "征召常驻亡灵";
+            art = "fort_barracks";
+            closing = false;
+            this.recruitPanel(_screen);
             break;
 
         case "refine_confirm":

@@ -104,7 +104,8 @@ S.pendingItem <- function( _path, _count = 1 )
 
 S.RewardItems <- [
     "tools/pale_bone_lantern", "tools/pale_battle_standard", "accessory/pale_signet",
-    "misc/pale_jade_item", "misc/pale_chain_item", "loot/ancient_gold_coins_item", "weapons/ancient/ancient_sword"
+    "misc/pale_jade_item", "misc/pale_chain_item", "loot/ancient_gold_coins_item", "weapons/ancient/ancient_sword",
+    "misc/pale_bound_undead_item"
 ];
 
 S.deliverAmbitionItems <- function()

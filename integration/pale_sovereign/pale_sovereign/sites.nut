@@ -212,22 +212,12 @@ S.canRecruitUndead <- function( _site, _price = 0 )
         && ::World.getPlayerRoster().getSize() < ::World.Assets.getBrothersMax();
 };
 
-S.recruitUndead <- function( _site, _skeleton, _price = 0, _levels = 0 )
+// _kind："skeleton" / "archer" / "zombie"（旧调用传 true / false 也认）；属性、天赋星和特质见 undead_recruits.nut
+S.recruitUndead <- function( _site, _kind, _price = 0, _levels = 0 )
 {
     if (!this.canRecruitUndead(_site, _price))
         return false;
-    local name = _skeleton ? "pale_skeleton_background" : "pale_zombie_background";
-    local equipment = _skeleton
-        ? ["weapons/ancient/ancient_sword", "shields/wooden_shield"]
-        : ["weapons/wooden_stick", "armor/tattered_sackcloth"];
-    local bro = this.spawnBrother(name, equipment, -1, false);
-    bro.getFlags().set("PalePermanentUndead", true);
-    bro.getFlags().set("undead", true);
-    bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
-    local titles = _skeleton ? this.SkeletonTitles : this.ZombieTitles;
-    bro.setTitle(titles[::Math.rand(0, titles.len() - 1)]);
-    bro.m.MoraleState = ::Const.MoraleState.Ignore;
-    this.applyUndeadLook(bro);
+    local bro = this.createUndead(_kind);
     this.changeReserve(-(_price > 0 ? _price : this.recruitCost()));
     if (_site != null)
         this.set(_site.Key + "Recruited", 1);

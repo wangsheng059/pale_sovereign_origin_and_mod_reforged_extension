@@ -323,11 +323,11 @@ S.castlePanel <- function( _screen )
             local trained = flags.get("PaleBarracksUpgraded") == true;
             if (this.canRecruitUndead(null, 3))
             {
-                foreach (skeleton in [true, false])
+                foreach (kind in this.UndeadKindOrder)
                 {
-                    local recruitSkeleton = skeleton;
-                    this.option(_screen, "征召" + (recruitSkeleton ? "骷髅" : "行尸") + "（3 点尸骸）",
-                        @() S.recruitUndead(null, recruitSkeleton, 3, trained ? 2 : 0) ? "新兵已加入战团。" : "无法征召。");
+                    local recruitKind = kind;
+                    this.option(_screen, "征召" + this.UndeadKinds[recruitKind].Name + "（3 点尸骸）",
+                        @() S.recruitUndead(null, recruitKind, 3, trained ? 2 : 0) ? "新兵已加入战团。" : "无法征召。");
                 }
             }
             if (!trained && ::World.Assets.getMoney() >= 1000)

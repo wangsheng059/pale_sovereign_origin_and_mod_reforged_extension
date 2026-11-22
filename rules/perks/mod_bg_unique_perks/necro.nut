@@ -243,8 +243,7 @@
 {
 	if (_corpse == null)
 		return null;
-	if (::BGP.Necro.isPendingResurrection(_corpse))
-		return null;
+	// 1.6.5 即将自行爬起的尸体（僵尸等）也能复活：复活时取消它原本排好的自行复活（见 raise 和 necro_hooks.nut）
 	// 1.6.0 永恒禁卫的残骸只能用“不灭号令”唤回
 	if (::BGP.Necro.isGuardCorpse(_corpse))
 		return null;
@@ -278,6 +277,15 @@
 
 	local wrapper = ::BGP.Necro.RaiseMap[info.Script];
 	return { Mode = "spawn", Script = wrapper, Category = ::BGP.Necro.WrapperCategory[wrapper] };
+}
+
+// 1.6.5 尸体被复活后，取消它排好的自行复活（本 mod 的 resurrect 钩子；亡灵诅咒认 UC_Consumed）
+::BGP.Necro.consumeCorpse <- function( _corpse )
+{
+	if (_corpse == null || !::BGP.Necro.isPendingResurrection(_corpse))
+		return;
+	try { _corpse.BGP_Consumed <- true; } catch (e) {}
+	try { if ("UC_Consumed" in _corpse) _corpse.UC_Consumed = true; else _corpse.UC_Consumed <- true; } catch (e) {}
 }
 
 ::BGP.Necro.removeCorpse <- function( _tile )
@@ -314,6 +322,7 @@
 	{
 		local x = _tile.Coords.X;
 		local y = _tile.Coords.Y;
+		::BGP.Necro.consumeCorpse(corpse);
 		::BGP.Necro.removeCorpse(_tile);
 		e = ::Tactical.spawnEntity(plan.Script, x, y);
 		if (e == null)

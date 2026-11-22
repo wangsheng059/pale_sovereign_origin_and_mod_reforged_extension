@@ -1,6 +1,11 @@
-// 召唤僵尸 / 召唤骷髅：亡灵法师导师自带的主动技能，在相邻空格召出一名临时亡灵仆从（战斗结束后消散），每场每种 1 次
+// 召唤僵尸 / 召唤骷髅：在相邻空格召出一名临时亡灵仆从（战斗结束后消散），每场每种 1 次
+// 1.6.8：召出的仆从必定有武器和护甲；施法者学会“死灵精通”后召出更强的种类、换上更好的装备；
+//        召唤僵尸也给普通死灵法师（背景 bgp_necromancer），召唤骷髅只给亡灵法师导师
 this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
-    m = { Script = "", MinionName = "", Used = false },
+    m = {
+        Script = "", MasteryScript = "", MinionName = "", MasteryName = "", ForNecromancers = false,
+        Gear = null, MasteryGear = null, Used = false
+    },
     function create()
     {
         this.m.Type = ::Const.SkillType.Active;
@@ -22,25 +27,35 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         this.m.MaxRange = 1;
     }
 
+    function hasMastery()
+    {
+        return this.getContainer().getActor().getSkills().hasSkill("perk.bgp_necro_mastery");
+    }
+
     function getTooltip()
     {
         local ret = this.skill.getDefaultUtilityTooltip();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "在相邻的空格召出一名" + this.m.MinionName + "，由 AI 控制，战斗结束后消散" });
-        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
+        local mastery = this.hasMastery();
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "在相邻的空格召出一名" + (mastery ? this.m.MasteryName : this.m.MinionName) + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
+        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通后改为召出" + this.m.MasteryName + "，装备更好" + (mastery ? "（已生效）" : "") });
+        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
         if (this.m.Used)
-            ret.push({ id = 12, type = "text", icon = "ui/icons/warning.png", text = "本场已经使用过" });
+            ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = "本场已经使用过" });
         return ret;
     }
 
     function isHidden()
     {
+        local actor = this.getContainer().getActor();
         local s = ::PaleSovereign;
-        return !s.isActive() || !s.isChief(this.getContainer().getActor());
+        if (s.isActive() && s.isChief(actor))
+            return false;
+        return !this.m.ForNecromancers || !actor.getSkills().hasSkill("background.bgp_necromancer");
     }
 
     function isUsable()
     {
-        return !this.isHidden() && !this.m.Used && ::PaleSovereign.Battle != null && this.skill.isUsable();
+        return !this.isHidden() && !this.m.Used && this.skill.isUsable();
     }
 
     function onCombatStarted()
@@ -58,28 +73,56 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         return this.skill.onVerifyTarget(_originTile, _targetTile) && _targetTile.IsEmpty;
     }
 
+    // 某一栏没有装备时，从列表里随机挑一件能生成的
+    function equipFrom( _e, _slot, _paths )
+    {
+        local items = _e.getItems();
+        if (_paths == null || _paths.len() == 0 || items.getItemAtSlot(_slot) != null)
+            return;
+        local pool = clone _paths;
+        while (pool.len() > 0)
+        {
+            local path = pool.remove(::Math.rand(0, pool.len() - 1));
+            local item = null;
+            try { item = ::new("scripts/items/" + path); } catch (err) { item = null; }
+            if (item != null && items.equip(item))
+                return;
+        }
+    }
+
     function onUse( _user, _targetTile )
     {
         local s = ::PaleSovereign;
         if (!this.isUsable() || !_targetTile.IsEmpty)
             return false;
-        local e = ::Tactical.spawnEntity(this.m.Script, _targetTile.Coords.X, _targetTile.Coords.Y);
+        local mastery = this.hasMastery();
+        local e = ::Tactical.spawnEntity(mastery ? this.m.MasteryScript : this.m.Script, _targetTile.Coords.X, _targetTile.Coords.Y);
         if (e == null)
             return false;
         this.m.Used = true;
         try { e.setFaction(::Const.Faction.PlayerAnimals); } catch (err) {}
         try { e.assignRandomEquipment(); } catch (err) {}
+        local gear = mastery ? this.m.MasteryGear : this.m.Gear;
+        if (gear != null)
+        {
+            this.equipFrom(e, ::Const.ItemSlot.Mainhand, gear.Mainhand);
+            this.equipFrom(e, ::Const.ItemSlot.Body, gear.Body);
+            this.equipFrom(e, ::Const.ItemSlot.Head, gear.Head);
+        }
         ::BGP.Necro.markGearNoLoot(e);
         try { e.m.Name = e.m.BGP_MinionName; } catch (err) {}
         try { e.riseFromGround(); } catch (err) {}
         ::BGP.Necro.copySocket(_user, e);
         ::BGP.Necro.markMinion(_user, e);
-        e.getFlags().set("PaleRaised", true);
-        s.addBattleBoons(e);
-        if (s.isAscended() && s.oath() == s.Oath.Scourge && !e.getSkills().hasSkill("effects.pale_dominion"))
-            e.getSkills().add(::new(s.SkillDir + "effects/pale_dominion_effect"));
+        if (s.isActive() && s.Battle != null)
+        {
+            e.getFlags().set("PaleRaised", true);
+            s.addBattleBoons(e);
+            if (s.isChief(_user) && s.isAscended() && s.oath() == s.Oath.Scourge && !e.getSkills().hasSkill("effects.pale_dominion"))
+                e.getSkills().add(::new(s.SkillDir + "effects/pale_dominion_effect"));
+        }
         e.getSkills().update();
-        s.playBattleArt("resurrect", _targetTile, 28);
+        try { s.playBattleArt("resurrect", _targetTile, 28); } catch (err) {}
         if (!_user.isHiddenToPlayer())
             ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + " 召出了 " + ::Const.UI.getColorizedEntityName(e));
         return true;

@@ -24,7 +24,7 @@ S.FollowerData <- {
     blood_steward = {
         Name = "血宴管家", Archetype = "Healer", Image = "ui/campfire/pale_blood_steward",
         Description = "一个举止得体的吸血鬼，深谙如何让活人的血保持新鲜。战团接受了这个有些滑稽的安排，只是没人愿意和他单独吃饭。",
-        Effects = ["活人生命恢复速度 +50%；活人被击倒时必定幸存，且不会留下永久伤势", "战胜后导师恢复 30% 最大生命", "每战导师首次击杀恢复 20 生命和 10 疲劳"]
+        Effects = ["活人生命恢复速度 +50%；活人被击倒时必定幸存，且不会留下永久伤势", "大地图移动速度 +20%；战斗胜利后，所有未满血的常驻亡灵恢复 20% 最大生命", "每战导师首次击杀恢复 20 生命和 10 疲劳；击败活人部队后额外掠夺 30% 金币，并有 30% 几率多得一件珠宝或古董；在酒馆付钱打听消息时，必定多给一条古代遗址的精确线索"]
     }
 };
 
@@ -40,10 +40,9 @@ S.followerRank = function( _key )
 S.followerVictory = function()
 {
     if (this.followerRank("blood_steward") >= 2)
-    {
-        local chief = this.chief();
-        chief.setHitpoints(::Math.minf(chief.getHitpointsMax(), chief.getHitpoints() + chief.getHitpointsMax() * 0.30));
-    }
+        foreach (bro in this.undead())
+            if (bro.getHitpoints() < bro.getHitpointsMax())
+                bro.setHitpoints(::Math.minf(bro.getHitpointsMax(), bro.getHitpoints() + bro.getHitpointsMax() * 0.20));
     foreach (key, data in this.FollowerData)
     {
         if (this.followerRank(key) > 0)
@@ -86,10 +85,74 @@ S.followerAssets = function( _key, _rank )
 // 掘墓人首领 1 级：白天大地图移动速度 +15%，夜间 +50%
 S.followerMovementMult = function( _key )
 {
-    if (_key != "gravekeeper" || !this.isActive())
+    if (!this.isActive())
         return 1.0;
-    return ::World.getTime().IsDaytime ? 1.15 : 1.5;
+    if (_key == "gravekeeper")
+        return ::World.getTime().IsDaytime ? 1.15 : 1.5;
+    if (_key == "blood_steward" && this.followerRank("blood_steward") >= 2)
+        return 1.2;
+    return 1.0;
 };
+
+// 血宴管家 3 级：击败活人部队后额外掠夺 30% 金币，30% 几率多一件珠宝或古董
+S.ValuableLoot <- ["loot/gemstones_item", "loot/golden_chalice_item", "loot/jeweled_crown_item", "loot/ancient_gold_coins_item",
+    "loot/signet_ring_item", "loot/silver_bowl_item", "loot/silverware_item", "loot/ornate_tome_item"];
+S.followerLoot = function( _loot )
+{
+    if (this.followerRank("blood_steward") < 3 || this.Battle == null || this.Battle.HumanKills == 0)
+        return;
+    local coins = 0;
+    try
+    {
+        foreach (item in _loot.getItems())
+            if (item != null && item.getID() == "supplies.money")
+                coins += item.getAmount();
+    }
+    catch (e)
+    {
+        ::logError("[PaleSovereign] 血宴管家清点金币: " + e);
+    }
+    local bonus = ::Math.floor(coins * 0.30);
+    if (bonus > 0)
+    {
+        ::World.Assets.addMoney(bonus);
+        ::Tactical.EventLog.log("血宴管家从死者的钱袋里又刮出了 " + bonus + " 克朗。");
+    }
+    if (::Math.rand(1, 100) > 30)
+        return;
+    local pool = clone this.ValuableLoot;
+    while (pool.len() > 0)
+    {
+        local path = pool.remove(::Math.rand(0, pool.len() - 1));
+        local item = null;
+        try { item = ::new("scripts/items/" + path); } catch (e) { item = null; }
+        if (item == null)
+            continue;
+        local added = false;
+        try { _loot.add(item); added = true; } catch (e) { added = false; }
+        if (!added)
+            ::World.Assets.getStash().add(item);
+        ::Tactical.EventLog.log("血宴管家在尸体的贴身衣袋里翻出了一件" + item.getName() + "。");
+        return;
+    }
+};
+
+// 血宴管家 3 级：在酒馆付钱打听消息时，必定多给一条古代遗址的精确线索
+S.Mod.hook("scripts/entity/world/settlements/buildings/tavern_building", function(q)
+{
+    q.getRumor = @(__original) function( _isPaidFor = false )
+    {
+        local ret = __original(_isPaidFor);
+        if (!_isPaidFor || !S.isActive() || S.followerRank("blood_steward") < 3 || ::World.State.getPlayer() == null)
+            return ret;
+        local lead = S.revealAncient(true, true);
+        if (lead == null)
+            lead = S.revealAncient(true);
+        if (lead != null)
+            ret = (ret == null ? "" : ret + "\n\n") + "血宴管家端着酒杯回到桌边，低声补了一句：“" + lead + "那边，有人还守着没被撬开的墓。”（已在地图上标出）";
+        return ret;
+    };
+});
 
 // 女妖 2 级：在森林与沼泽中不会被伏击
 S.AmbushSafeTerrain <- [

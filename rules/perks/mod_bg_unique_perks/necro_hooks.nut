@@ -1,5 +1,16 @@
 // 1.4.0 死灵法师用到的钩子
 
+// 1.6.5 已被死灵法师复活的尸体不再按原计划自行爬起
+::BGP.HooksMod.hook("scripts/entity/tactical/tactical_entity_manager", function(q)
+{
+	q.resurrect = @(__original) function( _info, _delay = 0 )
+	{
+		if (_info != null && ("BGP_Consumed" in _info) && _info.BGP_Consumed)
+			return null;
+		return __original(_info, _delay);
+	};
+});
+
 // 尸体记录（复活和尸爆要知道尸体生前是什么、最大生命、剩余护甲）
 ::BGP.HooksMod.hook("scripts/entity/tactical/actor", function(q)
 {
