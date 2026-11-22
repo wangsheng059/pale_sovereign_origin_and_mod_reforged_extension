@@ -22,7 +22,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.14", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.15", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.5");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
@@ -52,7 +52,8 @@
         if (_item != null)
         {
             local id = _item.getID();
-            if (typeof id == "string" && id.find("weapon.pale_staff") == 0)
+            // 1.6.15：只排除初生骷髅法杖；蜕变后的骸骨权杖 / 千魂法杖是红装，参与融合
+            if (id == "weapon.pale_staff")
                 return false;
             if ("PaleReplica" in _item.m && _item.m.PaleReplica)
                 return false;

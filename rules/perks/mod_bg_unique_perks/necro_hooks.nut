@@ -9,6 +9,21 @@
 			return null;
 		return __original(_info, _delay);
 	};
+
+	// 1.6.7 我方僵尸倒下后自己又爬起来时（不经过 markMinion），同样换成“恐惧”、决心 60
+	q.onResurrect = @(__original) function( _info, _force = false )
+	{
+		local e = __original(_info, _force);
+		try
+		{
+			if (e != null && e.getFaction() == ::Const.Faction.PlayerAnimals)
+				::BGP.Necro.applyZombieFear(e);
+		}
+		catch (err)
+		{
+		}
+		return e;
+	};
 });
 
 // 尸体记录（复活和尸爆要知道尸体生前是什么、最大生命、剩余护甲）

@@ -440,11 +440,63 @@
 			_e.getSkills().add(fx);
 		}
 		fx.setMaster(_user);
+		// 1.6.7 仆从造成的伤害记到主人名下（配件兄弟×潘多拉补丁的 xp_share.nut 认这个旗标），
+		// 重铸按伤害比例分经验时，主人拿出手者那 20%
+		try { _e.getFlags().set("AC_PH_OwnerID", _user.getID()); } catch (err) {}
 	}
 	catch (e)
 	{
 		::logError("mod_bg_unique_perks: 死灵仆从标记失败: " + e);
 	}
+	::BGP.Necro.applyZombieFear(_e);
+}
+
+// 1.6.7 我方僵尸类（复活、召唤、死灵宠物）：“压制”换成“恐惧”，决心降到 60
+::BGP.Necro.ZombieFearBravery <- 60;
+::BGP.Necro.isZombieKind <- function( _e )
+{
+	try { if (::isKindOf(_e, "zombie")) return true; } catch (e) {}
+	try { return _e.ClassName.tolower().find("zombie") != null; } catch (e) {}
+	return false;
+}
+
+::BGP.Necro.applyZombieFear <- function( _e )
+{
+	try
+	{
+		if (_e == null || !::BGP.Necro.isZombieKind(_e))
+			return;
+		local skills = _e.getSkills();
+		local changed = false;
+		if (skills.hasSkill("perk.overwhelm"))
+		{
+			skills.removeByID("perk.overwhelm");
+			changed = true;
+		}
+		if (!skills.hasSkill("perk.fearsome"))
+		{
+			skills.add(::new("scripts/skills/perks/perk_fearsome"));
+			changed = true;
+		}
+		local b = _e.getBaseProperties();
+		if (b.Bravery > ::BGP.Necro.ZombieFearBravery)
+		{
+			b.Bravery = ::BGP.Necro.ZombieFearBravery;
+			changed = true;
+		}
+		if (changed)
+			skills.update();
+	}
+	catch (e)
+	{
+		::logError("mod_bg_unique_perks: 僵尸换恐惧失败: " + e);
+	}
+}
+
+// 复活的仆从击杀时，主人的出手经验是否已经由伤害归属给了（xp_share.nut 存在时为 true）
+::BGP.Necro.isMinionDamageShared <- function()
+{
+	return "AC_PH_Compat" in ::getroottable() && "moveDamageToOwner" in ::AC_PH_Compat && "Reforged" in ::getroottable();
 }
 
 ::BGP.Necro.getMaster <- function( _e )
@@ -548,10 +600,15 @@
 			return;
 		if (_victim.isAlliedWith(_master))
 			return;
-		local xp = ::Math.floor(_victim.getXPValue() * ::Const.XP.XPForKillerPct);
-		if (xp > 0)
-			_master.addXP(xp);
+		// 1.6.7 装了重铸和 xp_share 时，出手经验已按仆从造成的伤害比例记给主人，这里不再重复给
+		if (!::BGP.Necro.isMinionDamageShared())
+		{
+			local xp = ::Math.floor(_victim.getXPValue() * ::Const.XP.XPForKillerPct);
+			if (xp > 0)
+				_master.addXP(xp);
+		}
 		try { _master.m.LifetimeStats.Kills += 1; } catch (e) {}
+		try { _master.m.CombatStats.Kills += 1; } catch (e) {}
 	}
 	catch (e)
 	{

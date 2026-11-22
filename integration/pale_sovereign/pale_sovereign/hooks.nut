@@ -568,6 +568,30 @@ mod.hook("scripts/entity/tactical/tactical_entity_manager", function(q)
     };
 });
 
+// 1.6.15：复活技能拉起来的敌方遗骸战后照样计入防腐尸骸（原尸体被复活消耗掉，地上已经没有）
+if ("Necro" in ::BGP && "raise" in ::BGP.Necro)
+{
+    local raise = ::BGP.Necro.raise;
+    ::BGP.Necro.raise = function( _user, _tile )
+    {
+        local counted = false;
+        if (S.Battle != null && S.isActive())
+        {
+            try
+            {
+                local corpse = ::BGP.Necro.getCorpse(_tile);
+                counted = corpse != null && typeof corpse == "table" && !::BGP.Necro.isGuardCorpse(corpse)
+                    && S.harvestReject(corpse) == null;
+            }
+            catch (e) { counted = false; }
+        }
+        local unit = raise(_user, _tile);
+        if (unit != null && counted && S.Battle != null)
+            ++S.Battle.RaisedHarvest;
+        return unit;
+    };
+}
+
 mod.hook("scripts/skills/skill_container", function(q)
 {
     q.onCombatStarted = @(__original) function()

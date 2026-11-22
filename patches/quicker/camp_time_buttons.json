@@ -1,0 +1,8 @@
+{
+  "source": "quicker_1.4（加速MOD）.zip",
+  "member": "quicker/world.nut",
+  "before": "a24d18bee8e9b9f5b472880377d93245e0a33fbe9f27fc901049a1c8eb53792e",
+  "after": "47ba8c9a1b792fe5072f4276dd3381583063f74f5954ae26112fd865da76d0ac",
+  "old": "\tq.setNormalTime = @(__original) function( ... )\r\n\t{\r\n\t\t::Quicker.applySpecialSpeedMults(this);\r\n\t\tvargv.insert(0, this);\r\n\t\treturn __original.acall(vargv);\r\n\t}\r\n\r\n\tq.setFastTime = @(__original) function( ... )\r\n\t{\r\n\t\t::Quicker.applySpecialSpeedMults(this);",
+  "new": "\t// 扎营时原版锁定 ×1 / ×2 按钮、按扎营速度走；这里直接设成玩家选的速度\r\n\tq.quicker_setCampTime <- function( _mult, _button )\r\n\t{\r\n\t\tif (this.m.MenuStack.hasBacksteps() || ::World.Assets == null || !::World.Assets.isCamping() || ::Quicker.isEscorting(this))\r\n\t\t\treturn false;\r\n\t\tthis.m.LastWorldSpeedMult = _mult;\r\n\t\tthis.setPause(false);\r\n\t\t::World.setSpeedMult(_mult);\r\n\t\tif (\"TopbarDayTimeModule\" in ::World && ::World.TopbarDayTimeModule != null)\r\n\t\t\t::World.TopbarDayTimeModule.updateTimeButtons(_button);\r\n\t\t::logDebug(\"Quicker Mod | Camp Speed set to x\" + _mult);\r\n\t\treturn true;\r\n\t}\r\n\r\n\tq.setNormalTime = @(__original) function( ... )\r\n\t{\r\n\t\tif (this.quicker_setCampTime(::Const.World.SpeedSettings.NormalMult, 1))\r\n\t\t\treturn;\r\n\t\t::Quicker.applySpecialSpeedMults(this);\r\n\t\tvargv.insert(0, this);\r\n\t\treturn __original.acall(vargv);\r\n\t}\r\n\r\n\tq.setFastTime = @(__original) function( ... )\r\n\t{\r\n\t\tif (this.quicker_setCampTime(::Const.World.SpeedSettings.FastMult, 2))\r\n\t\t\treturn;\r\n\t\t::Quicker.applySpecialSpeedMults(this);"
+}

@@ -1,0 +1,8 @@
+{
+  "source": "quicker_1.4（加速MOD）.zip",
+  "member": "ui/mods/quicker/world_screen_topbar_daytime_module.js",
+  "before": "d8128b8f3dfc80d1304231194e716d09af0e572be249cc4b693373308111c451",
+  "after": "29c9d6d55bb24eff90b55a456f3eb5e05ea556eb6b0219d45223c3b208ad6930",
+  "old": "WorldScreenTopbarDayTimeModule.prototype.notifyBackendTimeSuperfastButtonPressed = function ()\r\n{\r\n\tSQ.call(this.mSQHandle, 'onTimeSuperfastButtonPressed');\r\n};\r\n",
+  "new": "WorldScreenTopbarDayTimeModule.prototype.notifyBackendTimeSuperfastButtonPressed = function ()\r\n{\r\n\tSQ.call(this.mSQHandle, 'onTimeSuperfastButtonPressed');\r\n};\r\n\r\n// 原版扎营时禁用 ×1 / ×2 按钮；本 mod 扎营时也能任选速度（脚本端 quicker_setCampTime 负责设速度）\r\nWorldScreenTopbarDayTimeModule.prototype.enableNormalTimeButton = function (_enabled)\r\n{\r\n\tthis.mTimeNormalButton.enableButton(true);\r\n};\r\n\r\nWorldScreenTopbarDayTimeModule.prototype.enableFastTimeButton = function (_enabled)\r\n{\r\n\tthis.mTimeFastButton.enableButton(true);\r\n};\r\n"
+}

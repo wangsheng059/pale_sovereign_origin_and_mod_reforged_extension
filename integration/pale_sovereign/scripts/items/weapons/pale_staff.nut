@@ -22,7 +22,7 @@ this.pale_staff <- ::inherit("scripts/items/weapons/weapon", {
         this.m.DirectDamageMult = 0.4;
         this.m.ArmorDamageMult = 0.6;
         this.m.ChanceToHitHead = 0;
-        this.m.Value = 0;
+        this.m.Value = 500;
         this.m.IsAllowedInBag = false;
         this.updatePaleIcons();
     }

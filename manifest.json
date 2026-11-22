@@ -1311,6 +1311,8 @@
     "patches/companions/tame_mult_fallback.json",
     "patches/companions/tame_beastmaster_chance.json",
     "patches/quicker/camp_speed_mult.json",
-    "patches/quicker/camp_keep_speed.json"
+    "patches/quicker/camp_keep_speed.json",
+    "patches/quicker/camp_time_buttons.json",
+    "patches/quicker/camp_time_buttons_js.json"
   ]
 }

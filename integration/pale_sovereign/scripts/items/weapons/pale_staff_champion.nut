@@ -9,6 +9,9 @@ this.pale_staff_champion <- ::inherit("scripts/items/weapons/pale_staff", {
         this.m.PaleForm = "_champion";
         this.m.RegularDamage = 40;
         this.m.RegularDamageMax = 70;
+        // 1.6.15：蜕变后成为红装（著名武器），价值 3000，可获得装备融合随机属性
+        this.m.ItemType = this.m.ItemType | ::Const.Items.ItemType.Named;
+        this.m.Value = 3000;
         this.updatePaleIcons();
     }
 });

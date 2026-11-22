@@ -2,7 +2,7 @@ local S = ::PaleSovereign;
 
 S.beginBattle <- function( _night )
 {
-    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0, Soulbound = [], SoulUsed = false, HumanKills = 0, UndeadCampLooted = false };
+    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0, Soulbound = [], SoulUsed = false, HumanKills = 0, UndeadCampLooted = false, RaisedHarvest = 0 };
 };
 
 S.area <- function( _center )
@@ -124,6 +124,57 @@ S.recordCorpse <- function( _corpse )
         _corpse.PaleSoul <- mark.Target;
 };
 
+// 地图上所有有尸体的格子
+S.battleCorpseTiles <- function()
+{
+    local ret = [];
+    local size = null;
+    try { size = ::Tactical.getMapSize(); } catch (e) { size = null; }
+    if (size == null)
+    {
+        try { return clone ::Tactical.Entities.m.Corpses; } catch (e) { return ret; }
+    }
+    for (local x = 0; x < size.X; ++x)
+        for (local y = 0; y < size.Y; ++y)
+        {
+            local tile = null;
+            try { tile = ::Tactical.getTileSquare(x, y); } catch (e) { tile = null; }
+            if (tile != null && tile.IsCorpseSpawned && tile.Properties.has("Corpse"))
+                ret.push(tile);
+        }
+    return ret;
+};
+
+// 不能封存的原因（"Faction" / "Kind" / "Shot"），能封存返回 null
+// 1.6.15：不再排除“看起来会自己爬起来”的尸体。那个判断只看 IsResurrectable / IsConsumable 两个标记，
+// 原版有的人类（如野蛮人）尸体本来就是这样标的，结果整场的遗骸都被排除；战斗结束后也不会再有尸体爬起
+S.harvestReject <- function( _corpse )
+{
+    if ("PaleShot" in _corpse)
+        return "Shot";
+    local chief = this.chief();
+    local faction = "Faction" in _corpse ? _corpse.Faction : ::Const.Corpse.Faction;
+    if (faction == ::Const.Faction.Player || faction == ::Const.Faction.PlayerAnimals
+        || (chief != null && chief.getAlliedFactions().find(faction) != null))
+        return "Faction";
+    local info = ::BGP.Necro.getInfo(_corpse);
+    local native = false;
+    if ("PaleNative" in _corpse)
+        native = _corpse.PaleNative;
+    else if (info != null)
+        native = info.IsHuman || (info.Script in ::BGP.Necro.RaiseMap
+            && ::BGP.Necro.WrapperCategory[::BGP.Necro.RaiseMap[info.Script]] == "undead");
+    else
+    {
+        // 没有生前记录：按原版人类尸体的规则（能复活、类型不是兽人）
+        try { native = (_corpse.IsResurrectable || ::BGP.Necro.isPendingResurrection(_corpse)) && _corpse.Type != null && _corpse.Type.find("orc") == null; }
+        catch (e) { native = false; }
+    }
+    if (!native)
+        return "Kind";
+    return null;
+};
+
 S.onVictory <- function( _loot )
 {
     if (this.Battle == null || this.Battle.Won || this.chief() == null)
@@ -146,31 +197,41 @@ S.onVictory <- function( _loot )
     if (this.Battle.Champions > 0 && this.oath() != this.Oath.None && ::Math.rand(1, 100) <= 50 && this.addMaterials("jade", 1))
         ::Tactical.EventLog.log("冠军的遗骸里滚出一枚冰冷的古代魂玉。");
 
+    // 1.6.15：逐格扫描整张地图（不再依赖 Tactical.Entities.m.Corpses 和击杀瞬间的记录），
+    // 合格与否按尸体自身的阵营和生前种类在结算时判断
     local corpses = {};
     local soulFound = false;
     local mark = this.Battle.Mark;
-    foreach (tile in ::Tactical.Entities.m.Corpses)
+    local stats = { Seen = 0, Faction = 0, Kind = 0, Shot = 0 };
+    foreach (tile in this.battleCorpseTiles())
     {
         local corpse = ::BGP.Necro.getCorpse(tile);
-        if (corpse == null || ::BGP.Necro.isGuardCorpse(corpse))
+        if (corpse == null || typeof corpse != "table" || ::BGP.Necro.isGuardCorpse(corpse))
             continue;
-        if ("PaleNative" in corpse && corpse.PaleNative && !("PaleShot" in corpse)
-            && !::BGP.Necro.isPendingResurrection(corpse))
+        ++stats.Seen;
+        local reason = this.harvestReject(corpse);
+        if (reason == null)
             corpses[tile.ID] <- true;
+        else
+            ++stats[reason];
         if (mark != null && "PaleSoul" in corpse && corpse.PaleSoul == mark.Target && corpse.IsHeadAttached)
             soulFound = true;
     }
     if (!this.castleDefenseLoot(strategic, this.Battle.DefenseDead) && this.oath() != this.Oath.None)
     {
+        // 复活技能拉起来的敌方遗骸照样算一具（复活时记下，见 hooks.nut）
+        local total = corpses.len() + this.Battle.RaisedHarvest;
         local before = this.get("Reserve");
         local embalmer = this.followerRank("embalmer") > 0;
-        this.changeReserve(embalmer ? (corpses.len() * 2 / 3).tointeger() : (corpses.len() / 2).tointeger());
+        this.changeReserve(embalmer ? (total * 2 / 3).tointeger() : (total / 2).tointeger());
         local gathered = this.get("Reserve") - before;
-        this.Battle.Uncollected = corpses.len() - (embalmer ? ::Math.ceil(gathered * 1.5) : gathered * 2);
+        this.Battle.Uncollected = ::Math.max(0, corpses.len() - (embalmer ? ::Math.ceil(gathered * 1.5) : gathered * 2));
         this.set("LastHarvest", gathered);
-        this.set("LastCorpseCount", corpses.len());
+        this.set("LastCorpseCount", total);
         this.set("HarvestNotice", 1);
-        ::Tactical.EventLog.log("清点合格遗骸 " + corpses.len() + " 具，封存防腐尸骸：" + before + " → " + this.get("Reserve") + "。");
+        ::Tactical.EventLog.log("清点合格遗骸 " + total + " 具，封存防腐尸骸：" + before + " → " + this.get("Reserve") + "。");
+        ::logInfo("[PaleSovereign] 遗骸采集：地上尸体 " + stats.Seen + "，合格 " + corpses.len() + "，复活计入 " + this.Battle.RaisedHarvest
+            + "；排除 友方 " + stats.Faction + " / 种类 " + stats.Kind + " / 尸弹 " + stats.Shot);
     }
     local pet = this.mainPet();
     local chief = this.chief();

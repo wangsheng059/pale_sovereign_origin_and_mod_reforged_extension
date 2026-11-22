@@ -54,7 +54,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
             + "；学会第 7 阶特技（不灭冠军或尸爆）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
         if (this.m.FearInsteadOfOverwhelm)
-            ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”" });
+            ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”，决心降为 60" });
         if (this.m.EliteExtraText != "")
             ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = this.m.EliteExtraText });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
@@ -153,14 +153,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
             if (s.isChief(_user) && s.isAscended() && s.oath() == s.Oath.Scourge && !e.getSkills().hasSkill("effects.pale_dominion"))
                 e.getSkills().add(::new(s.SkillDir + "effects/pale_dominion_effect"));
         }
-        // 1.6.12：僵尸主动太低，“压制”几乎不触发，换成“恐惧”（堕落英雄自带恐惧，只去掉压制）
-        if (this.m.FearInsteadOfOverwhelm)
-        {
-            local skills = e.getSkills();
-            skills.removeByID("perk.overwhelm");
-            if (!skills.hasSkill("perk.fearsome"))
-                skills.add(::new("scripts/skills/perks/perk_fearsome"));
-        }
+        // 1.6.12：“压制”换“恐惧”；1.6.15 起改由 BGP.Necro.markMinion 对所有我方僵尸统一处理（决心同时降到 60）
         // 第 7 阶的额外技能（召唤僵尸：堕落英雄得“恐惧之容”）
         if (rank == 2 && this.m.EliteExtraSkills != null)
             foreach (script in this.m.EliteExtraSkills)
