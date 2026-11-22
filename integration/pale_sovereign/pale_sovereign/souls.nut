@@ -16,31 +16,31 @@ S.Souls <- [
       Scripts = ["vampire", "vampire_low", "rf_vampire_lord"] },
     { Name = "护驾遗志", Icon = "skills/pale_banner", Desc = "哪怕身躯化作枯骨，它依然记得自己曾立在君王身前。每场战斗首次在导师身旁遭受敌方攻击时，生命与护甲伤害减半。",
       Scripts = [] },
-    { Name = "军团统帅之魂", Icon = "ui/perks/perk_rf_legatus", Desc = "古帝国军团统帅的号令仍在骨缝间回响。近战技能 +5，近战防御 +5，决心 +10。",
+    { Name = "军团统帅之魂", Icon = "skills/pale_soul_legate", Desc = "古帝国军团统帅的号令仍在骨缝间回响。近战技能 +5，近战防御 +5，决心 +10。",
       Scripts = ["rf_skeleton_legatus", "skeleton_boss"] },
-    { Name = "古帝祭司之魂", Icon = "ui/perks/perk_rf_terrifying_visage", Desc = "祭司与巫妖的禁咒烙在了它的骨头上。决心 +15；攻击命中后，目标陷入致盲（近战技能、远程技能 −15，持续到它的下一回合结束）。",
+    { Name = "古帝祭司之魂", Icon = "skills/pale_soul_priest", Desc = "祭司与巫妖的禁咒烙在了它的骨头上。决心 +15；攻击命中后，目标陷入致盲（近战技能、远程技能 −15，持续到它的下一回合结束）。",
       Scripts = ["skeleton_priest", "skeleton_lich", "rf_draugr_shaman"] },
-    { Name = "督军之魂", Icon = "ui/perks/perk_rf_feral_rage", Desc = "绿皮督军永不餍足的战意。击杀敌人后，立刻恢复 3 点行动点数。",
+    { Name = "督军之魂", Icon = "skills/pale_soul_warlord", Desc = "绿皮督军永不餍足的战意。击杀敌人后，立刻恢复 3 点行动点数。",
       Scripts = ["orc_warlord", "orc_berserker", "rf_zombie_orc_warlord", "rf_zombie_orc_berserker"] },
-    { Name = "天选者之魂", Icon = "ui/perks/perk_rf_vengeful_spite", Desc = "北地天选战士越伤越狂的血性。生命低于 50% 时，近战伤害 +25%。",
+    { Name = "天选者之魂", Icon = "skills/pale_soul_chosen", Desc = "北地天选战士越伤越狂的血性。生命低于 50% 时，近战伤害 +25%。",
       Scripts = ["barbarian_chosen", "barbarian_champion"] },
-    { Name = "古龙之魂", Icon = "ui/perks/perk_rf_unstoppable", Desc = "林德蠕龙沉重而不可撼动的躯体记忆。生命 +30，免疫击退与抓取。",
+    { Name = "古龙之魂", Icon = "skills/pale_soul_lindwurm", Desc = "林德蠕龙沉重而不可撼动的躯体记忆。生命 +30，免疫击退与抓取。",
       Scripts = ["lindwurm"] },
-    { Name = "巨魔之魂", Icon = "ui/perks/perk_rf_second_wind", Desc = "巨魔骨肉疯长的再生本能。每回合开始时恢复 10% 最大生命。",
+    { Name = "巨魔之魂", Icon = "skills/pale_soul_unhold", Desc = "巨魔骨肉疯长的再生本能。每回合开始时恢复 10% 最大生命。",
       Scripts = ["unhold", "unhold_frost", "unhold_bog", "unhold_armored", "unhold_frost_armored"] },
-    { Name = "古树之魂", Icon = "ui/perks/perk_rf_bulwark", Desc = "树人盘根错节的木质身躯。受到的远程伤害 −25%，生命 +15。",
+    { Name = "古树之魂", Icon = "skills/pale_soul_schrat", Desc = "树人盘根错节的木质身躯。受到的远程伤害 −25%，生命 +15。",
       Scripts = ["schrat"] },
-    { Name = "梦魇之魂", Icon = "ui/perks/perk_rf_ghostlike", Desc = "梦魇与女巫游走于虚实之间的诡影。近战防御、远程防御 +7。",
+    { Name = "梦魇之魂", Icon = "skills/pale_soul_alp", Desc = "梦魇与女巫游走于虚实之间的诡影。近战防御、远程防御 +7。",
       Scripts = ["alp", "hexe"] },
-    { Name = "噬尸鬼之魂", Icon = "ui/perks/perk_rf_sanguinary", Desc = "食尸鬼啃食血肉的贪婪。击杀敌人后，恢复 20% 最大生命。",
+    { Name = "噬尸鬼之魂", Icon = "skills/pale_soul_ghoul", Desc = "食尸鬼啃食血肉的贪婪。击杀敌人后，恢复 20% 最大生命。",
       Scripts = ["ghoul_high"] },
-    { Name = "剑圣之魂", Icon = "ui/perks/perk_rf_fencer", Desc = "一代剑术宗师千锤百炼的身法。近战技能 +7，主动值 +10。",
+    { Name = "剑圣之魂", Icon = "skills/pale_soul_swordmaster", Desc = "一代剑术宗师千锤百炼的身法。近战技能 +7，主动值 +10。",
       Scripts = ["swordmaster", "rf_fencer", "gladiator", "executioner", "desert_devil", "assassin", "desert_stalker"] },
-    { Name = "骑士之魂", Icon = "ui/perks/perk_rf_man_of_steel", Desc = "重甲骑士顶着刀锋冲阵的定力。近战防御 +5，受到的近战伤害 −10%。",
+    { Name = "骑士之魂", Icon = "skills/pale_soul_knight", Desc = "重甲骑士顶着刀锋冲阵的定力。近战防御 +5，受到的近战伤害 −10%。",
       Scripts = ["knight", "hedge_knight", "rf_knight_anointed", "rf_marshal"] },
-    { Name = "狼王之魂", Icon = "ui/perks/perk_rf_onslaught", Desc = "狂暴兽王扑杀猎物的迅捷。主动值 +20，近战技能 +3。",
+    { Name = "狼王之魂", Icon = "skills/pale_soul_wolf", Desc = "狂暴兽王扑杀猎物的迅捷。主动值 +20，近战技能 +3。",
       Scripts = ["direwolf_high", "rf_hollenhund", "hyena_high"] },
-    { Name = "上古神兽之魂", Icon = "ui/perks/perk_rf_formidable_approach", Desc = "古老神兽残存的神性。受到的所有伤害 −15%。",
+    { Name = "上古神兽之魂", Icon = "skills/pale_soul_ancient", Desc = "古老神兽残存的神性。受到的所有伤害 −15%。",
       Scripts = ["trickster_god", "kraken"] }
 ];
 
@@ -219,6 +219,7 @@ S.markSoul <- function( _target )
         PetID = this.petID(this.mainPet()), Named = named,
         Champion = _target.getSkills().hasSkill("racial.champion")
     };
+    _target.getSkills().add(::new("scripts/skills/effects/pale_bound_soul_effect"));
     ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_target) + "已被黑铁缚魂锁链牢牢锚定。");
     return true;
 };

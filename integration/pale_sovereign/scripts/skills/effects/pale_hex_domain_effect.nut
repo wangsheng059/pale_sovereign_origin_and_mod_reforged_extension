@@ -6,7 +6,7 @@ this.pale_hex_domain_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_hex_domain";
         this.m.Name = "禁咒领域";
         this.m.Description = "古老的禁咒在此人耳边低语，手脚和胆气都不再听使唤。";
-        this.m.Icon = "skills/pale_dead_command_effect.png";
+        this.m.Icon = "skills/pale_mark_domain.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsStacking = false;
         this.m.IsSerialized = false;

@@ -4,7 +4,7 @@ this.pale_rending_pounce <- ::inherit("scripts/skills/actives/pale_tier_attack",
     function create()
     {
         this.pale_tier_attack.create();
-        this.m.Overlay = "active_21";
+        this.m.Overlay = "";
         this.m.ActionPointCost = 5;
         this.m.FatigueCost = 20;
         this.m.MaxRange = 2;
@@ -90,6 +90,7 @@ this.pale_rending_pounce <- ::inherit("scripts/skills/actives/pale_tier_attack",
         local hits = this.m.PreparedHits == null ? this.getAttackCount(_user) : this.m.PreparedHits;
         this.m.PreparedHits = null;
         this.m.UsedRound = ::Time.getRound();
+        ::PaleSovereign.playBattleArt("launch", _user.getTile(), 6);
         this.getContainer().setBusy(true);
         ::Tactical.getNavigator().teleport(_user, destination, this.onPounceLanded.bindenv(this),
             { Target = _tile.getEntity(), Hits = hits }, false, 3.0);
@@ -101,13 +102,17 @@ this.pale_rending_pounce <- ::inherit("scripts/skills/actives/pale_tier_attack",
         this.getContainer().setBusy(false);
         local S = ::PaleSovereign;
         local target = _tag.Target;
+        if (S.tierActorOnMap(_user))
+            S.playBattleArt("launch", _user.getTile(), 6, 0.65);
         for (local i = 0; i < _tag.Hits; ++i)
         {
             if (!S.tierActorOnMap(_user) || !S.tierActorOnMap(target) || target.isAlliedWith(_user)
                 || _user.getTile().getDistanceTo(target.getTile()) != 1)
                 break;
             // Melee attacks resolve immediately when no projectile is shown.
-            this.attackEntity(_user, target);
+            local tile = target.getTile();
+            local hit = this.attackEntity(_user, target);
+            S.playBattleArt(hit ? "claws" : "whiff", tile, 34, 0.88, i * 85);
         }
     }
 

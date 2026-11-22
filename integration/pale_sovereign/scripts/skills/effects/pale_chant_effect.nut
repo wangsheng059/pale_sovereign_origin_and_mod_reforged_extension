@@ -6,7 +6,7 @@ this.pale_chant_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_chant";
         this.m.Name = "墓穴挽歌";
         this.m.Description = "低沉的挽歌在此人耳中回荡，越是害怕，手中的兵刃就越是无力。";
-        this.m.Icon = "skills/pale_stench_effect.png";
+        this.m.Icon = "skills/pale_mark_dirge.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsStacking = false;
         this.m.IsSerialized = false;

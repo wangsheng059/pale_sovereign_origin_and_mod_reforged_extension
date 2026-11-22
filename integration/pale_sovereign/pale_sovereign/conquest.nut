@@ -85,15 +85,13 @@ S.conquestChoices <- function( _screen, _town )
                 local text = S.conquestChoose(_town, decision);
                 if (text == null)
                     return 0;
-                S.ConquestResultText = text;
+                local art = decision == 1 ? "conquest_rule" : "conquest_raze";
+                _event.m.PaleConquestResult <- "[img]gfx/ui/events/pale/" + art + ".jpg[/img]" + text;
                 return "PaleConquestResult";
             }
         });
     }
 };
-
-// The choice result is shown on its own page before the event closes.
-S.ConquestResultText <- "";
 
 S.conquestResultScreen <- function()
 {
@@ -111,7 +109,7 @@ S.conquestResultScreen <- function()
         }],
         function start( _event )
         {
-            this.Text = S.ConquestResultText;
+            this.Text = _event.m.PaleConquestResult;
             this.Banner = "ui/banners/" + ::World.Assets.getBanner() + "s.png";
         }
     };
@@ -138,7 +136,7 @@ S.Mod.hook("scripts/events/events/conquest_assault_event", function(q)
                     town.getFlags().set("PaleConquestPending", true);
                 }
                 this.Options = [];
-                this.Text = "城门的铁闩被枯骨从内侧抬起，沉重的门扇在一片死寂中缓缓敞开。守军的旗帜被踩进了泥水，残存的士兵早已扔下武器，和满城的居民一起伏在冰冷的街石上，连抽泣都压得极低。骷髅沿着主街排成两列，空洞的眼眶齐齐转向城中；行尸拖着脚步，把躲在屋檐下的伤者一个个拽出来，丢到广场中央。城墙上的守夜钟没人再敢去敲，只剩风从钟口灌进去，发出一阵阵低哑的呜咽。盗墓贼们已经在打量哪几户人家的地窖最深，哪座教堂底下的墓穴最值钱。导师缓步走过跪伏的人群，法杖顶端的魂火从一张张惨白的脸上掠过，没有人敢抬头。这座城往后是照常开市纳税，靠恐惧苟延残喘地过日子，还是就此归于寂静，让每一具尸骸都走进亡者的队列？活人们屏住呼吸，静候导师的裁决。";
+                this.Text = "[img]gfx/ui/events/pale/conquest_choice.jpg[/img]城门的铁闩被枯骨从内侧抬起，沉重的门扇在一片死寂中缓缓敞开。守军的旗帜被踩进了泥水，残存的士兵早已扔下武器，和满城的居民一起伏在冰冷的街石上，连抽泣都压得极低。骷髅沿着主街排成两列，空洞的眼眶齐齐转向城中；行尸拖着脚步，把躲在屋檐下的伤者一个个拽出来，丢到广场中央。城墙上的守夜钟没人再敢去敲，只剩风从钟口灌进去，发出一阵阵低哑的呜咽。盗墓贼们已经在打量哪几户人家的地窖最深，哪座教堂底下的墓穴最值钱。导师缓步走过跪伏的人群，法杖顶端的魂火从一张张惨白的脸上掠过，没有人敢抬头。这座城往后是照常开市纳税，靠恐惧苟延残喘地过日子，还是就此归于寂静，让每一具尸骸都走进亡者的队列？活人们屏住呼吸，静候导师的裁决。";
                 S.conquestChoices(this, town);
             };
         }
@@ -483,7 +481,14 @@ S.Mod.hook("scripts/events/events/conquest_manage_event", function(q)
                 local level = getGarrison(town);
                 this.Banner = "ui/banners/" + ::World.Assets.getBanner() + "s.png";
                 local strength = C.getGarrisonLevel(town);
-                this.Text = "基础亡灵驻军 " + level + " 级";
+                local art = "fort_barracks";
+                foreach (site in town.getActiveAttachedLocations())
+                    if (site.getTypeID() == "attached_location.pale_cemetery")
+                    {
+                        art = "town_cemetery";
+                        break;
+                    }
+                this.Text = "[img]gfx/ui/events/pale/" + art + ".jpg[/img]基础亡灵驻军 " + level + " 级";
                 if (strength > level)
                     this.Text += "，计入冠军坐镇为 " + strength + " 级";
                 this.Text += "。防腐尸骸储备 " + S.get("Reserve") + " 点。驻军每周消耗 3 点防腐尸骸。";

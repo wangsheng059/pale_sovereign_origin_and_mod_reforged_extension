@@ -83,25 +83,25 @@ S.SoulboundStatMult <- 0.8;
 
 // 锁魂者专属特技
 S.SoulPerks <- {
-    eternal_legion = { Name = "永恒军团", Icon = "skills/pale_unyielding",
+    eternal_legion = { Name = "永恒军团", Icon = "skills/pale_sb_eternal_legion",
         Description = "每有 1 名相邻的友方亡灵，受到的伤害 −8%，最多 −32%。" },
-    death_ride = { Name = "亡骑冲阵", Icon = "skills/pale_death_charge",
+    death_ride = { Name = "亡骑冲阵", Icon = "skills/pale_sb_death_ride",
         Description = "每场战斗的第一次攻击伤害 +30%；命中时目标士气下降一级。" },
-    barrow_lord = { Name = "墓穴之主", Icon = "skills/pale_flesh_frenzy",
+    barrow_lord = { Name = "墓穴之主", Icon = "skills/pale_sb_barrow_lord",
         Description = "每回合开始时恢复 25 点生命。生命每比上限低 10%，造成的伤害 +10%。" },
-    hex_domain = { Name = "禁咒领域", Icon = "skills/pale_dead_command",
+    hex_domain = { Name = "禁咒领域", Icon = "skills/pale_sb_hex_domain",
         Description = "每回合开始时，3 格内所有敌人的近战技能、远程技能、决心各 −10，持续到它们下一回合结束。" },
-    blood_feast = { Name = "血宴", Icon = "skills/pale_chain_slash",
+    blood_feast = { Name = "血宴", Icon = "skills/pale_sb_blood_feast",
         Description = "每击杀 1 名敌人，本场战斗造成的伤害 +5%、主动性 +20，可无限叠加。" },
-    barrow_chant = { Name = "墓穴挽歌", Icon = "skills/pale_stench_aura",
+    barrow_chant = { Name = "墓穴挽歌", Icon = "skills/pale_sb_barrow_chant",
         Description = "每回合开始时，3 格内的敌人受挽歌影响直到其下一回合结束：士气每低于稳定一级，造成的伤害 −10%。" },
-    necro_attune = { Name = "死灵共鸣", Icon = "skills/pale_rot_regen",
+    necro_attune = { Name = "死灵共鸣", Icon = "skills/pale_sb_necro_attune",
         Description = "此人在场时，战团复活的亡灵生命上限 +10。" },
-    blinding_hex = { Name = "致盲禁咒", Icon = "skills/pale_weaken_effect",
+    blinding_hex = { Name = "致盲禁咒", Icon = "skills/pale_sb_blinding_hex",
         Description = "攻击命中后目标陷入致盲：近战技能、远程技能 −15，持续到其下一回合结束。" },
-    blood_thirst = { Name = "血之渴", Icon = "skills/pale_rending_pounce",
+    blood_thirst = { Name = "血之渴", Icon = "skills/pale_sb_blood_thirst",
         Description = "攻击造成生命伤害时，恢复造成伤害 35% 的生命。" },
-    night_walker = { Name = "夜行", Icon = "skills/pale_first_strike",
+    night_walker = { Name = "夜行", Icon = "skills/pale_sb_night_walker",
         Description = "夜战时主动性 +20。" }
 };
 

@@ -10,7 +10,7 @@ this.pale_soulbound_background <- ::inherit("scripts/skills/backgrounds/pale_und
         this.m.Name = def.Name;
         this.m.PaleSkeleton = def.Skeleton;
         this.m.PaleLook = def.Look;
-        this.m.Icon = "ui/backgrounds/pale_" + def.Look + ".png";
+        this.m.Icon = "ui/backgrounds/pale_sb_" + this.m.PaleSoulClass + ".png";
         this.m.BackgroundDescription = def.Description;
     }
 

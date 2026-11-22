@@ -9,7 +9,7 @@ this.pale_castle_building <- ::inherit("scripts/entity/world/settlements/buildin
         this.m.Name = definition.Name;
         this.m.Description = definition.Description;
         this.m.UIImage = "ui/settlements/" + definition.Icon;
-        this.m.UIImageNight = this.m.UIImage;
+        this.m.UIImageNight = this.m.UIImage + "_night";
         this.m.Tooltip = "world-town-screen.main-dialog-module.Management";
         this.m.TooltipIcon = "ui/icons/ambition_tooltip.png";
         this.m.IsClosedAtNight = false;

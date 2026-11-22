@@ -10,5 +10,15 @@ this.pale_gilded_bones <- ::inherit("scripts/items/armor/tattered_sackcloth", {
         this.m.ConditionMax = 1;
         this.m.Condition = 1;
         this.m.IsDroppedAsLoot = false;
+        this.updateVariant();
+    }
+
+    function updateVariant()
+    {
+        this.m.Icon = "pale/gilded_bones.png";
+        this.m.IconLarge = "pale/gilded_bones_large.png";
+        this.m.Sprite = "pale_gilded_bones";
+        this.m.SpriteDamaged = "pale_gilded_bones_damaged";
+        this.m.SpriteCorpse = "pale_gilded_bones_dead";
     }
 });

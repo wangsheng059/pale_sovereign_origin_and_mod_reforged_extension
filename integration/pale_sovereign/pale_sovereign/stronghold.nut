@@ -1,17 +1,17 @@
 local S = ::PaleSovereign;
 
 S.CastleBuildings <- {
-    pale_soul_furnace = { Name = "魂炉", Cost = 1500, Icon = "desert_building_14", Page = "castle_forge",
+    pale_soul_furnace = { Name = "魂炉", Cost = 1500, Icon = "pale_soul_furnace", Page = "castle_forge",
         Flavor = "炉膛里烧的不是木炭，而是碾碎的骨粉和魂玉残渣，火苗是冷的。", Effect = "用魂玉、古代金币、金锭和宝石强化亡灵。每次必须在古堡停留一天。" },
-    pale_salt_cellar = { Name = "盐窖", Cost = 850, Icon = "building_02", Page = "castle",
+    pale_salt_cellar = { Name = "盐窖", Cost = 850, Icon = "pale_salt_cellar", Page = "castle",
         Flavor = "盐桶一直堆到拱顶，腌好的尸骸在这里能放上许多年。", Effect = "尸骸库存上限 +20。在古堡停留时，每天免费修补全体常驻亡灵。" },
-    pale_soul_anvil = { Name = "缚魂铁砧", Cost = 1200, Icon = "building_01", Page = "castle",
+    pale_soul_anvil = { Name = "缚魂铁砧", Cost = 1200, Icon = "pale_soul_anvil", Page = "castle",
         Flavor = "这块黑铁砧取自古帝国的刑场，打在上面的每一环铁链都缠着死者的哀嚎。", Effect = "每 10 天可用 200 克朗、10 工具和 1 块铜锭打一条缚魂锁链。" },
-    pale_mausoleum = { Name = "冠军陵寝", Cost = 1300, Icon = "building_03", Page = "castle_tombs",
+    pale_mausoleum = { Name = "冠军陵寝", Cost = 1300, Icon = "pale_mausoleum", Page = "castle_tombs",
         Flavor = "三座墓室的棺盖上刻着冠军的名字，它们在长眠中也不会停止变强。", Effect = "可寄存 3 口候补棺椁。每口棺椁每日恢复 10% 最大生命并获得 10 经验。" },
-    pale_dead_barracks = { Name = "亡者兵营", Cost = 1200, Icon = "building_04", Page = "castle_barracks",
+    pale_dead_barracks = { Name = "亡者兵营", Cost = 1200, Icon = "pale_dead_barracks", Page = "castle_barracks",
         Flavor = "这里没有床铺，也没有伙房，只有一排排等着被唤起的尸体。", Effect = "消耗 3 点防腐尸骸征召常驻亡灵。升级需要 1000 克朗，之后新兵起始等级 +2。" },
-    pale_sacrifice_pit = { Name = "献祭坑", Cost = 700, Icon = "building_13", Page = "castle_sacrifice",
+    pale_sacrifice_pit = { Name = "献祭坑", Cost = 700, Icon = "pale_sacrifice_pit", Page = "castle_sacrifice",
         Flavor = "坑底的泥土从来没有干过。", Effect = "每名俘虏可换取 2 点防腐尸骸，或为导师提供 200 经验。" }
 };
 

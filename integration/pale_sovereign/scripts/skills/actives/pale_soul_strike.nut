@@ -7,7 +7,7 @@ this.pale_soul_strike <- ::inherit("scripts/skills/skill", {
         this.m.Description = "以法杖重击敌人。杖头迸发的幽蓝魂火将穿透护甲，直刺生者的筋骨与心神。";
         this.m.Icon = "skills/pale_strike.png";
         this.m.IconDisabled = "skills/pale_strike_sw.png";
-        this.m.Overlay = "active_01";
+        this.m.Overlay = "";
         this.m.Type = ::Const.SkillType.Active;
         this.m.Order = ::Const.SkillOrder.OffensiveTargeted;
         this.m.IsActive = true;
@@ -59,6 +59,8 @@ this.pale_soul_strike <- ::inherit("scripts/skills/skill", {
     function onScheduledTargetHit( _info )
     {
         local strike = _info.Skill;
+        if (_info.TargetEntity != null && !::MSU.isNull(_info.TargetEntity) && _info.TargetEntity.isPlacedOnMap())
+            ::PaleSovereign.playBattleArt("soulfire", _info.TargetEntity.getTile(), 35);
         strike.skill.onScheduledTargetHit.call(strike, _info);
         local target = _info.TargetEntity;
         if (target == null || ::MSU.isNull(target) || !target.isAlive() || target.isDying())

@@ -423,47 +423,56 @@ S.renderEvent <- function( _event, _screen )
         case "castle_barracks":
         case "castle_sacrifice":
             title = "古堡";
-            art = "mortuary";
+            if (_screen.ID.find("castle_forge") == 0)
+                art = "fort_forge";
+            else if (_screen.ID == "castle_barracks")
+                art = "fort_barracks";
+            else if (_screen.ID == "castle_tombs")
+                art = "fort_tombs";
+            else if (_screen.ID == "castle_sacrifice")
+                art = "fort_pit";
+            else
+                art = "fort_court";
             this.castlePanel(_screen);
             break;
 
         case "refine":
             title = "炼化";
-            art = "ascension_rite";
+            art = "soul_refine";
             closing = false;
             this.refinePanel(_screen);
             break;
 
         case "refine_confirm":
             title = "炼化";
-            art = "ascension_rite";
+            art = "soul_refine";
             closing = false;
             this.refineConfirmPanel(_screen);
             break;
 
         case "shackle":
             title = "缚魂镣铐";
-            art = "smith";
+            art = "soul_shackle";
             closing = false;
             this.shacklePanel(_screen);
             break;
 
         case "soulbound":
             title = "锁魂者";
-            art = "ascension_rite";
+            art = "soul_muster";
             closing = false;
             this.soulboundPanel(_screen);
             break;
 
         case "conquest_recruit":
             title = "亡者之城";
-            art = "mortuary";
+            art = "conquest_raze";
             this.conquestRecruitPanel(_screen);
             break;
 
         case "conquest_governor":
             title = "冠军坐镇";
-            art = "crown";
+            art = "conquest_governor";
             this.governorPanel(_screen);
             break;
 

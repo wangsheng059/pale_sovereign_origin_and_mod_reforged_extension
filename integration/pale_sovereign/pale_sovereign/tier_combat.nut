@@ -41,6 +41,7 @@ S.burstUndead <- function( _burst )
     local blast = _burst.Blast;
     ::BGP.Necro.removeCorpse(center);
     ::BGP.Necro.spawnBloodbath(center);
+    this.playBattleArt("burst", center, 15, 1.3);
     if (_burst.Name != "")
         ::Tactical.EventLog.log(_burst.Name + "的尸体轰然炸开，腐液溅满了四周。");
 
@@ -167,7 +168,8 @@ S.Mod.hook("scripts/entity/tactical/player", function(q)
     q.onDeath = @(__original) function( _killer, _skill, _tile, _fatality )
     {
         local background = S.getUndeadBackground(this);
-        if (background == null || background.m.PaleTier < 2)
+        local bound = S.isSoulbound(this);
+        if (background == null || (background.m.PaleTier < 2 && !bound))
             return __original(_killer, _skill, _tile, _fatality);
 
         local appearance = this.getItems().getAppearance();
@@ -175,7 +177,7 @@ S.Mod.hook("scripts/entity/tactical/player", function(q)
         appearance.HideHair = true;
         appearance.HideBeard = true;
         local skeleton = background.m.PaleSkeleton;
-        if (skeleton || _fatality == ::Const.FatalityType.Decapitated || _fatality == ::Const.FatalityType.Smashed)
+        if ((skeleton && !bound) || _fatality == ::Const.FatalityType.Decapitated || _fatality == ::Const.FatalityType.Smashed)
         {
             // Use the engine's separate corpse layers for skeletons and detached heads.
             this.getSprite("body").setBrush(skeleton ? "bust_skeleton_body_01" : "bust_naked_body_01");

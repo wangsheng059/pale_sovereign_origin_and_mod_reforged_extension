@@ -71,6 +71,7 @@ this.pale_weaken <- ::inherit("scripts/skills/skill", {
             if (!::PaleSovereign.isEnemy(_user, tile))
                 continue;
             local target = tile.getEntity();
+            ::PaleSovereign.playBattleArt("curse", tile, 42, tile.ID == _tile.ID ? 1.0 : 0.66);
             ::PaleSovereign.directDamage(_user, this, target, tile.ID == _tile.ID ? damage : damage * 0.5);
             if (target == null || ::MSU.isNull(target) || !target.isAlive() || target.isDying())
                 continue;

@@ -22,3 +22,14 @@
     height: auto;
     margin: 0 auto 1.2rem;
 }
+
+.world-screen .pale-camp-button > .label:before
+{
+    content: "";
+    display: inline-block;
+    width: 1.9rem;
+    height: 1.9rem;
+    margin-right: 0.3rem;
+    vertical-align: -0.3rem;
+    background: url("coui://gfx/ui/icons/pale_camp.png") center / contain no-repeat;
+}

@@ -6,7 +6,7 @@
         Abandon = "队伍决定不再刻意挑拣夜战时机。毕竟只要给够价钱，太阳底下一样能收尸。",
         Renown = 150,
         Reward = "获得守夜人的骨灯。冠军誓约另得 1 枚古代魂玉，天灾誓约补充 10 点防腐尸骸，尚未立誓则获得 400 克朗与 2 点防腐尸骸。活人兄弟的心情会变好。",
-        Icon = "skills/pale_prey.png",
+        Icon = "skills/pale_sb_night_walker.png",
     },
     pale_banner = {
         Name = "苍白之旗",
@@ -33,7 +33,7 @@
         Abandon = "把所有筹码押在一具躯壳上风险太高。导师决定放缓对这名护卫的锻造。",
         Renown = 400,
         Reward = "获得 1 枚古代魂玉和 1 条缚魂锁链。出战冠军每场战斗挡下首次受到的攻击，棺椁的自然恢复翻倍，贴身护卫使导师近战防御、远程防御各 +5。",
-        Icon = "skills/pale_honor.png",
+        Icon = "skills/pale_amb_guard.png",
     },
     laden_cart = {
         Name = "满载的尸车",
@@ -42,7 +42,7 @@
         Abandon = "拖着一车死人赶路实在太慢。战团决定先清理掉多余的负担，轻装上阵。",
         Renown = 200,
         Reward = "防腐尸骸上限 +10，并补充 6 点尸骸。物品栏 +9 格，尸弹的疲劳消耗从 20 降为 16。",
-        Icon = "skills/pale_corpse_shot.png",
+        Icon = "skills/pale_amb_cart.png",
     },
     ranks_of_dead = {
         Name = "死者的队列",
@@ -51,7 +51,7 @@
         Abandon = "维持一支庞大的常驻尸群耗费了太多精力。导师决定暂时缩减编制，多依靠战场上临时复活的亡灵。",
         Renown = 350,
         Reward = "常驻亡灵每日修补量提高至 35%，征召消耗降为 2 点防腐尸骸。另补充 4 点防腐尸骸和 10 点工具。",
-        Icon = "skills/pale_fallen.png",
+        Icon = "skills/pale_amb_ranks.png",
     },
     forbidden_glimpse = {
         Name = "禁忌的初窥",
@@ -60,6 +60,6 @@
         Abandon = "贸然窥探传奇遗迹深处的禁忌太过凶险。导师收起手札，决定先稳住眼前的局面。",
         Renown = 450,
         Reward = "获得苍白印戒，地图上标出尚未攻克的飞升仪式地点。冠军誓约另得 2 条缚魂锁链与 1 枚古代魂玉；天灾誓约补充 8 点防腐尸骸，每场最多可部署 16 人。",
-        Icon = "skills/pale_vampire.png",
+        Icon = "skills/pale_amb_glimpse.png",
     },
 };

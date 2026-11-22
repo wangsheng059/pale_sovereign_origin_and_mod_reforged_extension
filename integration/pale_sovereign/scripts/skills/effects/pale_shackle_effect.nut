@@ -6,7 +6,7 @@ this.pale_shackle_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_shackle";
         this.m.Name = "缚魂镣铐";
         this.m.Description = "刻满符文的镣铐把魂火牢牢锁在这具躯壳里。";
-        this.m.Icon = "skills/pale_chain.png";
+        this.m.Icon = "skills/pale_shackle.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsStacking = false;

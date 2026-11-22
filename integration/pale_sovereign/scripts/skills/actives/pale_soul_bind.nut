@@ -6,8 +6,8 @@ this.pale_soul_bind <- ::inherit("scripts/skills/skill", {
         this.m.ID = "actives.pale_soul_bind";
         this.m.Name = "锁魂复生";
         this.m.Description = "将缚魂锁链缠上一具亡灵强敌的残骸，把它连同生前的力量一起拽回战场。若它撑到胜利，锁链便不会松开。";
-        this.m.Icon = "skills/pale_chain.png";
-        this.m.IconDisabled = "skills/pale_chain_sw.png";
+        this.m.Icon = "skills/pale_soul_bind.png";
+        this.m.IconDisabled = "skills/pale_soul_bind_sw.png";
         this.m.Overlay = "";
         this.m.SoundOnUse = ["sounds/enemies/necromancer_01.wav", "sounds/enemies/necromancer_02.wav", "sounds/enemies/necromancer_03.wav"];
         this.m.SoundVolume = 1.2;
@@ -70,17 +70,6 @@ this.pale_soul_bind <- ::inherit("scripts/skills/skill", {
         local info = ::BGP.Necro.getInfo(corpse);
         if (soulClass == null)
             return false;
-        if (_targetTile.IsVisibleForPlayer)
-        {
-            try
-            {
-                foreach (p in ::Const.Tactical.RaiseUndeadParticles)
-                    ::Tactical.spawnParticleEffect(true, p.Brushes, _targetTile, p.Delay, p.Quantity, p.LifeTimeQuantity, p.SpawnRate, p.Stages);
-            }
-            catch (e)
-            {
-            }
-        }
         local entity = null;
         try
         {
@@ -95,6 +84,7 @@ this.pale_soul_bind <- ::inherit("scripts/skills/skill", {
             return false;
         s.takeItems("misc.pale_chain", 1);
         s.bindSoul(entity, soulClass, info);
+        s.playBattleArt("resurrect", _targetTile, 28);
         if (!_user.isHiddenToPlayer())
             ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + " 用缚魂锁链拽起了 " + ::Const.UI.getColorizedEntityName(entity));
         return true;

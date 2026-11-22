@@ -10,5 +10,15 @@ this.pale_gilded_skull <- ::inherit("scripts/items/helmets/hood", {
         this.m.ConditionMax = 1;
         this.m.Condition = 1;
         this.m.IsDroppedAsLoot = false;
+        this.updateVariant();
+    }
+
+    function updateVariant()
+    {
+        this.m.Icon = "pale/gilded_skull.png";
+        this.m.IconLarge = "pale/gilded_skull_large.png";
+        this.m.Sprite = "pale_gilded_skull";
+        this.m.SpriteDamaged = "pale_gilded_skull_damaged";
+        this.m.SpriteCorpse = "pale_gilded_skull_dead";
     }
 });

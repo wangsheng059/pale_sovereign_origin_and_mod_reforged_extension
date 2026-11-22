@@ -4,7 +4,7 @@ this.pale_heavy_stomp <- ::inherit("scripts/skills/actives/pale_tier_attack", {
     function create()
     {
         this.pale_tier_attack.create();
-        this.m.Overlay = "active_50";
+        this.m.Overlay = "";
         this.m.ActionPointCost = 6;
         this.m.FatigueCost = 25;
         this.m.MaxRange = 1;
@@ -73,6 +73,7 @@ this.pale_heavy_stomp <- ::inherit("scripts/skills/actives/pale_tier_attack", {
     {
         if (!this.onVerifyTarget(_user.getTile(), _tile))
             return false;
+        ::PaleSovereign.playBattleArt("launch", _user.getTile(), 6, 0.65);
         this.attackEntity(_user, _tile.getEntity());
         return true;
     }
@@ -93,6 +94,8 @@ this.pale_heavy_stomp <- ::inherit("scripts/skills/actives/pale_tier_attack", {
 
         local hit = this.m.Splash;
         this.m.Splash = null;
+        if (hit != null)
+            S.playBattleArt("stomp", hit.Tile, 6);
         if (hit == null)
             return;
         local actor = this.getContainer().getActor();
@@ -106,6 +109,7 @@ this.pale_heavy_stomp <- ::inherit("scripts/skills/actives/pale_tier_attack", {
             return;
         local victim = victims[::Math.rand(0, victims.len() - 1)];
         hit.Tile = victim.getTile();
+        S.playBattleArt("stomp", hit.Tile, 6, 0.62, 70);
         hit.DamageRegular *= 0.5;
         hit.DamageArmor *= 0.5;
         hit.DamageFatigue *= 0.5;

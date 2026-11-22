@@ -8,7 +8,7 @@ this.pale_conquest_choice_event <- ::inherit("scripts/events/event", {
         this.m.Cooldown = 0;
         this.m.IsSpecial = true;
         this.m.Screens.push({
-            ID = "A", Text = "广场上的活人跪了一整夜，没有一个人敢起身。他们还在等候导师的裁决。", Options = [],
+            ID = "A", Text = "[img]gfx/ui/events/pale/conquest_choice.jpg[/img]广场上的活人跪了一整夜，没有一个人敢起身。他们还在等候导师的裁决。", Options = [],
             function start( _event )
             {
                 this.Options = [];

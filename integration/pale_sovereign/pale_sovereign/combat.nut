@@ -92,7 +92,7 @@ S.placeShot <- function( _tile )
     corpse.Items = ::new("scripts/items/item_container");
     corpse.PaleShot <- true;
     corpse.BGP_Necro <- { Script = corpse.Type, IsHuman = true, MaxHP = ::Const.Tactical.Actor.Zombie.Hitpoints, Armor = 0 };
-    local decal = _tile.spawnDetail("bust_naked_body_01_dead", ::Const.Tactical.DetailFlag.Corpse, false, false, ::Const.Combat.HumanCorpseOffset);
+    local decal = _tile.spawnDetail("pale_shroud_dead", ::Const.Tactical.DetailFlag.Corpse, false, false, ::Const.Combat.HumanCorpseOffset);
     decal.Scale = 0.9;
     _tile.Properties.set("Corpse", corpse);
     ::Tactical.Entities.addCorpse(_tile);
@@ -221,6 +221,8 @@ S.applyUndeadLook <- function( _bro )
     if (branch != null)
     {
         local stem = "pale_" + (key in this.TierBrushStems ? this.TierBrushStems[key] : key);
+        if (look != null)
+            stem = "pale_sb_" + background.m.PaleSoulClass;
         body.setBrush(stem + "_body");
         head.setBrush(stem + "_head");
     }

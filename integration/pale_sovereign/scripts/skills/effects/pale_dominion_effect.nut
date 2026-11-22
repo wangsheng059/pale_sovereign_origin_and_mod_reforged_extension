@@ -6,8 +6,8 @@ this.pale_dominion_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_dominion";
         this.m.Name = "苍白主宰的余威";
         this.m.Description = "苍白主宰的魂火在这具躯壳里燃烧。";
-        this.m.Icon = "skills/pale_weaken_effect.png";
-        this.m.IconDisabled = "skills/pale_weaken_effect_sw.png";
+        this.m.Icon = "skills/pale_dominion.png";
+        this.m.IconDisabled = "skills/pale_dominion_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsStacking = false;
         this.m.IsSerialized = false;

@@ -52,6 +52,9 @@ this.pale_soul_chain <- ::inherit("scripts/skills/skill", {
     {
         if (!this.onVerifyTarget(_user.getTile(), _tile) || !this.isUsable())
             return false;
-        return ::PaleSovereign.markSoul(_tile.getEntity());
+        local marked = ::PaleSovereign.markSoul(_tile.getEntity());
+        if (marked)
+            ::PaleSovereign.playBattleArt("chain", _tile, 30);
+        return marked;
     }
 });

@@ -17,7 +17,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
         this.m.IsIgnoredAsAOO = true;
         this.m.IsSerialized = false;
         this.m.IsShowingProjectile = true;
-        this.m.ProjectileType = ::Const.ProjectileType.Rock;
+        this.m.ProjectileType = ::PaleSovereign.CorpseProjectile;
         this.m.ActionPointCost = 4;
         this.m.FatigueCost = 20;
         this.m.MinRange = 1;
@@ -75,8 +75,10 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
         this.m.DivertedHit = false;
         if (!this.attackEntity(_user, _tile.getEntity()) && !this.m.DivertedHit)
         {
+            local flight = 0;
             if (_user.getTile().getDistanceTo(_tile) >= ::Const.Combat.SpawnProjectileMinDist)
-                ::Tactical.spawnProjectileEffect(::Const.ProjectileSprite[this.m.ProjectileType], _user.getTile(), _tile, 1.0, 1.0, false, false);
+                flight = ::Tactical.spawnProjectileEffect(::Const.ProjectileSprite[this.m.ProjectileType], _user.getTile(), _tile, 1.0, 1.0, false, false);
+            s.playBattleArt("landing", _tile, 7, 0.85, flight);
             s.placeShot(_tile);
         }
         return true;
@@ -104,6 +106,9 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
         local shot = _info.Skill;
         shot.skill.onScheduledTargetHit.call(shot, _info);
         if (tile != null)
+        {
+            ::PaleSovereign.playBattleArt("landing", tile, 10);
             ::PaleSovereign.placeShot(tile);
+        }
     }
 });
