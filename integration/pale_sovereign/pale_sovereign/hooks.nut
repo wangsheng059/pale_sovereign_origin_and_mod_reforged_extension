@@ -488,6 +488,7 @@ mod.hook("scripts/entity/tactical/actor", function(q)
             Eligible = chief != null && !this.isAlliedWith(chief) && this.getFaction() != ::Const.Faction.PlayerAnimals
                 && !this.getFlags().has("PaleRaised"),
             ID = this.getID(),
+            FormationSummon = this.getFlags().has("PaleFormationSummon"),
             Info = ::BGP.Necro.makeDeathInfo(this),
             Fatality = _fatality
         };
@@ -546,8 +547,11 @@ mod.hook("scripts/entity/tactical/tactical_entity_manager", function(q)
     q.addCorpse = @(__original) function( _tile )
     {
         local result = __original(_tile);
-        if (S.Battle != null && S.Battle.Death != null)
-            S.recordCorpse(_tile.Properties.get("Corpse"));
+        if (S.Battle != null && S.Battle.Death != null) {
+            local corpse = _tile.Properties.get("Corpse");
+            if (corpse != null && S.Battle.Death.FormationSummon) corpse.PaleFormationSummon <- true;
+            S.recordCorpse(corpse);
+        }
         return result;
     };
 
@@ -562,8 +566,11 @@ mod.hook("scripts/entity/tactical/tactical_entity_manager", function(q)
     q.onResurrect = @(__original) function( _corpse, _force = false )
     {
         local actor = __original(_corpse, _force);
-        if (actor != null && S.Battle != null)
+        if (actor != null && S.Battle != null) {
             actor.getFlags().set("PaleRaised", true);
+            if (_corpse != null && "PaleFormationSummon" in _corpse && actor.getFaction() == ::Const.Faction.PlayerAnimals)
+                actor.getFlags().set("PaleFormationSummon", true);
+        }
         return actor;
     };
 });
@@ -574,18 +581,20 @@ if ("Necro" in ::BGP && "raise" in ::BGP.Necro)
     local raise = ::BGP.Necro.raise;
     ::BGP.Necro.raise = function( _user, _tile )
     {
-        local counted = false;
+        local counted = false, formationSummon = false;
         if (S.Battle != null && S.isActive())
         {
             try
             {
                 local corpse = ::BGP.Necro.getCorpse(_tile);
+                formationSummon = corpse != null && "PaleFormationSummon" in corpse;
                 counted = corpse != null && typeof corpse == "table" && !::BGP.Necro.isGuardCorpse(corpse)
                     && S.harvestReject(corpse) == null;
             }
             catch (e) { counted = false; }
         }
         local unit = raise(_user, _tile);
+        if (unit != null && formationSummon) unit.getFlags().set("PaleFormationSummon", true);
         if (unit != null && counted && S.Battle != null)
             ++S.Battle.RaisedHarvest;
         return unit;

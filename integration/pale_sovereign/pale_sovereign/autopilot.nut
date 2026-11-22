@@ -1,4 +1,5 @@
 local S = ::PaleSovereign, A = ::BGP.Autopilot;
+local staffStrikeMult = 0.25;
 local page = ::Autopilot.msu.ModSettings.getPage("背景与亡灵");
 page.addElement(::MSU.Class.BooleanSetting("paleAutoChampion", true, "导师自动放出冠军", "第一回合召唤僵尸和骷髅，第二回合起放出饰品栏冠军并优先支配它。"));
 page.addElement(::MSU.Class.BooleanSetting("paleAutoCorpseShot", true, "自动投掷防腐尸骸", "有尸骸储备时，可向敌群投掷尸弹。优先利用战场已有的尸体。"));
@@ -8,8 +9,18 @@ local function screen(c, s, t) {
     if (c.Behavior.hasNegativeTileEffect(t, c.Actor)) return 0;
     local distance = A.nearest(c.Enemies, t);
     if (distance == 99 && ::Time.getRound() > 2 && !S.isChief(c.Actor)) return 0;
-    local zones = A.zone(c.Actor, t);
-    return 4.7 + (distance == 99 ? 0 : 1.4 / ::Math.maxf(1.0, distance))
+    local zones = A.zone(c.Actor, t), formationPenalty = 0.0;
+    if (S.Battle != null && !S.Battle.CompanyContact) {
+        if (!("OpeningGroup" in c.Cache)) {
+            local group = S.formationGroup(S.fieldBrothers());
+            c.Cache.OpeningGroup <- group;
+            c.Cache.OpeningThreats <- group.Anchor == null ? [] : S.formationThreats(c.Behavior.getAgent(), group);
+        }
+        if (c.Cache.OpeningGroup.Anchor != null)
+            formationPenalty = ::Math.minf(2.5, 0.75 * S.formationLead(t, c.Cache.OpeningThreats)
+                + 0.18 * t.getDistanceTo(c.Cache.OpeningGroup.Anchor));
+    }
+    return 4.7 - formationPenalty + (distance == 99 ? 0 : 1.4 / ::Math.maxf(1.0, distance))
         + 0.13 * (t.Level - c.Origin.Level) - (t.IsBadTerrain ? 0.32 : 0) - 0.45 * ::Math.max(0, zones - 1);
 }
 local function summon(c, s, t) {
@@ -44,7 +55,16 @@ A.add("pale_soul_strike", "Enemies", function(c, s, t) {
     local target = t.getEntity(), hit = A.weaponChance(s, t);
     local value = 2.4 + (target.getHitpoints() <= 24 ? 1.2 : 0);
     if (!target.getSkills().hasSkill("effects.pale_prey")) value += 0.35 * ::Math.min(3, A.countNear(c.Allies, t, 2));
-    return value * hit;
+    return value * hit * (S.isChief(c.Actor) ? staffStrikeMult : 1.0);
+});
+// Stock attack behaviors and Autopilot's step-and-hit also evaluate the staff independently.
+S.Mod.hook("scripts/ai/tactical/behavior", function(q) {
+    q.queryTargetValue = @(__original) function(actor, target, skill = null) {
+        local score = __original(actor, target, skill);
+        if (score > 0 && skill != null && skill.getID() == "actives.pale_soul_strike" && S.isChief(actor) && ::Autopilot.isUnderAIControl(actor))
+            return score * staffStrikeMult;
+        return score;
+    };
 });
 A.add("pale_weaken", "Enemies", function(c, s, t) {
     local enemy = t.getEntity();

@@ -22,7 +22,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.16", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.17", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.8");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
@@ -32,6 +32,7 @@
         return;
     foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "tier_data", "tier_ranged_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "tier_ranged_combat", "soulbound", "battle_art"])
         ::include("pale_sovereign/" + file);
+    ::include("pale_sovereign/formation_ai");
     if ("Stronghold" in ::getroottable())
         foreach (file in ["stronghold", "castle_services", "castle_armor", "castle_siege"])
             ::include("pale_sovereign/" + file);

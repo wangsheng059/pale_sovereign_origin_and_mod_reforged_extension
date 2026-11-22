@@ -2,7 +2,7 @@ local S = ::PaleSovereign;
 
 S.beginBattle <- function( _night )
 {
-    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0, Soulbound = [], SoulUsed = false, HumanKills = 0, UndeadCampLooted = false, RaisedHarvest = 0 };
+    this.Battle = { CompanyContact = false, Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0, Soulbound = [], SoulUsed = false, HumanKills = 0, UndeadCampLooted = false, RaisedHarvest = 0 };
 };
 
 S.area <- function( _center )

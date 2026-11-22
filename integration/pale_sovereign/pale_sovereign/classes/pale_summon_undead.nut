@@ -149,6 +149,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         if (s.isActive() && s.Battle != null)
         {
             e.getFlags().set("PaleRaised", true);
+            e.getFlags().set("PaleFormationSummon", true);
             s.addBattleBoons(e);
             if (s.isChief(_user) && s.isAscended() && s.oath() == s.Oath.Scourge && !e.getSkills().hasSkill("effects.pale_dominion"))
                 e.getSkills().add(::new(s.SkillDir + "effects/pale_dominion_effect"));
