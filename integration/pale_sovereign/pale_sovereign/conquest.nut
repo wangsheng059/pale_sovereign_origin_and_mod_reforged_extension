@@ -82,11 +82,39 @@ S.conquestChoices <- function( _screen, _town )
             Text = decision == 1 ? "统治 · 恐惧税 +25%，每周繁荣度 −1" : "屠城 · 建立亡者之城，收集 20 点尸骸",
             function getResult( _event )
             {
-                S.conquestChoose(_town, decision);
-                return 0;
+                local text = S.conquestChoose(_town, decision);
+                if (text == null)
+                    return 0;
+                S.ConquestResultText = text;
+                return "PaleConquestResult";
             }
         });
     }
+};
+
+// The choice result is shown on its own page before the event closes.
+S.ConquestResultText <- "";
+
+S.conquestResultScreen <- function()
+{
+    return {
+        ID = "PaleConquestResult",
+        Text = "",
+        Banner = "",
+        Characters = [],
+        Options = [{
+            Text = "就这么办。",
+            function getResult( _event )
+            {
+                return 0;
+            }
+        }],
+        function start( _event )
+        {
+            this.Text = S.ConquestResultText;
+            this.Banner = "ui/banners/" + ::World.Assets.getBanner() + "s.png";
+        }
+    };
 };
 
 S.Mod.hook("scripts/events/events/conquest_assault_event", function(q)
@@ -114,6 +142,7 @@ S.Mod.hook("scripts/events/events/conquest_assault_event", function(q)
                 S.conquestChoices(this, town);
             };
         }
+        this.m.Screens.push(S.conquestResultScreen());
     };
 });
 

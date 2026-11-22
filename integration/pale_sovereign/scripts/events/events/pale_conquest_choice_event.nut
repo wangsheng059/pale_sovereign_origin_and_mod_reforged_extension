@@ -16,5 +16,6 @@ this.pale_conquest_choice_event <- ::inherit("scripts/events/event", {
                 ::PaleSovereign.conquestChoices(this, town);
             }
         });
+        this.m.Screens.push(::PaleSovereign.conquestResultScreen());
     }
 });
