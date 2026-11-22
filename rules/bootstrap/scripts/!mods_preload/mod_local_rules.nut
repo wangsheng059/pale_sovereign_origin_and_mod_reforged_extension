@@ -29,7 +29,7 @@
 
 ::BGP <- {
 	ID = "mod_local_rules",
-	Version = "1.6.7",
+	Version = "1.6.8",
 	Name = "本地玩法规则",
 	HasAC = false
 };
@@ -52,6 +52,12 @@
 	::include("mod_bg_unique_perks/necro_hooks");
 	::include("mod_local_rules/combat_xp");
 	::include("mod_local_rules/weapon_loot");
+});
+
+::BGP.HooksMod.queue(">mod_autopilot_new", function()
+{
+	if (::Hooks.hasMod("mod_autopilot_new"))
+		::include("mod_bg_unique_perks/autopilot");
 });
 
 // 特技组要等全部脚本加载完、重铸的特技组和集合注册之后再加

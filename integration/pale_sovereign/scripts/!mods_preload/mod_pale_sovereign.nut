@@ -22,8 +22,8 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.15", "亡灵主宰");
-::PaleSovereign.Mod.require("mod_local_rules >= 1.6.5");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.16", "亡灵主宰");
+::PaleSovereign.Mod.require("mod_local_rules >= 1.6.8");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
 ::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_dynamic_perks", ">mod_AC", ">mod_reforged", ">mod_stronghold", ">mod_pandoras_hobby", ">mod_conquest"], function()
@@ -40,6 +40,12 @@
             ::include("pale_sovereign/" + file);
     if ("PandorasHobby" in ::getroottable())
         ::include("pale_sovereign/followers");
+});
+
+::PaleSovereign.Mod.queue([">mod_local_rules", ">mod_autopilot_new"], function()
+{
+    if (::BGP.HasAC && "Autopilot" in ::BGP)
+        ::include("pale_sovereign/autopilot");
 });
 
 ::PaleSovereign.Mod.queue(">bbfusion_framework", function()

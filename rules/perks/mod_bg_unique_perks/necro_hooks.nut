@@ -78,6 +78,25 @@
 		__original();
 		this.m.IsRemovedAfterBattle = true;
 	}
+	q.onRemoved = @(__original) function()
+	{
+		local container = this.getContainer();
+		if (!this.m.IsAlive || container == null || !container.hasSkill("actives.bgp_necro_raise"))
+			return __original();
+
+		// Keep the native unlink and fade. The delayed redraw needs a live tactical actor.
+		local actor = container.getActor();
+		local redraw = !::MSU.isNull(actor) && actor.isAlive() && actor.hasSprite("permanent_injury_4");
+		this.m.IsAlive = false;
+		try { __original(); }
+		catch (e) { this.m.IsAlive = true; throw e; }
+		this.m.IsAlive = true;
+		if (redraw)
+			::Time.scheduleEvent(::TimeUnit.Real, 1800, function(ref) {
+				if (!::MSU.isNull(ref) && ref.isAlive() && !ref.isDying() && ref.isPlacedOnMap())
+					ref.setDirty(true);
+			}, ::MSU.asWeakTableRef(actor));
+	};
 });
 
 

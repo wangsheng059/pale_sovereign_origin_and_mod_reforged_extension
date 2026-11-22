@@ -6,20 +6,19 @@ S.isChampionAI <- function( _actor )
         && this.isDeployed(this.mainPet(), _actor);
 };
 
-// 法杖标记的猎物：AI 控制的友方亡灵（死灵宠物、复活与召唤的仆从）优先攻击
-S.isPreyHunter <- function( _actor )
+S.isRaisedFighter <- function( _actor )
 {
-    return this.Battle != null && this.Battle.Prey != null && _actor.getFaction() == ::Const.Faction.PlayerAnimals
-        && !_actor.isPlayerControlled() && (_actor.getFlags().has("undead") || this.isUndead(_actor));
+    return _actor.getFaction() == ::Const.Faction.PlayerAnimals && !_actor.isPlayerControlled()
+        && _actor.getSkills().hasSkill(::BGP.Necro.MinionEffect);
 };
 
-S.championTargetPriority <- function( _target )
+S.undeadTargetPriority <- function( _actor, _target, _champion )
 {
     if (_target.getMoraleState() == ::Const.MoraleState.Fleeing)
         return 0.0;
 
     local priority = 0.0;
-    local prey = this.Battle.Prey;
+    local prey = this.Battle == null ? null : this.Battle.Prey;
     if (prey != null && !::MSU.isNull(prey) && prey.getID() == _target.getID()
         && _target.getSkills().hasSkill("effects.pale_prey"))
         priority = 0.65;
@@ -27,8 +26,8 @@ S.championTargetPriority <- function( _target )
     if (_target.getCurrentProperties().IsStunned || _target.getSkills().hasSkill("effects.sleeping") || _target.isNonCombatant())
         return priority * 0.5;
 
-    local chief = this.chief();
-    if (chief != null && chief.isAlive() && chief.isPlacedOnMap())
+    local chief = _champion ? this.chief() : ::BGP.Necro.getMaster(_actor);
+    if (chief != null && !::MSU.isNull(chief) && chief.isAlive() && chief.isPlacedOnMap())
     {
         local tile = _target.getTile();
         local chiefTile = chief.getTile();
@@ -36,38 +35,40 @@ S.championTargetPriority <- function( _target )
         if (distance <= 2 && distance <= _target.getIdealRange() && ::Math.abs(tile.Level - chiefTile.Level) <= 1)
         {
             local threatened = chief.getHitpoints() * 2 <= chief.getHitpointsMax();
-            priority = ::Math.maxf(priority, threatened ? 2.0 : 0.55);
+            priority = ::Math.maxf(priority, threatened ? (_champion ? 2.0 : 1.25) : (_champion ? 0.7 : 0.4));
         }
     }
-    return ::Math.maxf(priority, _target.isArmedWithRangedWeapon() ? 0.25 : 0.0);
+    local support = _target.getSkills().hasSkill("actives.raise_undead") || _target.getSkills().hasSkill("actives.barbarian_drum");
+    return ::Math.maxf(priority, support ? 0.65 : (_target.isArmedWithRangedWeapon() ? 0.35 : 0.0));
 };
 
 S.championAttackScore <- function( _score, _actor, _target, _skill )
 {
     if (_score <= 0 || _skill == null || !_skill.isAttack() || _target.isAlliedWith(_actor) || !_target.getTile().IsVisibleForEntity)
         return _score;
-    if (!this.isChampionAI(_actor))
+    if (_actor.getFaction() != ::Const.Faction.PlayerAnimals || _actor.isPlayerControlled()) return _score;
+    local champion = this.isChampionAI(_actor);
+    if (!champion && !this.isRaisedFighter(_actor))
     {
-        if (!this.isPreyHunter(_actor) || !_target.getSkills().hasSkill("effects.pale_prey"))
-            return _score;
-        local chance = _skill.getHitchance(_target);
-        return _score * (1.0 + 0.65 * ::Math.maxf(0.0, ::Math.minf(1.0, (chance - 25) / 25.0)));
+        if (this.Battle == null || this.Battle.Prey == null || !_actor.getFlags().has("undead")
+            || !_target.getSkills().hasSkill("effects.pale_prey")) return _score;
+        return _score * (1.0 + 0.65 * ::Math.maxf(0.0, ::Math.minf(1.0, (_skill.getHitchance(_target) - 25) / 25.0)));
     }
 
     local hit = _skill.getHitchance(_target);
-    local bonus = this.championTargetPriority(_target);
+    local bonus = this.undeadTargetPriority(_actor, _target, champion);
     if (hit >= 55 && _target.getHitpoints() * 2 <= _target.getHitpointsMax())
     {
         local damage = _skill.getExpectedDamage(_target);
         if (damage.DirectDamage + damage.HitpointDamage >= _target.getHitpoints())
-            bonus = ::Math.maxf(bonus, 0.35);
+            bonus = ::Math.maxf(bonus, _target.getMoraleState() == ::Const.MoraleState.Fleeing ? 0.15 : 0.75);
     }
     // Accept a lower hit chance when the mentor is at immediate risk.
     local confidence = bonus > 1.0 ? (hit - 20) / 15.0 : (hit - 25) / 25.0;
     bonus *= ::Math.maxf(0.0, ::Math.minf(1.0, confidence));
     if (!_skill.isRanged() && _actor.getTile().getDistanceTo(_target.getTile()) == 1
         && _target.getSkills().hasSkill("effects.riposte"))
-        bonus -= 0.30 * (1.0 - hit / 100.0);
+        bonus -= (_actor.getHitpointsPct() < 0.45 ? 0.65 : 0.30) * (1.0 - hit / 100.0);
     return _score * (1.0 + bonus);
 };
 
@@ -133,6 +134,10 @@ S.planChampionEngagement <- function( _behavior, _actor )
     local best = null;
     local bestValue = 0.0;
     local routes = {};
+    local master = ::BGP.Necro.getMaster(_actor);
+    local guard = master != null && !::MSU.isNull(master) && master.isAlive() && master.isPlacedOnMap()
+        && master.getHitpointsPct() <= 0.5 && origin.getDistanceTo(master.getTile()) <= 3
+        && master.getTile().hasZoneOfControlOtherThan(master.getAlliedFactions());
     foreach (opponent in _behavior.getAgent().getKnownOpponents())
     {
         if (::MSU.isNull(opponent.Actor))
@@ -167,6 +172,8 @@ S.planChampionEngagement <- function( _behavior, _actor )
                 continue;
 
             local candidate = value / (1.0 + 0.15 * routes[tile.ID]) * (tile.Level < target.Level ? 0.85 : 1.0);
+            if (tile.getZoneOfControlCount(_actor.getFaction()) > 0) candidate *= 1.12;
+            if (guard && tile.getDistanceTo(master.getTile()) > origin.getDistanceTo(master.getTile())) candidate *= 0.55;
             if (candidate > bestValue)
             {
                 bestValue = candidate;
@@ -188,7 +195,7 @@ S.Mod.hook("scripts/ai/tactical/behavior", function(q)
         // Melee engagement is a generator. Inspect its plan only once the engine finishes evaluating it.
         local done = __original(_entity);
         if (!done || this.getID() != ::Const.AI.Behavior.ID.EngageMelee || this.getScore() <= 0
-            || !S.isChampionAI(_entity) || this.m.Skill != null || this.m.TargetTile == null
+            || (!S.isRaisedFighter(_entity) && !S.isChampionAI(_entity)) || this.m.Skill != null || this.m.TargetTile == null
             || this.m.IsWaitingBeforeMove || this.m.IsWaitingAfterMove)
             return done;
 

@@ -199,6 +199,28 @@ S.Mod.hook("scripts/entity/tactical/player", function(q)
     };
 });
 
+// A raised roster member keeps its living head brush. Some tier corpses include the head in the body layer.
+S.Mod.hook("scripts/entity/tactical/enemies/zombie", function(q)
+{
+    q.onDeath = @(__original) function( _killer, _skill, _tile, _fatality )
+    {
+        local head = this.getSprite("head");
+        if (_tile == null || !head.HasBrush || head.getBrush().Name.find("pale_") != 0 || this.doesBrushExist(head.getBrush().Name + "_dead"))
+            return __original(_killer, _skill, _tile, _fatality);
+
+        local appearance = this.getItems().getAppearance();
+        if (_fatality == ::Const.FatalityType.Decapitated || _fatality == ::Const.FatalityType.Smashed)
+        {
+            this.getSprite("body").setBrush("bust_naked_body_01");
+            head.setBrush("bgpu_bust_head_01");
+        }
+        else
+            appearance.HideCorpseHead = true;
+        appearance.Corpse = "bust_naked_body_01_dead";
+        return __original(_killer, _skill, _tile, _fatality);
+    };
+});
+
 S.Mod.hook("scripts/skills/skill", function(q)
 {
     q.MV_onAttackRolled = @(__original) function( _info )
