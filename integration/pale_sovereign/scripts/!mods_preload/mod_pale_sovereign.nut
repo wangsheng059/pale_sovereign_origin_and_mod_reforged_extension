@@ -22,7 +22,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.11", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.12", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.5");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");

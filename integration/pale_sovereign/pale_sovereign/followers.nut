@@ -14,7 +14,7 @@ S.FollowerData <- {
     wight_captain = {
         Name = "尸妖王侍卫长", Archetype = "Officer", Image = "ui/campfire/pale_wight_captain",
         Description = "一名从古帝国站岗至今的沉默军官。它早已不记得自己的名字，却还记得怎样操练一名冠军。",
-        Effects = ["冠军经验 +50%", "缚魂锁链生命门槛 +5 个百分点", "冠军在前 5 回合获得 +20 近战技能；战团每击杀一名敌方冠军获得 200 克朗"]
+        Effects = ["冠军经验 +50%", "缚魂锁链生命门槛 +5 个百分点；亡者之城和古堡兵营的待选亡灵从 8 名增加到 16 名；战团所有人获得的经验 +20%","冠军在前 5 回合获得 +20 近战技能；战团每击杀一名敌方冠军获得 200 克朗"]
     },
     banshee = {
         Name = "女妖", Archetype = "Agent", Image = "ui/campfire/pale_banshee",
@@ -304,8 +304,24 @@ S.Mod.rawHookTree("scripts/items/accessory/accessory", function(p)
     local original = p.addXP;
     p.addXP = function( _xp )
     {
-        if (S.isActive() && S.isCoffin(this) && (S.mainPet() == this || this.m.PaleID > 0) && S.followerRank("wight_captain") >= 1)
-            _xp = ::Math.round(_xp * 1.50);
+        if (S.isActive() && S.isCoffin(this) && (S.mainPet() == this || this.m.PaleID > 0))
+        {
+            // 1 级冠军 +50%，2 级再给全员 +20%（相加，共 +70%）
+            local rank = S.followerRank("wight_captain");
+            if (rank >= 1)
+                _xp = ::Math.round(_xp * (rank >= 2 ? 1.70 : 1.50));
+        }
         return original.call(this, _xp);
+    };
+});
+
+// 尸妖王侍卫长 2 级：战团所有人获得的经验 +20%（只放大按常规倍率结算的经验，古币灌注、兵营训练这类直接补满的不算）
+S.Mod.hook("scripts/entity/tactical/player", function(q)
+{
+    q.addXP = @(__original) function( _xp, _scale = true )
+    {
+        if (_scale && _xp > 0 && S.isActive() && S.followerRank("wight_captain") >= 2)
+            _xp = _xp * 1.20;
+        return __original(_xp, _scale);
     };
 });

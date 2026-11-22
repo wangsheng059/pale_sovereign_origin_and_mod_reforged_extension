@@ -275,6 +275,7 @@ S.castlePanel <- function( _screen )
             }
             if (this.castleHas(town, "pale_soul_anvil"))
                 this.option(_screen, "缚魂铁砧 · 200 金、10 工具、1 块铜锭", @() S.castleAnvil(town));
+            _screen.Text += "\n\n每座古堡使防腐尸骸上限 +30（当前上限 " + this.reserveLimit() + "）。";
             if (this.castleHas(town, "pale_salt_cellar"))
                 _screen.Text += "\n\n盐窖仓储 +20。留在古堡地格时，每日免费修补。";
             break;
@@ -321,15 +322,7 @@ S.castlePanel <- function( _screen )
             if (!this.castleHas(town, "pale_dead_barracks"))
                 break;
             local trained = flags.get("PaleBarracksUpgraded") == true;
-            if (this.canRecruitUndead(null, 3))
-            {
-                foreach (kind in this.UndeadKindOrder)
-                {
-                    local recruitKind = kind;
-                    this.option(_screen, "征召" + this.UndeadKinds[recruitKind].Name + "（3 点尸骸）",
-                        @() S.recruitUndead(null, recruitKind, 3, trained ? 2 : 0) ? "新兵已加入战团。" : "无法征召。");
-                }
-            }
+            this.recruitPoolPanel(_screen, town, 3, trained ? 2 : 0);
             if (!trained && ::World.Assets.getMoney() >= 1000)
                 this.option(_screen, "升级亡者兵营（1000 克朗）", function()
                 {

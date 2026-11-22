@@ -45,7 +45,7 @@ S.conquestChoose <- function( _town, _mode )
     flags.set("PaleConquestMode", _mode);
     flags.set("PaleConquestPending", false);
     if (_mode == 1)
-        return "城中的钟照常敲响，集市照常开张，只是再没人敢抬头直视城门上的骷髅。恐惧税使税收 +25%，城镇每周失去 1 点繁荣度。";
+        return "城中的钟照常敲响，集市照常开张，只是再没人敢抬头直视城门上的骷髅。恐惧税使税收 +25%，城镇每周失去 1 点繁荣度。防腐尸骸上限 +30。";
 
     foreach (contract in contracts)
         if (!contract.isActive())
@@ -70,7 +70,7 @@ S.conquestChoose <- function( _town, _mode )
     local label = _town.getLabel("name");
     if (label != null)
         label.Text = _town.getName();
-    return "这一夜过后，城里再也听不到活人的声音。城镇成为亡者之城：收集 20 点防腐尸骸，周边定居点关系 −20。这里此后不再有活人招募、合同或税收。";
+    return "这一夜过后，城里再也听不到活人的声音。城镇成为亡者之城：收集 20 点防腐尸骸，尸骸上限 +30，周边定居点关系 −20。这里此后不再有活人招募、合同或税收。";
 };
 
 S.conquestChoices <- function( _screen, _town )
@@ -79,7 +79,7 @@ S.conquestChoices <- function( _screen, _town )
     {
         local decision = mode;
         _screen.Options.push({
-            Text = decision == 1 ? "统治 · 恐惧税 +25%，每周繁荣度 −1" : "屠城 · 建立亡者之城，收集 20 点尸骸",
+            Text = decision == 1 ? "统治 · 恐惧税 +25%，每周繁荣度 −1，尸骸上限 +30" : "屠城 · 建立亡者之城，收集 20 点尸骸，尸骸上限 +30",
             function getResult( _event )
             {
                 local text = S.conquestChoose(_town, decision);
@@ -302,6 +302,16 @@ S.conquestDay = function()
                     S.changeReserve(1);
 };
 
+// 1.6.12：每座统治或屠城的城镇防腐尸骸上限 +30
+S.conquestReserveBonus = function()
+{
+    local bonus = 0;
+    foreach (town in ::World.EntityManager.getSettlements())
+        if (town != null && town.isAlive() && S.conquestMode(town) > 0)
+            bonus += 30;
+    return bonus;
+};
+
 S.findPaleTown = function()
 {
     local town = C.getNearbySettlement();
@@ -317,15 +327,7 @@ S.conquestRecruitPanel <- function( _screen )
         _screen.Text = "需要在一座亡者之城旁边。";
         return;
     }
-    local price = this.recruitCost();
-    if (!this.canRecruitUndead(null))
-        return;
-    foreach (kind in this.UndeadKindOrder)
-    {
-        local recruitKind = kind;
-        this.option(_screen, "征召" + this.UndeadKinds[recruitKind].Name + "（" + price + " 点尸骸）",
-            @() S.recruitUndead(null, recruitKind) ? "新兵已加入战团。" : "无法征召。");
-    }
+    this.recruitPoolPanel(_screen, town, this.recruitCost(), 0);
 };
 
 local startSiege = C.startSiege;
@@ -365,6 +367,7 @@ C.onSiegeLost = function( _town )
         flags.set("PaleConquestPending", false);
         flags.set("PaleHolySiege", false);
         S.returnGovernor(_town);
+        S.clearRecruitPool(_town);
         local label = _town.getLabel("name");
         if (label != null)
             label.Text = _town.getName();
@@ -459,7 +462,7 @@ S.Mod.hook("scripts/events/events/conquest_manage_event", function(q)
                     local suffix = nextLine == null ? "" : this.Text.slice(nextLine);
                     this.Text = this.Text.slice(0, status) + "\n亡灵驻军 " + C.getGarrisonLevel(town) + " 级，每周消耗 3 点防腐尸骸。" + suffix;
                 }
-                this.Text += mode == 1 ? "\n\n统治 · 恐惧税 +25%，繁荣度每周 −1。" : "\n\n亡者之城 · 可征召常驻亡灵，无活人招募、合同或税收。";
+                this.Text += mode == 1 ? "\n\n统治 · 恐惧税 +25%，繁荣度每周 −1，防腐尸骸上限 +30。" : "\n\n亡者之城 · 可从待选名单征召常驻亡灵，无活人招募、合同或税收，防腐尸骸上限 +30。";
                 this.Options = this.Options.filter(@(_, option) option.Text.find(C.T("opt_garrison")) != 0);
                 this.Options.insert(this.Options.len() - 1, {
                     Text = "管理亡灵驻防",

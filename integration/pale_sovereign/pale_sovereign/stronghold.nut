@@ -10,7 +10,7 @@ S.CastleBuildings <- {
     pale_mausoleum = { Name = "冠军陵寝", Cost = 1300, Icon = "pale_mausoleum", Page = "castle_tombs",
         Flavor = "三座墓室的棺盖上刻着冠军的名字，它们在长眠中也不会停止变强。", Effect = "可寄存 3 口候补棺椁。每口棺椁每日恢复 10% 最大生命并获得 10 经验。" },
     pale_dead_barracks = { Name = "亡者兵营", Cost = 1200, Icon = "pale_dead_barracks", Page = "castle_barracks",
-        Flavor = "这里没有床铺，也没有伙房，只有一排排等着被唤起的尸体。", Effect = "消耗 3 点防腐尸骸征召常驻亡灵。升级需要 1000 克朗，之后新兵起始等级 +2。" },
+        Flavor = "这里没有床铺，也没有伙房，只有一排排等着被唤起的尸体。", Effect = "从待选名单征召常驻亡灵，每名 3 点防腐尸骸；名单 8 名，每 7 天刷新。升级需要 1000 克朗，之后新兵起始等级 +2。" },
     pale_sacrifice_pit = { Name = "献祭坑", Cost = 700, Icon = "pale_sacrifice_pit", Page = "castle_sacrifice",
         Flavor = "坑底的泥土从来没有干过。", Effect = "每名俘虏可换取 2 点防腐尸骸，或为导师提供 200 经验。" }
 };
@@ -63,8 +63,12 @@ S.castleReserveBonus = function()
 {
     local bonus = 0;
     foreach (town in this.castles())
+    {
+        // 1.6.12：每座古堡尸骸上限 +30，盐窖再 +20
+        bonus += 30;
         if (this.castleHas(town, "pale_salt_cellar"))
             bonus += 20;
+    }
     return bonus;
 };
 

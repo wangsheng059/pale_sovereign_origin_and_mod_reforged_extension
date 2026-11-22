@@ -837,6 +837,13 @@
       ]
     },
     {
+      "directory": "rules/more_recruits",
+      "source": "8倍招募新兵.zip",
+      "members": [
+        "scripts/!mods_preload/mod_moreRecruits.nut"
+      ]
+    },
+    {
       "directory": "rules/loot",
       "source": "zbigmap015-强制剥敌人甲.zip",
       "members": [

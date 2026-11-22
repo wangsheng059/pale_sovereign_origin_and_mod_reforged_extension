@@ -5,7 +5,7 @@
 this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
     m = {
         Script = "", MasteryScript = "", EliteScript = "", MinionName = "", MasteryName = "", EliteName = "", ForNecromancers = false,
-        Gear = null, MasteryGear = null, EliteGear = null, Used = false, ArtStem = ""
+        Gear = null, MasteryGear = null, EliteGear = null, Used = false, ArtStem = "", FearInsteadOfOverwhelm = false
     },
     function create()
     {
@@ -53,6 +53,8 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
             text = "在相邻的空格召出一名" + names[rank] + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
             + "；学会第 7 阶特技（不灭冠军或尸爆）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
+        if (this.m.FearInsteadOfOverwhelm)
+            ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”" });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
         if (this.m.Used)
             ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = "本场已经使用过" });
@@ -148,6 +150,14 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
             s.addBattleBoons(e);
             if (s.isChief(_user) && s.isAscended() && s.oath() == s.Oath.Scourge && !e.getSkills().hasSkill("effects.pale_dominion"))
                 e.getSkills().add(::new(s.SkillDir + "effects/pale_dominion_effect"));
+        }
+        // 1.6.12：僵尸主动太低，“压制”几乎不触发，换成“恐惧”（堕落英雄自带恐惧，只去掉压制）
+        if (this.m.FearInsteadOfOverwhelm)
+        {
+            local skills = e.getSkills();
+            skills.removeByID("perk.overwhelm");
+            if (!skills.hasSkill("perk.fearsome"))
+                skills.add(::new("scripts/skills/perks/perk_fearsome"));
         }
         e.getSkills().update();
         try { s.playBattleArt("resurrect", _targetTile, 28); } catch (err) {}

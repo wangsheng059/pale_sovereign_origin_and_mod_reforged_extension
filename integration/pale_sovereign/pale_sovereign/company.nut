@@ -88,7 +88,7 @@ S.permanentUndeadLimit <- function()
 S.reserveLimit <- function()
 {
     return this.ReserveLimit + (this.get("Ascended") == 1 && this.oath() == this.Oath.Scourge ? 20 : 0)
-        + (this.ambitionDone("laden_cart") ? 10 : 0) + this.castleReserveBonus();
+        + (this.ambitionDone("laden_cart") ? 10 : 0) + this.castleReserveBonus() + this.conquestReserveBonus();
 };
 
 S.changeReserve <- function( _delta )
@@ -102,6 +102,7 @@ S.changeReserve <- function( _delta )
 
 S.followerRank <- @(_key) 0;
 S.castleReserveBonus <- @() 0;
+S.conquestReserveBonus <- @() 0;
 S.castleWorldTick <- @() null;
 S.castleHere <- @() null;
 S.findPaleTown <- @() null;
@@ -138,9 +139,9 @@ S.repairUndead <- function( _free = false )
     }
 };
 
-S.spawnBrother <- function( _background, _gear, _position = -1, _traits = true )
+S.spawnBrother <- function( _background, _gear, _position = -1, _traits = true, _roster = null )
 {
-    local bro = ::World.getPlayerRoster().create("scripts/entity/tactical/player");
+    local bro = (_roster != null ? _roster : ::World.getPlayerRoster()).create("scripts/entity/tactical/player");
     bro.setStartValuesEx([_background], _traits);
     if (bro.getTalents().len() == 0)
         bro.getTalents().resize(::Const.Attributes.COUNT, 0);

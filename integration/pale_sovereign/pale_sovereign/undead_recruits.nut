@@ -119,10 +119,11 @@ S.addUndeadTraits <- function( _bro, _skeleton )
 };
 
 // 生成一名常驻亡灵：属性按背景范围随机，抽天赋星和特质
-S.createUndead <- function( _kind )
+S.createUndead <- function( _kind, _roster = null )
 {
     local kind = this.UndeadKinds[this.undeadKindOf(_kind)];
-    local bro = this.spawnBrother(kind.Background, kind.Gear, -1, false);
+    local bro = this.spawnBrother(kind.Background, kind.Gear, -1, false, _roster);
+    bro.getFlags().set("PaleUndeadKind", this.undeadKindOf(_kind));
     bro.getFlags().set("PalePermanentUndead", true);
     bro.getFlags().set("undead", true);
     try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 常驻亡灵天赋: " + e); }
@@ -196,4 +197,186 @@ S.recruitPanel <- function( _screen )
         });
     }
     this.option(_screen, "返回营地", @() "@camp");
+};
+
+// 1.6.12 亡者之城和古堡兵营的待选名单：每处 8 名（尸妖王侍卫长 2 级时 16 名），每 7 天刷新，征召后从名单移除。
+// 待选亡灵放在每处地点自己的花名册里（编号存在城镇标记 PaleRecruitRoster），和要塞模组存放本地花名册的做法相同。
+S.RecruitPoolDays <- 7;
+S.RecruitPerPage <- 4;
+S.RecruitPage <- 0;
+S.RecruitTalentNames <- [
+    ["Hitpoints", "生命"], ["Bravery", "决心"], ["Fatigue", "体力"], ["Initiative", "主动"],
+    ["MeleeSkill", "近战"], ["RangedSkill", "远程"], ["MeleeDefense", "近防"], ["RangedDefense", "远防"]
+];
+
+S.recruitPoolSize <- function()
+{
+    return this.followerRank("wight_captain") >= 2 ? 16 : 8;
+};
+
+S.recruitRoster <- function( _town, _create )
+{
+    local flags = _town.getFlags();
+    local id = flags.getAsInt("PaleRecruitRoster");
+    local roster = null;
+    if (id != 0)
+    {
+        try { roster = ::World.getRoster(id); } catch (e) { roster = null; }
+    }
+    if (roster == null && _create)
+    {
+        id = ::Math.rand(100000000, 999999999);
+        roster = ::World.createRoster(id);
+        flags.set("PaleRecruitRoster", id);
+        flags.set("PaleRecruitDay", -100);
+        flags.set("PaleRecruitSize", 0);
+    }
+    return roster;
+};
+
+S.clearRecruitPool <- function( _town )
+{
+    local roster = this.recruitRoster(_town, false);
+    if (roster != null)
+        roster.clear();
+    _town.getFlags().set("PaleRecruitDay", -100);
+    _town.getFlags().set("PaleRecruitSize", 0);
+};
+
+// 到期刷新；侍卫长升到 2 级后，本期名单当场补足到 16 名
+S.recruitPool <- function( _town )
+{
+    local roster = this.recruitRoster(_town, true);
+    local flags = _town.getFlags();
+    local day = ::World.getTime().Days;
+    if (day >= flags.getAsInt("PaleRecruitDay") + this.RecruitPoolDays)
+    {
+        roster.clear();
+        flags.set("PaleRecruitDay", day);
+        flags.set("PaleRecruitSize", 0);
+    }
+    local made = flags.getAsInt("PaleRecruitSize");
+    local size = this.recruitPoolSize();
+    for (local i = made; i < size; ++i)
+    {
+        // 新一期的前 3 名各是一种亡灵，其余随机
+        local kind = i < this.UndeadKindOrder.len() ? this.UndeadKindOrder[i] : this.UndeadKindOrder[::Math.rand(0, this.UndeadKindOrder.len() - 1)];
+        try { this.createUndead(kind, roster); } catch (e) { ::logError("[PaleSovereign] 待选亡灵: " + e); }
+    }
+    if (made < size)
+        flags.set("PaleRecruitSize", size);
+    local list = roster.getAll();
+    local order = this.UndeadKindOrder;
+    list.sort(function( _a, _b )
+    {
+        local ka = order.find(S.undeadKindOf(_a.getFlags().get("PaleUndeadKind")));
+        local kb = order.find(S.undeadKindOf(_b.getFlags().get("PaleUndeadKind")));
+        return ka != kb ? ka <=> kb : _a.getID() <=> _b.getID();
+    });
+    return list;
+};
+
+S.joinRecruitText <- function( _parts )
+{
+    if (_parts.len() == 0)
+        return "无";
+    local text = _parts[0];
+    for (local i = 1; i < _parts.len(); ++i)
+        text += "、" + _parts[i];
+    return text;
+};
+
+S.recruitCandidateText <- function( _bro, _index )
+{
+    local kind = this.UndeadKinds[this.undeadKindOf(_bro.getFlags().get("PaleUndeadKind"))];
+    local text = _index + ". " + _bro.getName() + "（" + kind.Name + "）";
+    try
+    {
+        local p = _bro.getCurrentProperties();
+        text += "\n生命 " + _bro.getHitpointsMax() + "　决心 " + p.getBravery() + "　体力 " + _bro.getFatigueMax() + "　主动 " + p.getInitiative()
+            + "\n近战 " + p.getMeleeSkill() + "　远程 " + p.getRangedSkill() + "　近防 " + p.getMeleeDefense() + "　远防 " + p.getRangedDefense();
+    }
+    catch (e)
+    {
+    }
+    local stars = [];
+    try
+    {
+        local talents = _bro.getTalents();
+        foreach (entry in this.RecruitTalentNames)
+        {
+            local index = ::Const.Attributes[entry[0]];
+            if (index < talents.len() && talents[index] > 0)
+            {
+                local mark = "";
+                for (local i = 0; i < talents[index]; ++i)
+                    mark += "★";
+                stars.push(entry[1] + mark);
+            }
+        }
+    }
+    catch (e)
+    {
+    }
+    text += "\n天赋：" + this.joinRecruitText(stars);
+    local traits = [];
+    foreach (trait in _bro.getSkills().query(::Const.SkillType.Trait))
+        if (!trait.isHidden())
+            traits.push(trait.getName());
+    text += "\n特质：" + this.joinRecruitText(traits);
+    return text;
+};
+
+S.recruitCandidate <- function( _town, _bro, _price, _levels )
+{
+    local roster = this.recruitRoster(_town, false);
+    if (roster == null || !this.canRecruitUndead(null, _price) || roster.getAll().find(_bro) == null)
+        return false;
+    ::World.getPlayerRoster().add(_bro);
+    roster.remove(_bro);
+    _bro.m.HireTime = ::Time.getVirtualTimeF();
+    this.changeReserve(-_price);
+    if (_levels > 0)
+        this.castleTrain(_bro, _levels);
+    _bro.setHitpointsPct(1.0);
+    ::World.Assets.updateFormation(true);
+    return true;
+};
+
+// 亡者之城（_levels = 0）与古堡兵营（升级后 _levels = 2）共用的名单页
+S.recruitPoolPanel <- function( _screen, _town, _price, _levels )
+{
+    local list = this.recruitPool(_town);
+    local per = this.RecruitPerPage;
+    local page = ::Math.max(0, ::Math.min(this.RecruitPage, (list.len() - 1) / per));
+    local nextDay = _town.getFlags().getAsInt("PaleRecruitDay") + this.RecruitPoolDays;
+    _screen.Text += "\n\n待选亡灵 " + list.len() + " 名，每名 " + _price + " 点防腐尸骸（现有 " + this.get("Reserve") + " 点）"
+        + (_levels > 0 ? "，征召后起始等级 +" + _levels : "") + "。名单每 " + this.RecruitPoolDays + " 天刷新，还有 " + ::Math.max(1, nextDay - ::World.getTime().Days) + " 天。"
+        + (this.followerRank("wight_captain") >= 2 ? "尸妖王侍卫长在场，名单扩充到 16 名。" : "");
+    if (list.len() == 0)
+    {
+        _screen.Text += "\n\n本期名单已经征召完了。";
+        return;
+    }
+    local canRecruit = this.canRecruitUndead(null, _price);
+    if (!canRecruit)
+        _screen.Text += "\n\n防腐尸骸不足、常驻亡灵已达上限或战团已满，暂时无法征召。";
+    local pageID = _screen.ID;
+    for (local i = page * per; i < ::Math.min(list.len(), (page + 1) * per); ++i)
+    {
+        local bro = list[i];
+        _screen.Text += "\n\n" + this.recruitCandidateText(bro, i + 1);
+        if (!canRecruit)
+            continue;
+        local kindName = this.UndeadKinds[this.undeadKindOf(bro.getFlags().get("PaleUndeadKind"))].Name;
+        this.option(_screen, "征召 " + (i + 1) + " 号 · " + kindName + "（" + _price + " 点尸骸）", function()
+        {
+            local name = bro.getName();
+            return S.recruitCandidate(_town, bro, _price, _levels) ? name + " 从盐封棺中站起，加入了战团。" : "无法征召。";
+        });
+    }
+    if (page > 0)
+        this.option(_screen, "上一页", function() { S.RecruitPage = page - 1; return "@" + pageID; });
+    if ((page + 1) * per < list.len())
+        this.option(_screen, "下一页", function() { S.RecruitPage = page + 1; return "@" + pageID; });
 };

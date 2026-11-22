@@ -24,6 +24,7 @@ this.pale_summon_zombie <- ::inherit("pale_sovereign/classes/pale_summon_undead"
             Head = ["helmets/flat_top_helmet", "helmets/kettle_hat_with_mail", "helmets/nasal_helmet_with_mail"]
         };
         this.m.ForNecromancers = true;
+        this.m.FearInsteadOfOverwhelm = true;
         this.m.Gear = {
             Mainhand = ["weapons/hatchet", "weapons/militia_spear", "weapons/butchers_cleaver", "weapons/wooden_flail", "weapons/knife"],
             Body = ["armor/leather_tunic", "armor/linen_tunic", "armor/padded_surcoat"],
