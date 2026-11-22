@@ -71,9 +71,17 @@ S.Mod.hook("scripts/states/world_state", function(q)
 {
     q.loading_screen_onQueryData = @(__original) function()
     {
+        if (this.m.ExitGame)
+            return __original();
+
         local filename = this.m.CampaignToLoadFileName;
-        return !this.m.ExitGame && filename != null && isPaleSave(filename)
-            ? loadingData(false) : __original();
+        if (filename != null)
+            return isPaleSave(filename) ? loadingData(false) : __original();
+
+        if (!S.isActive() || (this.m.CombatProperties == null && this.m.EngageCombatPos == null))
+            return __original();
+
+        return S.battleLoadingData(true, S.battleLoadingScene(this.m.CombatProperties, this.m.EngageCombatPos));
     };
 
     q.onBeforeSerialize = @(__original) function( _out )
@@ -81,5 +89,24 @@ S.Mod.hook("scripts/states/world_state", function(q)
         __original(_out);
         if (S.isActive())
             _out.getMetaData().setString(originKey, S.ID);
+    };
+});
+
+S.Mod.hook("scripts/states/tactical_state", function(q)
+{
+    q.m.PaleBattleLoadingScene <- "Field";
+
+    q.setStrategicProperties = @(__original) function( _properties )
+    {
+        local result = __original(_properties);
+        if (S.isActive() && _properties != null)
+            this.m.PaleBattleLoadingScene = S.battleLoadingScene(_properties);
+        return result;
+    };
+
+    q.loading_screen_onQueryData = @(__original) function()
+    {
+        return !this.m.IsExitingToMenu && !this.isScenarioMode() && S.isActive()
+            ? S.battleLoadingData(false, this.m.PaleBattleLoadingScene) : __original();
     };
 });
