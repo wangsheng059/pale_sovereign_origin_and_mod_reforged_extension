@@ -427,6 +427,13 @@ S.renderEvent <- function( _event, _screen )
             this.castlePanel(_screen);
             break;
 
+        case "soulbound":
+            title = "锁魂者";
+            art = "ascension_rite";
+            closing = false;
+            this.soulboundPanel(_screen);
+            break;
+
         case "conquest_recruit":
             title = "亡者之城";
             art = "mortuary";

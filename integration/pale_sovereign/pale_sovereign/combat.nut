@@ -2,7 +2,7 @@ local S = ::PaleSovereign;
 
 S.beginBattle <- function( _night )
 {
-    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0 };
+    this.Battle = { Mark = null, Prey = null, QueuedShots = {}, Uncollected = 0, Decayed = {}, Night = _night, SiegeFight = false, Death = null, Champions = 0, UndeadDeployed = 0, AncientCleared = false, Won = false, BloodFeast = false, FollowerOpening = false, BoneRound = -1, Governor = null, DefenseDead = 0, Soulbound = [], SoulUsed = false };
 };
 
 S.area <- function( _center )
@@ -132,6 +132,7 @@ S.onVictory <- function( _loot )
     if (strategic != null && strategic.IsArenaMode)
         return;
     this.Battle.Won = true;
+    this.captureSoulbound();
     this.set("Victories", this.get("Victories") + 1);
     if (this.Battle.Night)
         this.set("NightWins", this.get("NightWins") + 1);
@@ -198,7 +199,13 @@ S.applyUndeadLook <- function( _bro )
         return;
     local skeleton = background.m.PaleSkeleton;
     local key = background.m.PaleBranch;
-    local branch = background.m.PaleTier > 1 ? this.TierBranches[key] : null;
+    local look = null;
+    try { look = background.m.PaleLook; } catch (e) { look = null; }
+    if (typeof look == "string" && look in this.TierBranches)
+        key = look;
+    else
+        look = null;
+    local branch = look != null || background.m.PaleTier > 1 ? this.TierBranches[key] : null;
     local body = _bro.getSprite("body");
     local head = _bro.getSprite("head");
     if (skeleton)

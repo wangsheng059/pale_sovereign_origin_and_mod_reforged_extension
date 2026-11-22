@@ -40,7 +40,7 @@ S.restoreTierSkills <- function( _bro )
 S.tierCanPromote <- function( _bro, _branch )
 {
     if (!this.isActive() || !::World.Assets.isCamping() || _bro == null || !_bro.isAlive()
-        || !this.isUndead(_bro) || _bro.getLevel() < this.TierCost.Level
+        || !this.isUndead(_bro) || _bro.getFlags().has("PaleSoulbound") || _bro.getLevel() < this.TierCost.Level
         || this.undead().find(_bro) == null || !(_branch in this.TierBranches))
         return false;
     local old = this.getUndeadBackground(_bro);
