@@ -244,13 +244,18 @@ S.castleAnvil <- function( _town )
     assets.addMoney(-200);
     assets.addArmorParts(-10);
     flags.set("PaleAnvilAfter", this.worldHours() + 240);
-    return "消耗 200 克朗、10 工具和 1 块金属，打出一条缚魂锁链。";
+    return "消耗 200 克朗、10 工具和 1 块铜锭，打出一条缚魂锁链。";
 };
 
 S.castlePanel <- function( _screen )
 {
     local town = this.castleHere();
-    _screen.Text = "古堡的石门在雾中敞开，守门人仍穿着生前那副铠甲。";
+    local page = _screen.ID.find("castle_forge") == 0 ? "castle_forge" : _screen.ID;
+    _screen.Text = this.CastleIntro;
+    if (page != "castle")
+        foreach (data in this.CastleBuildings)
+            if (data.Page == page)
+                _screen.Text = data.Flavor;
     if (town == null)
     {
         _screen.Text = "这里没有已完工的古堡。";
@@ -375,5 +380,5 @@ S.castlePanel <- function( _screen )
             }
             break;
     }
-    this.option(_screen, _screen.ID == "castle" ? "回到亡灵营地" : "返回古堡", @() _screen.ID == "castle" ? "@camp" : "@castle");
+    this.option(_screen, _screen.ID == "castle" ? "回到亡灵营地" : "回到亡灵古堡", @() _screen.ID == "castle" ? "@camp" : "@castle");
 };

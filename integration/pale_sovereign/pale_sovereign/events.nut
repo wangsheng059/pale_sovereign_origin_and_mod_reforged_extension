@@ -250,7 +250,7 @@ S.campPanel <- function( _event, _screen )
     {
         _screen.Text += "\n出战　" + (pet == null ? "空棺" : pet.m.Name + "（吞魂 " + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）")
             + "\n候补　" + (reserve == null ? "无" : reserve.m.Name)
-            + "\n古墓守卫并肩胜仗　" + this.get("GuardWins") + " / 5";
+            + "\n荒坟守卫并肩胜仗　" + this.get("GuardWins") + " / 5";
     }
 
     if (this.castleHere() != null)
@@ -295,7 +295,7 @@ S.campPanel <- function( _event, _screen )
             }
         }
         if (pet != null && pet.m.PaleID == this.get("StarterID") && this.get("GuardWins") >= 5 && this.petGet(pet, "Promoted") == 0 && jade >= 3)
-            this.option(_screen, "用 3 枚古代魂玉将古墓守卫晋升为尸妖王", function()
+            this.option(_screen, "用 3 枚古代魂玉将荒坟守卫晋升为尸妖王", function()
             {
                 if (S.countItems("misc.pale_jade") < 3)
                     return null;
@@ -313,7 +313,7 @@ S.campPanel <- function( _event, _screen )
                 return "魂玉在你掌心碎成冰冷的碧粉，被一点点抹进冠军的骨缝。枯骨发出细密的爆响，比先前更沉、更硬。\n\n（8 项属性各 +2，每个冠军限 2 次，已用 " + S.petGet(pet, "JadeTemper") + " 次）";
             });
         if (this.get("BannerReward") != 0 && pet != null && pet.m.PaleID == this.get("StarterID"))
-            this.option(_screen, "授予古墓守卫第三面残旗", function()
+            this.option(_screen, "授予荒坟守卫第三面残旗", function()
             {
                 S.set("BannerReward", 0);
                 S.petSet(pet, "Species.4", 1);
@@ -494,7 +494,7 @@ S.renderEvent <- function( _event, _screen )
                     pet.updateCompanion();
                 }
                 local lead = S.revealAncient();
-                return "盗墓贼收起盐袋，借着火光把铜片上的纹路抄在羊皮纸上，很快在地图边缘圈出了一处荒废的古墓，顺手还替卫士重新绑紧了松脱的甲片。\n\n（" + (lead == null ? "附近没有找到可标记的遗址" : "地图上标出了 " + lead) + "；古墓守卫的伤势已处理）";
+                return "盗墓贼收起盐袋，借着火光把铜片上的纹路抄在羊皮纸上，很快在地图边缘圈出了一处荒废的古墓，顺手还替卫士重新绑紧了松脱的甲片。\n\n（" + (lead == null ? "附近没有找到可标记的遗址" : "地图上标出了 " + lead) + "；荒坟守卫的伤势已处理）";
             });
             this.option(_screen, "“把盐拿来，先封好这批遗骸。”", function()
             {
@@ -530,7 +530,7 @@ S.renderEvent <- function( _event, _screen )
                 S.set("BannerTrials", 3);
                 S.set("BannerSuccess", 0);
                 S.set(site.Key + "Inspected", 1);
-                return "你将残旗系在卫士的矛杆上，它眼中的魂火骤然明亮了几分。\n\n（接下来 3 场胜仗中，让古墓守卫至少 2 场与导师一同出战并存活，完成后在营地授旗，解锁专属称号与【护驾遗志】）";
+                return "你将残旗系在卫士的矛杆上，它眼中的魂火骤然明亮了几分。\n\n（接下来 3 场胜仗中，让荒坟守卫至少 2 场与导师一同出战并存活，完成后在营地授旗，解锁专属称号与【护驾遗志】）";
             });
             this.option(_screen, "“死人不需要旧日荣耀，把旗留在墓里。”", function()
             {
@@ -602,7 +602,7 @@ S.renderEvent <- function( _event, _screen )
                 else
                     return "导师的饰品栏和仓库都没有空位。";
                 S.set("EmptyCoffin", 1);
-                return "你用残存的魂火拼凑出一具新的骨架，虽不如往日那般悍勇，但至少旧棺不再空荡荡的。\n\n（获得 1 名未训练的古墓守卫）";
+                return "你用残存的魂火拼凑出一具新的骨架，虽不如往日那般悍勇，但至少旧棺不再空荡荡的。\n\n（获得 1 名未训练的荒坟守卫）";
             });
             break;
 

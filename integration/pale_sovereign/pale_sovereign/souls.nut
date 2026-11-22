@@ -139,7 +139,7 @@ S.makeGuard <- function( _starting )
     local type = ::BGP.NecroPet.getTypeForScript("scripts/entity/tactical/enemies/skeleton_light", true);
     local pet = ::new(this.ItemDir + "accessory/wardog_item");
     pet.setType(type);
-    pet.m.Name = _starting ? "残破的古墓守卫" : "古墓守卫";
+    pet.m.Name = _starting ? "残破的荒坟守卫" : "荒坟守卫";
     pet.m.BGP_Gear = "S:scripts/items/weapons/militia_spear;S:scripts/items/shields/wooden_shield";
     if (_starting)
         pet.m.Wounds = 25;

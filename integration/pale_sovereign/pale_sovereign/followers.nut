@@ -3,27 +3,27 @@ local S = ::PaleSovereign;
 S.FollowerData <- {
     embalmer = {
         Name = "防腐师", Archetype = "Steward", Image = "ui/campfire/quartermaster_01",
-        Description = "他管着裹尸布、盐和推车。战后哪里还有可用的骨头，谁都没有他清楚。",
+        Description = "他身上的盐味和松脂味怎么也洗不掉。再破烂的尸体到了他手里，也能腌得整整齐齐，在车厢里码得严丝合缝。",
         Effects = ["每 3 具合格遗骸封存 2 点尸骸", "每日修补量提高至 30%", "开战时在战线后部署 2 具防腐尸体"]
     },
     gravekeeper = {
         Name = "掘墓人首领", Archetype = "Ranger", Image = "ui/campfire/scout_01",
-        Description = "他从土色和野草里认得出帝国旧墓，也认得出还没被人撬过的墓门。",
+        Description = "他能从野草的颜色和地面的塌陷看出帝国旧墓的位置，也知道哪道墓门还没被人撬开过。",
         Effects = ["每 7 天标出一处未勘察的古代遗址", "勘察时魂玉概率 +5 个百分点，锁链概率 +10 个百分点", "清剿古代遗址额外获得古代武器或古代金币"]
     },
     wight_captain = {
         Name = "尸妖王侍卫长", Archetype = "Officer", Image = "ui/campfire/agent_01",
-        Description = "从古帝国一直站到今天的沉默军官，仍知道如何操练一名冠军。",
+        Description = "一名从古帝国站岗至今的沉默军官。它早已不记得自己的名字，却还记得怎样操练一名冠军。",
         Effects = ["冠军经验 +20%", "缚魂锁链生命门槛 +5 个百分点", "冠军在首回合获得 +10 近战技能"]
     },
     banshee = {
         Name = "女妖", Archetype = "Agent", Image = "ui/campfire/agent_01",
-        Description = "只有守夜人听见过她的声音。他们之间从来没有人愿意复述。",
+        Description = "只有守夜的人听见过她的歌声。第二天早上，他们谁也不肯复述那首歌。",
         Effects = ["夜战首回合敌人决心 −5", "夜间大地图视野 +15%", "首回合随机一名敌人做一次 −15 的士气检定"]
     },
     blood_steward = {
         Name = "血宴管家", Archetype = "Healer", Image = "ui/campfire/surgeon_01",
-        Description = "一个懂得如何保住活人血液的吸血鬼。战团接受了这个有些滑稽的安排。",
+        Description = "一个举止得体的吸血鬼，深谙如何让活人的血保持新鲜。战团接受了这个有些滑稽的安排，只是没人愿意和他单独吃饭。",
         Effects = ["活人生命恢复速度 +20%", "战胜后导师恢复 30% 最大生命", "每战导师首次击杀恢复 20 生命和 10 疲劳"]
     }
 };
@@ -68,7 +68,7 @@ S.followerOnKill = function( _killer )
     this.Battle.BloodFeast = true;
     _killer.setHitpoints(::Math.min(_killer.getHitpointsMax(), _killer.getHitpoints() + 20));
     _killer.setFatigue(::Math.max(0, _killer.getFatigue() - 10));
-    ::Tactical.EventLog.log("血宴管家令导师从首个击杀中恢复生命和疲劳。");
+    ::Tactical.EventLog.log("血宴管家的秘法生效，导师从首个击杀中恢复了生命和疲劳。");
 };
 
 S.followerBattleOpening <- function( _actor )

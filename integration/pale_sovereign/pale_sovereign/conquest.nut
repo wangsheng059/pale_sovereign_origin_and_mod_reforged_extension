@@ -45,7 +45,7 @@ S.conquestChoose <- function( _town, _mode )
     flags.set("PaleConquestMode", _mode);
     flags.set("PaleConquestPending", false);
     if (_mode == 1)
-        return "你维持了城镇的日常运转。恐惧税使税收 +25%，城镇每周失去 1 点繁荣度。";
+        return "城中的钟照常敲响，集市照常开张，只是再没人敢抬头直视城门上的骷髅。恐惧税使税收 +25%，城镇每周失去 1 点繁荣度。";
 
     foreach (contract in contracts)
         if (!contract.isActive())
@@ -70,7 +70,7 @@ S.conquestChoose <- function( _town, _mode )
     local label = _town.getLabel("name");
     if (label != null)
         label.Text = _town.getName();
-    return "城镇成为亡者之城。收集 20 点防腐尸骸，周边定居点关系 −20。这里此后不再有活人招募、合同或税收。";
+    return "这一夜过后，城里再也听不到活人的声音。城镇成为亡者之城：收集 20 点防腐尸骸，周边定居点关系 −20。这里此后不再有活人招募、合同或税收。";
 };
 
 S.conquestChoices <- function( _screen, _town )
@@ -110,7 +110,7 @@ S.Mod.hook("scripts/events/events/conquest_assault_event", function(q)
                     town.getFlags().set("PaleConquestPending", true);
                 }
                 this.Options = [];
-                this.Text = "城门已经打开。活人伏在街石上，静等导师的裁决。";
+                this.Text = "城门的铁闩被枯骨从内侧抬起，沉重的门扇在一片死寂中缓缓敞开。守军的旗帜被踩进了泥水，残存的士兵早已扔下武器，和满城的居民一起伏在冰冷的街石上，连抽泣都压得极低。骷髅沿着主街排成两列，空洞的眼眶齐齐转向城中；行尸拖着脚步，把躲在屋檐下的伤者一个个拽出来，丢到广场中央。城墙上的守夜钟没人再敢去敲，只剩风从钟口灌进去，发出一阵阵低哑的呜咽。盗墓贼们已经在打量哪几户人家的地窖最深，哪座教堂底下的墓穴最值钱。导师缓步走过跪伏的人群，法杖顶端的魂火从一张张惨白的脸上掠过，没有人敢抬头。这座城往后是照常开市纳税，靠恐惧苟延残喘地过日子，还是就此归于寂静，让每一具尸骸都走进亡者的队列？活人们屏住呼吸，静候导师的裁决。";
                 S.conquestChoices(this, town);
             };
         }
@@ -244,7 +244,7 @@ C.updateTaxes = function()
             if (!paid)
             {
                 localFlags.set("ConquestGarrison", ::Math.max(0, level - 1));
-                localFlags.set("ConquestLastResult", "本周防腐尸骸不足，亡灵驻军降级。");
+                localFlags.set("ConquestLastResult", "本周防腐尸骸不足，一部分驻军烂得再也站不起来。亡灵驻军降级。");
             }
         }
     }
@@ -284,7 +284,7 @@ S.findPaleTown = function()
 S.conquestRecruitPanel <- function( _screen )
 {
     local town = this.findPaleTown();
-    _screen.Text = "街道上再无人声。导师的随从在空置的房屋间整顿新编入列的死者。";
+    _screen.Text = "街道上再无人声。集市的摊位还支着褪色的篷布，上面积了一层灰，酒馆的招牌在风里吱呀摇晃，却再没有人推门进去。城中每一扇窗户都黑着，只有墓园那边终夜亮着幽绿的魂火。几条野狗起初还在巷子里游荡，没过几天也夹着尾巴逃出了城，连乌鸦都不肯落在屋顶上。从前的居民如今在广场上排成整齐的队列，有的还系着围裙，有的手里攥着生前没来得及放下的锄头。导师的随从在空置的房屋间穿行，把新编入列的死者逐一登记造册：骨架完整的送去磨利兵器，皮肉尚存的就地缝补，实在拼不起来的便腌进盐桶，留作日后的材料。城门口的旧告示还没被撕掉，上面写着这座城的名字和赋税的章程，如今读来倒像一篇墓志铭。这里再也不需要税吏和征兵官，死者自会应召。";
     if (town == null || this.conquestMode(town) != 2)
     {
         _screen.Text = "需要在一座亡者之城旁边。";
@@ -309,7 +309,7 @@ C.startSiege = function( _town, _faction )
     flags.set("PaleHolySiege", holy);
     startSiege(_town, _faction);
     if (holy)
-        flags.set("ConquestLastResult", "猎巫人与执誓者率圣火讨伐军来袭，兵力 +25%。");
+        flags.set("ConquestLastResult", "城外燃起了圣火。猎巫人与执誓者率圣火讨伐军前来收复失地，兵力 +25%。");
 };
 
 local strength = C.getSiegeStrength;

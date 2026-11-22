@@ -16,7 +16,7 @@ this.pale_tier_passive <- ::inherit("scripts/skills/skill", {
         this.m.TierTalent = _key;
         this.m.ID = ::PaleSovereign.tierTalentID(_key);
         this.m.Name = definition.Name;
-        this.m.Description = definition.Description;
+        this.m.Description = definition.Flavor + "\n" + definition.Description;
         this.m.Icon = "skills/pale_" + _key + ".png";
         this.m.IconDisabled = "skills/pale_" + _key + "_sw.png";
     }

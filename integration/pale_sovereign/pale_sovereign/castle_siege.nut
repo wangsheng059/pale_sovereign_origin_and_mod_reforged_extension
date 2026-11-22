@@ -134,6 +134,13 @@ S.castleRetrySiege <- function( _contract )
     _contract.setState("Running");
 };
 
+S.CastleSiegeText <- {
+    Start = "第一块墓石刚被抬上地基，消息就已经顺着商道传开了。附近村落的钟声连敲了一整夜，教堂执事在布道台上点名诅咒这座尚未落成的古堡，猎巫人带着随军僧侣在各处集市募兵，连山里的强盗也闻风而动，盘算着趁墙垣还没合拢时抢先下手。骷髅们不知疲倦地搬运石料，行尸用双手把灰浆抹进石缝，盗墓贼则在工地四周挖出浅沟，插满削尖的木桩，又在木桩之间埋好了绊索。夜里工地上从不点火，可干活的声响一刻也没有停过，路过的商队宁可绕上半天的远路。导师站在半截城墙上，望着远处一缕缕升起的炊烟，神情平静，像是在估算一笔早已算清的账。活人总会来的，他们越是恐惧，送上门来的尸骸就越多。等到城墙合拢的那一天，每一个倒在墙下的讨伐者，都会变成这座古堡的第一批守军。\n\n（两天后第一波敌军抵达，此后每隔一天一波，共三波。守住古堡后，讨伐者的遗骸都归战团。）",
+    Fail = "来敌趁着守军被拖在外围的空当冲进了工地。等战团赶回来时，脚手架已经烧成一地焦黑的木炭，刚砌好的墙垣被撞开了好几道缺口，堆在一旁的石料滚得满坡都是。几具负责搬运的骷髅被砸成了碎骨，混在瓦砾里，分不清哪块是石头、哪块是肋骨。缺口边还插着一面猎巫人的小旗，旗杆上钉着一张写满经文的羊皮纸，墨迹被烟熏得发黑。盗墓贼们骂骂咧咧地扑灭余火，清点着被抢走的工具和材料，嘴里把讨伐者的祖宗挨个问候了一遍。好在地基深埋在土里，已经完工的厅堂也还屹立不倒，敌人终究没能把它连根拔起。导师在废墟间走了一圈，用法杖拨开一块熏黑的墓碑，吩咐亡灵们天亮之前把缺口重新垒起来。讨伐者明天还会再来，到那时，城墙下只会多出更多的尸骸。\n\n（施工进度退回一半，已完工的建筑仍在。明日继续抵御围攻。）",
+    Wave = "[img]gfx/ui/events/event_26.png[/img]最后一名讨伐者倒在墙根下时，天边已经泛起了灰白。城墙下横七竖八地躺满了尸体，碎裂的圣徽和折断的长矛散落在泥泞里，几面绣着圣火纹章的旗帜被踩进血水，再也辨不出原来的颜色。骷髅们沉默地回到缺口处站定，仿佛这场厮杀从未发生过；行尸拖着残缺的躯体，把敌人的尸首一具具拽进古堡的庭院，在墙角码成齐整的一排。盗墓贼们忙着剥下还算完好的锁甲，顺手把死人的钱袋塞进怀里，为一枚镶着假宝石的戒指争了半天。导师俯身察看几具保存完好的尸体，吩咐手下先用盐把它们腌起来，免得放坏了。缺口处的血迹还没干，新砌的石块就已经压了上去。远处的山脊上，又有新的火把一支接一支地亮起。活人还没有死心，下一波讨伐军已经在路上了，而古堡的城墙也还没有合拢。\n\n（守住全部三波后，各波讨伐者的遗骸一并归入防腐尸骸。下一波敌军将在一天后抵达。）",
+    Win = "[img]gfx/ui/events/event_24.png[/img]第三波讨伐军溃散时，连随军僧侣都扔下了圣典，提着袍角逃进了雾里。城墙下堆积的尸体已经填平了壕沟，猎巫人的银十字架和强盗的破斧头混在同一摊血泥里，谁也分不清彼此，也没人想去分清。古堡终于合上了最后一道城门，沉重的门闩落下时，整座山头都跟着震了一震。骷髅们在城垛上一字排开，魂火在暮色中连成一线，远远望去，像是在山头上点起了一圈永不熄灭的鬼火。盗墓贼们在庭院里生起了第一堆篝火，难得地撬开了一桶麦酒，为自己还活着干了一杯，又往火里扔了一面缴来的圣火旗。导师独自登上最高的塔楼，俯视着脚下这片刚被鲜血浸透的土地。从今往后，这里就是亡者的据点。讨伐者的尸骸会被腌好入库，而他们留下的恐惧，会替古堡守住每一条通往这里的道路。\n\n（三波讨伐者的遗骸全部归入防腐尸骸。每座古堡第一次守住围攻时，另得 1 枚古代魂玉。）"
+};
+
 S.Mod.hook("scripts/contracts/contracts/stronghold_defeat_assailant_contract", function(q)
 {
     q.start = @(__original) function()
@@ -227,7 +234,7 @@ S.Mod.hook("scripts/contracts/contracts/stronghold_defeat_assailant_contract", f
                 {
                     start.call(this);
                     if (this.Contract.m.Flags.get("PaleCastle") == true)
-                        this.Text = "[img]gfx/ui/events/pale/mortuary.jpg[/img]古堡开始施工。两天后将有第一波敌军抵达，往后每隔一天一波，共三波。守住古堡后，讨伐者的遗骸都归战团。";
+                        this.Text = "[img]gfx/ui/events/pale/mortuary.jpg[/img]" + S.CastleSiegeText.Start;
                 };
             }
             if (screen.ID == "FailureInterrupt" || screen.ID == "FailureBuild")
@@ -238,7 +245,7 @@ S.Mod.hook("scripts/contracts/contracts/stronghold_defeat_assailant_contract", f
                 {
                     if (this.Contract.m.Flags.get("PaleCastle") != true)
                         return start.call(this);
-                    this.Text = "来敌毁坏了未完工的工事。施工进度退回一半，已完工建筑仍在。明日继续抵御围攻。";
+                    this.Text = S.CastleSiegeText.Fail;
                 };
                 screen.Options[0].getResult = function()
                 {
@@ -251,6 +258,13 @@ S.Mod.hook("scripts/contracts/contracts/stronghold_defeat_assailant_contract", f
             if (screen.ID == "Victory_More_Left" || screen.ID == "Victory_None_Left")
             {
                 local last = screen.ID == "Victory_None_Left";
+                local victoryStart = screen.start;
+                screen.start = function()
+                {
+                    victoryStart.call(this);
+                    if (this.Contract.m.Flags.get("PaleCastle") == true)
+                        this.Text = last ? S.CastleSiegeText.Win : S.CastleSiegeText.Wave;
+                };
                 local apply = screen.Options[0].getResult;
                 screen.Options[0].getResult = function()
                 {

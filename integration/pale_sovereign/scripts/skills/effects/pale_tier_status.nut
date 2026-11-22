@@ -20,19 +20,19 @@ this.pale_tier_status <- ::inherit("scripts/skills/skill", {
         {
             case "grave_blade":
                 this.m.Name = "墓之刃";
-                this.m.Description = "受到的伤害 +10%。";
+                this.m.Description = "伤口里渗进了墓土的寒气，迟迟止不住血。受到的伤害 +10%。";
                 break;
             case "bone_break":
                 this.m.Name = "断骨";
-                this.m.Description = "近战防御 −5。";
+                this.m.Description = "骨头被长戟砸裂，举盾格挡都变得吃力。近战防御 −5。";
                 break;
             case "dead_command":
-                this.m.Name = "亡者号令";
-                this.m.Description = "近战技能 +5，对敌人造成的伤害 +10%。";
+                this.m.Name = "号令亡魂";
+                this.m.Description = "骷髅王的号令在骨缝间回响。近战技能 +5，对敌人造成的伤害 +10%。";
                 break;
             case "stench":
                 this.m.Name = "腐臭";
-                this.m.Description = "被尸山巨像的腐臭光环波及，决心 −5。";
+                this.m.Description = "被尸山巨像的腐臭光环熏得头晕目眩。决心 −5。";
                 this.m.Turns = 1;
                 break;
         }

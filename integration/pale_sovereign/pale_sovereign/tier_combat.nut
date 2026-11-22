@@ -42,7 +42,7 @@ S.burstUndead <- function( _burst )
     ::BGP.Necro.removeCorpse(center);
     ::BGP.Necro.spawnBloodbath(center);
     if (_burst.Name != "")
-        ::Tactical.EventLog.log(_burst.Name + "的尸体炸开了。");
+        ::Tactical.EventLog.log(_burst.Name + "的尸体轰然炸开，腐液溅满了四周。");
 
     local visited = {};
     foreach (nearby in this.area(center))

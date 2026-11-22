@@ -84,13 +84,13 @@ S.assignGovernor <- function( _town, _coffin )
     this.petID(_coffin);
     this.storeGovernor(_town, _coffin);
     stash.remove(_coffin);
-    return _coffin.m.Name + " 留守此城，驻军强度 +1 级。守城战中它会以宠物身份出战。";
+    return _coffin.m.Name + " 的棺椁被抬进了城中的旧兵营，从此由它统领这里的亡灵。驻军强度 +1 级，守城战中它会以宠物身份出战。";
 };
 
 S.governorPanel <- function( _screen )
 {
     local town = this.findPaleTown();
-    _screen.Text = "将一口候补棺椁留在城里，令冠军指挥亡灵驻军。";
+    _screen.Text = "冠军不需要睡眠，也从不擅离岗位。将一口候补棺椁留在城里，令冠军指挥亡灵驻军。";
     if (this.oath() != this.Oath.Champion || town == null)
         return;
     local flags = town.getFlags();
