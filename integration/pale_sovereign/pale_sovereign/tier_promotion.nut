@@ -46,7 +46,8 @@ S.tierCanPromote <- function( _bro, _branch )
     local old = this.getUndeadBackground(_bro);
     local next = this.TierBranches[_branch];
     return old != null && next.Tier == old.m.PaleTier + 1 && next.Skeleton == old.m.PaleSkeleton
-        && this.get("Reserve") >= this.TierCost.Reserve && this.countItems("misc.pale_jade") >= this.TierCost.Jade;
+        && this.get("Reserve") >= this.TierCost.Reserve && this.countItems("misc.pale_jade") >= this.TierCost.Jade
+        && ::World.Assets.getMoney() >= this.TierCost.Money;
 };
 
 S.resetTierArmor <- function( _bro )
@@ -172,6 +173,7 @@ S.tierPromote <- function( _bro, _branch )
 
     this.removeMaterial("jade");
     this.changeReserve(-this.TierCost.Reserve);
+    ::World.Assets.addMoney(-this.TierCost.Money);
     ::World.State.updateTopbarAssets();
     return _bro.getName() + " 已升阶为【" + next.Name + "】。等级 " + oldLevel + " → " + level
         + "，可重新分配 " + _bro.getLevelUps() + " 次属性增长与 " + _bro.getPerkPoints() + " 点特技。";

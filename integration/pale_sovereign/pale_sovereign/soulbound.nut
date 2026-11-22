@@ -523,6 +523,58 @@ S.worldEvent = function()
     return worldEvent.call(this);
 };
 
+// ---------------------------------------------------------------------------
+// 炼化（天灾）：扎营时献祭一名 6 级以上的常驻亡灵，得到 1 枚古代魂玉
+// ---------------------------------------------------------------------------
+S.RefineLevel <- 6;
+
+S.refineTargets <- function()
+{
+    local list = this.undead().filter(@(_, bro) bro.isAlive() && bro.getLevel() >= ::PaleSovereign.RefineLevel);
+    list.sort(@(_a, _b) _b.getLevel() <=> _a.getLevel());
+    return list;
+};
+
+S.canRefine <- function()
+{
+    return this.oath() == this.Oath.Scourge && ::World.Assets.isCamping() && this.refineTargets().len() > 0;
+};
+
+S.refineUndead <- function( _bro )
+{
+    if (!this.canRefine() || this.refineTargets().find(_bro) == null)
+        return "炼化条件已改变。";
+    local stash = ::World.Assets.getStash();
+    if (!stash.hasEmptySlot())
+        return "仓库没有空位，魂玉无处安放。";
+    local name = _bro.getName();
+    local level = _bro.getLevel();
+    stash.add(::new(this.ItemDir + "misc/pale_jade_item"));
+    _bro.getItems().transferToStash(stash);
+    ::World.getPlayerRoster().remove(_bro);
+    ::World.Assets.updateFormation(true);
+    ::World.State.updateTopbarAssets();
+    return "你让 " + name + " 跪进法阵中央。魂火被一缕缕抽出躯壳，凝在你掌心，冷却成一枚幽碧的石头。躯壳随之塌成一堆灰白的骨渣。\n\n（" + name + "（" + level + " 级）永久离开战团，获得 1 枚古代魂玉；它身上的装备已放回仓库）";
+};
+
+S.refinePanel <- function( _screen )
+{
+    _screen.Text = "炼化会把一名常驻亡灵的魂火凝成古代魂玉，躯壳随之化为骨渣，无法挽回。只有 " + this.RefineLevel + " 级以上的常驻亡灵才有足够的魂火。";
+    if (!this.canRefine())
+        _screen.Text += "\n\n没有可炼化的常驻亡灵，或战团不在营地中。";
+    else
+    {
+        foreach (i, bro in this.refineTargets())
+        {
+            if (i >= 5)
+                break;
+            local target = bro;
+            this.option(_screen, "炼化 " + target.getName() + "（" + target.getLevel() + " 级，永久失去）", @() S.refineUndead(target));
+        }
+    }
+    this.option(_screen, "翻阅亡者账簿", @() "@camp");
+};
+
 local campPanel = S.campPanel;
 S.campPanel = function( _event, _screen )
 {
@@ -531,5 +583,7 @@ S.campPanel = function( _event, _screen )
         this.option(_screen, "锁魂者待收编（" + pending + "）", @() "@soulbound");
     if (this.canForgeShackle())
         this.option(_screen, "打造缚魂镣铐", @() "@shackle");
+    if (this.canRefine())
+        this.option(_screen, "炼化常驻亡灵 · 换取古代魂玉", @() "@refine");
     return campPanel.call(this, _event, _screen);
 };

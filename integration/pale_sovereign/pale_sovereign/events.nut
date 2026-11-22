@@ -304,13 +304,13 @@ S.campPanel <- function( _event, _screen )
                 S.promoteGuard(pet);
                 return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：永久 +15 生命、+5 近战技能、+5 近战防御、+10 决心）";
             });
-        if (pet != null && jade > 0 && this.petGet(pet, "JadeTemper") < 2)
-            this.option(_screen, "魂玉淬骨 · 1 枚古代魂玉，" + pet.m.Name + " 8 项属性各 +2", function()
+        if (pet != null && jade > 0)
+            this.option(_screen, "魂玉淬骨 · 1 枚古代魂玉，" + pet.m.Name + " 随机 4 项属性各 +2", function()
             {
                 if (!S.removeMaterial("jade"))
                     return null;
-                S.temperPet(pet);
-                return "魂玉在你掌心碎成冰冷的碧粉，被一点点抹进冠军的骨缝。枯骨发出细密的爆响，比先前更沉、更硬。\n\n（8 项属性各 +2，每个冠军限 2 次，已用 " + S.petGet(pet, "JadeTemper") + " 次）";
+                local names = S.temperPet(pet);
+                return "魂玉在你掌心碎成冰冷的碧粉，被一点点抹进冠军的骨缝。枯骨发出细密的爆响，比先前更沉、更硬。\n\n（" + names + "各 +2，累计淬骨 " + S.petGet(pet, "JadeTemper") + " 次）";
             });
         if (this.get("BannerReward") != 0 && pet != null && pet.m.PaleID == this.get("StarterID"))
             this.option(_screen, "授予荒坟守卫第三面残旗", function()
@@ -427,6 +427,13 @@ S.renderEvent <- function( _event, _screen )
             this.castlePanel(_screen);
             break;
 
+        case "refine":
+            title = "炼化";
+            art = "ascension_rite";
+            closing = false;
+            this.refinePanel(_screen);
+            break;
+
         case "shackle":
             title = "缚魂镣铐";
             art = "smith";
@@ -478,7 +485,7 @@ S.renderEvent <- function( _event, _screen )
             local soul = species > 0 && species < this.Souls.len() ? this.Souls[species] : null;
             _screen.Text = "硝烟尚未散尽，" + flags.get("Pale.SoulName") + " 残破的遗骸仍躺在血泊之中，缠绕其上的黑铁锁链正发出急促而尖锐的嗡鸣。马车里的旧棺随之剧烈震颤，" + pet.m.Name + " 仿佛闻到了某种令它渴望已久的古老气息。\n\n趁这缕残魂尚未彻底消散，你握紧法杖，决定如何将其彻底榨干并注入冠军体内。（选定注魂方式后消耗 1 条缚魂锁链）";
             local gain = this.isAscended() && this.oath() == this.Oath.Champion ? 2 : 1;
-            this.option(_screen, "强化躯体 · 随机三项属性各 +" + gain, @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
+            this.option(_screen, "强化躯体 · 随机 4 项属性各 +" + gain, @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
             if (soul != null && this.canDevour(pet))
                 this.option(_screen, "吞魂 · 获得【" + soul.Name + "】：" + soul.Desc, @() S.resolveSoul("soul") ? "一缕残魂沉入冠军的躯体。（获得【" + soul.Name + "】）" : "这次注魂未完成。");
             else if (soul != null && this.petGet(pet, "Species." + species) != 0)
@@ -875,7 +882,7 @@ S.renderEvent <- function( _event, _screen )
                 chief.getBaseProperties().Bravery += 10;
                 chief.getSkills().update();
                 local route = S.oath() == S.Oath.Champion
-                    ? "冠军吞魂上限 +1，缚魂锁链可标记生命不高于 50% 的目标，“强化躯体”改为随机三项属性各 +2"
+                    ? "冠军吞魂上限 +1，缚魂锁链可标记生命不高于 50% 的目标，“强化躯体”改为随机 4 项属性各 +2"
                     : S.oath() == S.Oath.Scourge
                         ? "所有常驻亡灵与复活单位 +20 生命、+10% 伤害，防腐尸骸上限提至 " + S.reserveLimit()
                         : "尚未立誓，路线加成在立誓后生效";

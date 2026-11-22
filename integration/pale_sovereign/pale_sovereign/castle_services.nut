@@ -66,7 +66,7 @@ S.castleCanForge <- function( _job, _target, _isPet )
         if (!this.isCoffin(_target) || this.oath() != this.Oath.Champion || _job == 1)
             return false;
         if (_job == 0)
-            return this.petGet(_target, "JadeTemper") < 2;
+            return true;
         return this.petGet(_target, _job == 2 ? "Gilded" : "GemEyes") == 0;
     }
     if (_target == null || !this.isUndead(_target))
@@ -111,8 +111,7 @@ S.forgeApply <- function( _job, _target, _isPet )
     {
         if (_job == 0)
         {
-            foreach (key in this.Attributes)
-                _target.m.Attributes[key] += 3;
+            this.raiseRandomAttributes(_target.m.Attributes, 4, 2);
             this.petSet(_target, "JadeTemper", this.petGet(_target, "JadeTemper") + 1);
         }
         else if (_job == 2)
@@ -130,8 +129,7 @@ S.forgeApply <- function( _job, _target, _isPet )
     local stats = _target.getBaseProperties();
     if (_job == 0)
     {
-        foreach (key in this.Attributes)
-            stats[key] += 2;
+        this.raiseRandomAttributes(stats, 4, 2);
         _target.getFlags().set("PaleJade", true);
     }
     else if (_job == 1)

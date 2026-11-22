@@ -70,7 +70,7 @@ S.devourCap <- function( _pet )
 
 S.markThreshold <- function()
 {
-    return (this.isAscended() && this.oath() == this.Oath.Champion ? 50 : 35) + (this.followerRank("wight_captain") >= 2 ? 5 : 0);
+    return (this.isAscended() && this.oath() == this.Oath.Champion ? 50 : 25) + (this.followerRank("wight_captain") >= 2 ? 5 : 0);
 };
 
 S.isCoffin <- function( _item )
@@ -264,13 +264,8 @@ S.resolveSoul <- function( _choice )
         return false;
     if (_choice == "body")
     {
-        local stats = clone this.Attributes;
         local gain = this.isAscended() && this.oath() == this.Oath.Champion ? 2 : 1;
-        for (local i = 0; i < 3; ++i)
-        {
-            local index = ::Math.rand(0, stats.len() - 1);
-            pet.m.Attributes[stats.remove(index)] += gain;
-        }
+        this.raiseRandomAttributes(pet.m.Attributes, 4, gain);
     }
     else if (_choice == "soul")
     {
@@ -384,10 +379,30 @@ S.promoteGuard <- function( _pet )
     _pet.updateCompanion();
 };
 
+S.AttributeNames <- { Hitpoints = "生命", Stamina = "体力", Bravery = "决心", Initiative = "主动性",
+    MeleeSkill = "近战技能", RangedSkill = "远程技能", MeleeDefense = "近战防御", RangedDefense = "远程防御" };
+
+// 从 8 项属性里随机抽 _count 项各加 _gain，返回抽中的属性名（中文，顿号分隔）
+S.raiseRandomAttributes <- function( _target, _count, _gain )
+{
+    local keys = clone this.Attributes;
+    local names = [];
+    for (local i = 0; i < _count && keys.len() > 0; ++i)
+    {
+        local key = keys.remove(::Math.rand(0, keys.len() - 1));
+        _target[key] += _gain;
+        names.push(this.AttributeNames[key]);
+    }
+    local text = "";
+    foreach (i, name in names)
+        text += (i == 0 ? "" : "、") + name;
+    return text;
+};
+
 S.temperPet <- function( _pet )
 {
-    foreach (key in this.Attributes)
-        _pet.m.Attributes[key] += 2;
+    local names = this.raiseRandomAttributes(_pet.m.Attributes, 4, 2);
     this.petSet(_pet, "JadeTemper", this.petGet(_pet, "JadeTemper") + 1);
     _pet.updateCompanion();
+    return names;
 };

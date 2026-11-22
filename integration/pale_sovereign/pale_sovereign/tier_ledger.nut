@@ -12,7 +12,7 @@ S.tierLedgerPanel <- function( _event, _screen )
 {
     local units = this.tierLedgerTargets();
     local page = ::Math.min(_event.m.TierPage, ::Math.max(0, (units.len() - 1) / 4));
-    _screen.Text = "常驻骷髅与行尸达到 7 级后，可以举行升阶仪式。每次需古代魂玉 1 枚、防腐尸骸 5 点。"
+    _screen.Text = "常驻骷髅与行尸达到 7 级后，可以举行升阶仪式。每次需古代魂玉 1 枚、防腐尸骸 5 点、500 克朗。"
         + "\n\n古代魂玉　" + this.countItems("misc.pale_jade") + "　防腐尸骸　" + this.get("Reserve");
     if (units.len() == 0)
         _screen.Text += "\n\n目前没有达到 7 级、且尚未升至高阶的常驻亡灵。";
@@ -52,7 +52,7 @@ S.tierBranchPanel <- function( _event, _screen )
         local branch = this.TierBranches[chosen];
         _screen.Text += "\n\n" + this.tierBranchSummary(chosen)
             + "\n\n升阶将重置基础属性、已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、装备和中阶专长，旧阶段的魂玉与魂炉强化清空，可再次进行。"
-            + "\n\n消耗古代魂玉 1 枚、防腐尸骸 5 点。";
+            + "\n\n消耗古代魂玉 1 枚、防腐尸骸 5 点、500 克朗。";
         if (this.tierCanPromote(target, chosen))
             this.option(_screen, "确认升阶为" + branch.Name, @() S.tierPromote(target, chosen));
         else
