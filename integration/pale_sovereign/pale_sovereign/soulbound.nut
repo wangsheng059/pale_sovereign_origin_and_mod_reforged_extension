@@ -569,10 +569,43 @@ S.refinePanel <- function( _screen )
             if (i >= 5)
                 break;
             local target = bro;
-            this.option(_screen, "炼化 " + target.getName() + "（" + target.getLevel() + " 级，永久失去）", @() S.refineUndead(target));
+            this.option(_screen, "炼化 " + target.getName() + "（" + target.getLevel() + " 级）", function()
+            {
+                S.RefineTarget = ::MSU.asWeakTableRef(target);
+                return "@refine_confirm";
+            });
         }
     }
     this.option(_screen, "翻阅亡者账簿", @() "@camp");
+};
+
+// 二次确认：选中的亡灵存在 S.RefineTarget（弱引用，只在本次打开账簿期间有效）
+S.RefineTarget <- null;
+
+S.refineConfirmPanel <- function( _screen )
+{
+    local target = this.RefineTarget == null || ::MSU.isNull(this.RefineTarget) ? null : this.RefineTarget.get();
+    if (target == null || !this.canRefine() || this.refineTargets().find(target) == null)
+    {
+        _screen.Text = "炼化的人选已经不在了，或战团已离开营地。";
+        this.option(_screen, "返回炼化名单", @() "@refine");
+        return;
+    }
+    local background = target.getBackground();
+    _screen.Text = "你确定要炼化 " + target.getName() + " 吗？\n\n"
+        + background.m.Name + "　" + target.getLevel() + " 级"
+        + (::PaleSovereign.isSoulbound(target) ? "　锁魂者" : "")
+        + "\n\n炼化后它将永久离开战团，无法复活或召回。身上的装备会放回仓库，你获得 1 枚古代魂玉。";
+    this.option(_screen, "确认炼化 " + target.getName(), function()
+    {
+        S.RefineTarget = null;
+        return S.refineUndead(target);
+    });
+    this.option(_screen, "再想想", function()
+    {
+        S.RefineTarget = null;
+        return "@refine";
+    });
 };
 
 local campPanel = S.campPanel;

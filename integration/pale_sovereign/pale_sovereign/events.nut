@@ -434,6 +434,13 @@ S.renderEvent <- function( _event, _screen )
             this.refinePanel(_screen);
             break;
 
+        case "refine_confirm":
+            title = "炼化";
+            art = "ascension_rite";
+            closing = false;
+            this.refineConfirmPanel(_screen);
+            break;
+
         case "shackle":
             title = "缚魂镣铐";
             art = "smith";
