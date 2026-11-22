@@ -102,6 +102,7 @@ this.pale_formation_move <- ::inherit("scripts/ai/tactical/behavior", {
 
     function onExecute(actor)
     {
+        if (!::PaleSovereign.isFormationUndead(actor)) return true;
         local nav = ::Tactical.getNavigator();
         if (this.m.IsFirstExecuted) {
             this.m.IsFirstExecuted = false;

@@ -4,7 +4,8 @@ local S = ::PaleSovereign;
 S.isFormationUndead <- function(actor)
 {
     return this.Battle != null && !::MSU.isNull(actor) && actor.getFaction() == ::Const.Faction.PlayerAnimals
-        && !actor.isPlayerControlled() && (actor.getFlags().has("PaleFormationSummon") || this.isChampionAI(actor));
+        && actor.isAlive() && !actor.isDying() && actor.isPlacedOnMap() && !actor.isPlayerControlled()
+        && (actor.getFlags().has("PaleFormationSummon") || this.isChampionAI(actor));
 };
 
 S.fieldBrothers <- function()
