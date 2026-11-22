@@ -427,6 +427,13 @@ S.renderEvent <- function( _event, _screen )
             this.castlePanel(_screen);
             break;
 
+        case "shackle":
+            title = "缚魂镣铐";
+            art = "smith";
+            closing = false;
+            this.shacklePanel(_screen);
+            break;
+
         case "soulbound":
             title = "锁魂者";
             art = "ascension_rite";

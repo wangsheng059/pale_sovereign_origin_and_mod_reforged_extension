@@ -1,4 +1,4 @@
-// 缚魂镣铐：常驻亡灵生命 +10、决心 +10；每场战斗首次被击倒时有 50% 概率以 30% 生命站起（判定在 soulbound.nut 的 actor.kill 钩子里）
+// 缚魂镣铐：常驻亡灵生命 +10、疲劳上限 +10；每场战斗首次被击倒时必定以 30% 生命站起（判定在 soulbound.nut 的 actor.kill 钩子里）
 this.pale_shackle_effect <- ::inherit("scripts/skills/skill", {
     m = { Spent = false },
     function create()
@@ -21,8 +21,8 @@ this.pale_shackle_effect <- ::inherit("scripts/skills/skill", {
     {
         local ret = this.skill.getTooltip();
         ret.push({ id = 10, type = "text", icon = "ui/icons/health.png", text = ::MSU.Text.colorPositive("+10") + " 生命" });
-        ret.push({ id = 11, type = "text", icon = "ui/icons/bravery.png", text = ::MSU.Text.colorPositive("+10") + " 决心" });
-        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗首次被击倒时，有 50% 概率以 30% 生命站起" + (this.m.Spent ? "（本场已判定）" : "") });
+        ret.push({ id = 11, type = "text", icon = "ui/icons/fatigue.png", text = ::MSU.Text.colorPositive("+10") + " 疲劳上限" });
+        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗首次被击倒时，以 30% 生命站起" + (this.m.Spent ? "（本场已用过）" : "") });
         return ret;
     }
 
@@ -31,7 +31,7 @@ this.pale_shackle_effect <- ::inherit("scripts/skills/skill", {
         if (!::PaleSovereign.isUndead(this.getContainer().getActor()))
             return;
         _properties.Hitpoints += 10;
-        _properties.Bravery += 10;
+        _properties.Stamina += 10;
     }
 
     function onCombatStarted()

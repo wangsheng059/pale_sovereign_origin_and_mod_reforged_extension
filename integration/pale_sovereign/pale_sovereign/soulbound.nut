@@ -417,15 +417,59 @@ S.soulboundPanel <- function( _screen )
 // ---------------------------------------------------------------------------
 // 缚魂镣铐
 // ---------------------------------------------------------------------------
-S.forgeShackle <- function()
+// 固定 1 条缚魂锁链，另从下面六种里任选一种
+S.ShackleMaterials <- [
+    { ID = "misc.golden_chalice", Name = "黄金餐杯", Count = 1 },
+    { ID = "misc.ancient_gold_coins", Name = "古代金币", Count = 1 },
+    { ID = "misc.jeweled_crown", Name = "宝石王冠", Count = 1 },
+    { ID = "misc.gemstones", Name = "宝石", Count = 1 },
+    { ID = "misc.lindwurm_hoard", Name = "蠕龙珍宝", Count = 1 },
+    { ID = "misc.signet_ring", Name = "纹章戒指", Count = 3 }
+];
+
+S.shackleMaterialsAvailable <- function()
 {
+    return this.ShackleMaterials.filter(@(_, mat) ::PaleSovereign.countItems(mat.ID) >= mat.Count);
+};
+
+S.canForgeShackle <- function()
+{
+    return this.oath() != this.Oath.None && ::World.Assets.isCamping()
+        && this.countItems("misc.pale_chain") > 0 && this.shackleMaterialsAvailable().len() > 0;
+};
+
+S.forgeShackle <- function( _material )
+{
+    if (!this.canForgeShackle() || this.countItems(_material.ID) < _material.Count)
+        return "材料已经不够了。";
     local stash = ::World.Assets.getStash();
     if (!stash.hasEmptySlot())
         return "物品栏已满。";
     if (!this.takeItems("misc.pale_chain", 1))
         return "没有可用的缚魂锁链。";
+    if (!this.takeItems(_material.ID, _material.Count))
+    {
+        stash.add(::new(this.ItemDir + "misc/pale_chain_item"));
+        return "材料已经不够了。";
+    }
     stash.add(::new(this.ItemDir + "accessory/pale_soul_shackle"));
-    return "你把锁链截成几段，在营火里烧红，锻成一副刻满符文的镣铐。\n\n（获得【缚魂镣铐】）";
+    return "你把锁链截成几段，与" + _material.Name + "一同投进营火。熔化的金子渗进链环，冷却后成了一副刻满符文的镣铐。\n\n（消耗 1 条缚魂锁链、" + _material.Count + " 件" + _material.Name + "，获得【缚魂镣铐】）";
+};
+
+S.shacklePanel <- function( _screen )
+{
+    _screen.Text = "打造缚魂镣铐需要 1 条缚魂锁链，另加下列材料中的一种：黄金餐杯、古代金币、宝石王冠、宝石、蠕龙珍宝各 1 件，或纹章戒指 3 枚。\n\n缚魂锁链　" + this.countItems("misc.pale_chain");
+    if (this.canForgeShackle())
+    {
+        foreach (mat in this.shackleMaterialsAvailable())
+        {
+            local material = mat;
+            this.option(_screen, "用 " + material.Count + " 件" + material.Name + "打造（现有 " + this.countItems(material.ID) + "）", @() S.forgeShackle(material));
+        }
+    }
+    else
+        _screen.Text += "\n\n材料不足，或不在营地中。";
+    this.option(_screen, "翻阅亡者账簿", @() "@camp");
 };
 
 S.Mod.hook("scripts/entity/tactical/actor", function(q)
@@ -438,14 +482,11 @@ S.Mod.hook("scripts/entity/tactical/actor", function(q)
             if (shackle != null && !shackle.m.Spent)
             {
                 shackle.m.Spent = true;
-                if (::Math.rand(1, 100) <= 50)
-                {
-                    this.setHitpoints(::Math.max(1, ::Math.floor(this.getHitpointsMax() * 0.3)));
-                    this.setDirty(true);
-                    if (!this.isHiddenToPlayer())
-                        ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(this) + " 身上的镣铐骤然收紧，把它重新拽了起来。");
-                    return;
-                }
+                this.setHitpoints(::Math.max(1, ::Math.floor(this.getHitpointsMax() * 0.3)));
+                this.setDirty(true);
+                if (!this.isHiddenToPlayer())
+                    ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(this) + " 身上的镣铐骤然收紧，把它重新拽了起来。");
+                return;
             }
         }
         return __original(_killer, _skill, _fatality, _silent);
@@ -488,7 +529,7 @@ S.campPanel = function( _event, _screen )
     local pending = this.soulboundPending().len();
     if (pending > 0)
         this.option(_screen, "锁魂者待收编（" + pending + "）", @() "@soulbound");
-    if (this.oath() == this.Oath.Scourge && ::World.Assets.isCamping() && this.countItems("misc.pale_chain") > 0)
-        this.option(_screen, "打造缚魂镣铐 · 1 条缚魂锁链", @() S.forgeShackle());
+    if (this.canForgeShackle())
+        this.option(_screen, "打造缚魂镣铐", @() "@shackle");
     return campPanel.call(this, _event, _screen);
 };
