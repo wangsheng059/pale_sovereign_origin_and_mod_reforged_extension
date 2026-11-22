@@ -22,15 +22,25 @@ S.undeadKindOf <- function( _kind )
 S.UndeadTraitPool <- {
     Both = ["iron_jaw_trait", "eagle_eyes_trait", "clumsy_trait", "dexterous_trait", "sure_footing_trait",
         "quick_trait", "strong_trait", "lucky_trait", "bloodthirsty_trait", "brute_trait", "bright_trait", "dumb_trait",
-        "pale_undead_sleepless_trait", "pale_undead_grudge_trait", "pale_undead_soulfire_trait"],
+        "pale_undead_sleepless_trait", "pale_undead_grudge_trait", "pale_undead_soulfire_trait",
+        "pale_undead_dim_soulfire_trait", "pale_undead_forgotten_drill_trait"],
     Zombie = ["huge_trait", "tough_trait", "fat_trait", "clubfooted_trait", "iron_lungs_trait",
         "pale_undead_salted_trait", "pale_undead_gnawing_trait", "pale_undead_deathgrip_trait", "pale_undead_putrid_trait",
-        "pale_undead_embalmed_trait", "pale_undead_thick_hide_trait", "pale_undead_toxic_flesh_trait"],
+        "pale_undead_embalmed_trait", "pale_undead_thick_hide_trait", "pale_undead_toxic_flesh_trait",
+        "pale_undead_stiff_corpse_trait", "pale_undead_broken_fingers_trait", "pale_undead_maggot_ridden_trait"],
     Skeleton = ["tiny_trait", "fragile_trait", "athletic_trait",
         "pale_undead_dense_bone_trait", "pale_undead_hollow_skull_trait", "pale_undead_old_drill_trait",
         "pale_undead_legion_discipline_trait", "pale_undead_brittle_trait",
-        "pale_undead_refined_joints_trait", "pale_undead_tall_frame_trait", "pale_undead_frail_bone_trait"]
+        "pale_undead_refined_joints_trait", "pale_undead_tall_frame_trait", "pale_undead_frail_bone_trait",
+        "pale_undead_loose_skull_trait", "pale_undead_cracked_ribs_trait", "pale_undead_rusted_pins_trait"]
 };
+
+// 1.6.18 负面特质：队伍里等级最高的亡灵法师学会死灵精通后，新唤起的常驻亡灵不再抽到这些
+S.UndeadNegativeTraits <- ["trait.clumsy", "trait.dumb", "trait.fat", "trait.clubfooted", "trait.tiny", "trait.fragile",
+    "trait.pale_putrid", "trait.pale_brittle", "trait.pale_frail_bone",
+    "trait.pale_stiff_corpse", "trait.pale_broken_fingers", "trait.pale_maggot_ridden",
+    "trait.pale_loose_skull", "trait.pale_cracked_ribs", "trait.pale_rusted_pins",
+    "trait.pale_dim_soulfire", "trait.pale_forgotten_drill"];
 
 // Origin-specific trait icons are derived from the stable trait keys.
 S.UndeadTraits <- {
@@ -89,22 +99,105 @@ S.UndeadTraits <- {
         Effects = [["ui/icons/health.png", "生命 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/armor_body.png", "受到的钝击伤害 " + ::MSU.Text.colorNegative("+10%")]] },
     soulfire = { Name = "魂火炽烈", Excluded = ["trait.hesitant", "trait.pale_brittle"],
         Description = "眼窝里的魂火烧得比同类更旺，总是第一个动起来。",
-        Effects = [["ui/icons/initiative.png", "主动 +10"]] }
+        Effects = [["ui/icons/initiative.png", "主动 +10"]] },
+    // 1.6.18 新增 8 个负面特质（Icon 写了的用原版特质图标，没写的用 gfx/ui/traits/pale_<key>.png）
+    stiff_corpse = { Name = "僵直尸身", Excluded = ["trait.quick", "trait.dexterous", "trait.pale_soulfire"], Icon = "ui/traits/trait_icon_25.png",
+        Description = "尸僵从没真正褪去，关节像冻住的门轴，每个动作都慢半拍。",
+        Effects = [["ui/icons/initiative.png", "主动 " + ::MSU.Text.colorNegative("-15")], ["ui/icons/melee_defense.png", "近战防御 " + ::MSU.Text.colorNegative("-3")]] },
+    broken_fingers = { Name = "残缺手指", Excluded = ["trait.strong", "trait.pale_gnawing"], Icon = "ui/traits/trait_icon_35.png",
+        Description = "几根手指早已烂掉，剩下的勉强攥住兵器，砍下去总是使不上劲。",
+        Effects = [["ui/icons/regular_damage.png", "近战伤害 " + ::MSU.Text.colorNegative("-10%")]] },
+    maggot_ridden = { Name = "蛆虫蛀空", Excluded = ["trait.tough", "trait.pale_salted", "trait.pale_embalmed", "trait.pale_putrid"], Icon = "ui/traits/trait_icon_59.png",
+        Description = "蛆虫在它的腹腔里筑了巢，皮肉底下空了一大块，一刀就能捅穿。",
+        Effects = [["ui/icons/health.png", "生命上限 " + ::MSU.Text.colorNegative("-10%")]] },
+    loose_skull = { Name = "松脱颅骨", Excluded = ["trait.iron_jaw", "trait.pale_hollow_skull"], Icon = "ui/traits/trait_icon_12.png",
+        Description = "连着颈骨的铜丝早就锈断了，颅骨只是搁在上面，一碰就晃。",
+        Effects = [["ui/icons/armor_head.png", "头部受到的伤害 " + ::MSU.Text.colorNegative("+15%")]] },
+    cracked_ribs = { Name = "裂纹肋骨", Excluded = ["trait.pale_dense_bone", "trait.pale_frail_bone"],
+        Description = "胸廓上布满细密的裂纹，再挨几下重击就会整片塌下去。",
+        Effects = [["ui/icons/armor_body.png", "身体受到的伤害 " + ::MSU.Text.colorNegative("+10%")]] },
+    rusted_pins = { Name = "锈蚀骨钉", Excluded = ["trait.athletic", "trait.pale_refined_joints", "trait.pale_brittle"],
+        Description = "固定骨节的铁钉锈成了一团，每动一下都要多费一份力气。",
+        Effects = [["ui/icons/fatigue.png", "最大疲劳 " + ::MSU.Text.colorNegative("-10") + "，每回合疲劳恢复 " + ::MSU.Text.colorNegative("-2")]] },
+    dim_soulfire = { Name = "魂火黯淡", Excluded = ["trait.quick", "trait.eagle_eyes", "trait.pale_soulfire"], Icon = "ui/traits/trait_icon_40.png",
+        Description = "眼窝里只剩一点将熄的余烬，它看不远，也总是最后一个动起来。",
+        Effects = [["ui/icons/initiative.png", "主动 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/vision.png", "视野 " + ::MSU.Text.colorNegative("-1")]] },
+    forgotten_drill = { Name = "遗忘武艺", Excluded = ["trait.bright", "trait.pale_old_drill"],
+        Description = "生前学过的招式早已随魂魄散尽，它挥舞兵器的样子和村夫抡锄头没什么两样。",
+        Effects = [["ui/icons/melee_skill.png", "近战技能 " + ::MSU.Text.colorNegative("-5")], ["ui/icons/ranged_skill.png", "远程技能 " + ::MSU.Text.colorNegative("-5")]] }
+};
+
+// 队伍里等级最高的亡灵法师（导师或死灵法师背景，可并列）中有人学会死灵精通
+S.undeadTraitsPurified <- function()
+{
+    local best = -1;
+    local mastered = false;
+    foreach (bro in ::World.getPlayerRoster().getAll())
+    {
+        local skills = bro.getSkills();
+        if (!skills.hasSkill(this.Chief) && !skills.hasSkill("background.bgp_necromancer"))
+            continue;
+        local level = bro.getLevel();
+        local has = skills.hasSkill("perk.bgp_necro_mastery");
+        if (level > best)
+        {
+            best = level;
+            mastered = has;
+        }
+        else if (level == best && has)
+            mastered = true;
+    }
+    return mastered;
+};
+
+S.isNegativeUndeadTrait <- function( _id )
+{
+    return this.UndeadNegativeTraits.find(_id) != null;
+};
+
+// 待选名单里已生成的亡灵：换成没有负面特质的版本（去掉负面特质，去完没有特质时补 1 个）
+S.purgeNegativeUndeadTraits <- function( _bro )
+{
+    local flags = _bro.getFlags();
+    if (flags.has("PaleTraitsPurified"))
+        return;
+    flags.set("PaleTraitsPurified", true);
+    local skills = _bro.getSkills();
+    local removed = false;
+    foreach (trait in skills.query(::Const.SkillType.Trait))
+        if (this.isNegativeUndeadTrait(trait.getID()))
+        {
+            skills.removeByID(trait.getID());
+            removed = true;
+        }
+    if (!removed)
+        return;
+    skills.collectGarbage();
+    local kind = this.UndeadKinds[this.undeadKindOf(flags.get("PaleUndeadKind"))];
+    local left = 0;
+    foreach (trait in skills.query(::Const.SkillType.Trait))
+        if (!trait.isHidden())
+            ++left;
+    if (left == 0)
+        this.addUndeadTraits(_bro, kind.Skeleton, 1);
+    skills.update();
 };
 
 // 随机加 1–2 个特质（40% 两个），互斥的不会同时出现
-S.addUndeadTraits <- function( _bro, _skeleton )
+S.addUndeadTraits <- function( _bro, _skeleton, _count = null, _purify = true )
 {
     local pool = clone this.UndeadTraitPool.Both;
     pool.extend(_skeleton ? this.UndeadTraitPool.Skeleton : this.UndeadTraitPool.Zombie);
-    local count = ::Math.rand(1, 100) <= 40 ? 2 : 1;
+    local count = _count != null ? _count : ::Math.rand(1, 100) <= 40 ? 2 : 1;
+    local purified = false;
+    try { purified = _purify && this.undeadTraitsPurified(); } catch (e) { purified = false; }
     local added = [];
     while (added.len() < count && pool.len() > 0)
     {
         local script = pool.remove(::Math.rand(0, pool.len() - 1));
         local trait = null;
         try { trait = ::new("scripts/skills/traits/" + script); } catch (e) { trait = null; }
-        if (trait == null || _bro.getSkills().hasSkill(trait.getID()))
+        if (trait == null || _bro.getSkills().hasSkill(trait.getID()) || (purified && this.isNegativeUndeadTrait(trait.getID())))
             continue;
         local fits = true;
         foreach (other in added)
@@ -119,7 +212,8 @@ S.addUndeadTraits <- function( _bro, _skeleton )
 };
 
 // 生成一名常驻亡灵：属性按背景范围随机，抽天赋星和特质
-S.createUndead <- function( _kind, _roster = null )
+// _purify = false：不受“死灵精通后无负面特质”影响（受缚亡灵）
+S.createUndead <- function( _kind, _roster = null, _purify = true )
 {
     local kind = this.UndeadKinds[this.undeadKindOf(_kind)];
     local bro = this.spawnBrother(kind.Background, kind.Gear, -1, false, _roster);
@@ -127,7 +221,7 @@ S.createUndead <- function( _kind, _roster = null )
     bro.getFlags().set("PalePermanentUndead", true);
     bro.getFlags().set("undead", true);
     try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 常驻亡灵天赋: " + e); }
-    this.addUndeadTraits(bro, kind.Skeleton);
+    this.addUndeadTraits(bro, kind.Skeleton, null, _purify);
     bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
     local titles = kind.Skeleton ? this.SkeletonTitles : this.ZombieTitles;
     bro.setTitle(titles[::Math.rand(0, titles.len() - 1)]);
@@ -149,7 +243,7 @@ S.recruitBoundUndead <- function( _item )
 {
     if (!this.isActive() || (::Tactical != null && ::Tactical.isActive()) || !this.hasUndeadSlot())
         return false;
-    this.createUndead(_item.m.PaleKind);
+    this.createUndead(_item.m.PaleKind, null, false);
     ::World.Assets.updateFormation(true);
     return true;
 };
@@ -186,7 +280,8 @@ S.recruitPanel <- function( _screen )
         this.option(_screen, "返回营地", @() "@camp");
         return;
     }
-    _screen.Text = "在 " + site.Name + " 选择要从盐封棺里唤起的亡灵，花费 " + this.recruitCost() + " 点防腐尸骸，每处登记地点只能征召一次。属性按种类在范围内随机，另有天赋星和 1–2 个特质，升阶后特质保留。";
+    _screen.Text = "在 " + site.Name + " 选择要从盐封棺里唤起的亡灵，花费 " + this.recruitCost() + " 点防腐尸骸，每处登记地点只能征召一次。属性按种类在范围内随机，另有天赋星和 1–2 个特质，升阶后特质保留。"
+        + (this.undeadTraitsPurified() ? "队伍里等级最高的亡灵法师已学会死灵精通，新唤起的亡灵不会带负面特质。" : "队伍里等级最高的亡灵法师学会死灵精通后，新唤起的亡灵不再带负面特质。");
     foreach (kind in this.UndeadKindOrder)
     {
         local recruitKind = kind;
@@ -266,6 +361,9 @@ S.recruitPool <- function( _town )
     if (made < size)
         flags.set("PaleRecruitSize", size);
     local list = roster.getAll();
+    if (this.undeadTraitsPurified())
+        foreach (bro in list)
+            this.purgeNegativeUndeadTraits(bro);
     local order = this.UndeadKindOrder;
     list.sort(function( _a, _b )
     {

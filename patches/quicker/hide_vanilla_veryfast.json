@@ -1,0 +1,8 @@
+{
+  "source": "quicker_1.4（加速MOD）.zip",
+  "member": "ui/mods/quicker/css/world_screen_topbar_daytime_module.css",
+  "before": "2dac72a23f12262135663970c9f9baaad45a8d835b7352c138683db8ef9d46cc",
+  "after": "ecc6eddf46df6d4a03749c106a063992ec9d154fa2bbb392d487cfefc37193b3",
+  "old": ".world-screen .topbar-daytime-module .l-superfast-time-button\r\n{",
+  "new": "/* 原版 1.5.2 自带的“很快 (3)”按钮和本 mod 的 ×4 / ×8 重叠，隐藏它（3 键仍是 ×4） */\r\n.world-screen .topbar-daytime-module .l-very-fast-time-button\r\n{\r\n\tdisplay: none !important;\r\n}\r\n\r\n.world-screen .topbar-daytime-module .l-superfast-time-button\r\n{"
+}

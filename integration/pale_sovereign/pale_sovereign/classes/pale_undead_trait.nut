@@ -11,7 +11,7 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
         this.m.Name = def.Name;
         this.m.Description = def.Description;
         this.m.Excluded = clone def.Excluded;
-        this.m.Icon = "ui/traits/pale_" + this.m.PaleKey + ".png";
+        this.m.Icon = "Icon" in def ? def.Icon : "ui/traits/pale_" + this.m.PaleKey + ".png";
     }
 
     function getTooltip()
@@ -67,6 +67,31 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
             _properties.Initiative += 10;
         else if (key == "legion_discipline")
             _properties.MeleeDefense += 3 * this.countUndeadNeighbours();
+        // 1.6.18 负面特质
+        else if (key == "stiff_corpse")
+        {
+            _properties.Initiative -= 15;
+            _properties.MeleeDefense -= 3;
+        }
+        else if (key == "broken_fingers")
+            _properties.MeleeDamageMult *= 0.90;
+        else if (key == "maggot_ridden")
+            _properties.HitpointsMult *= 0.90;
+        else if (key == "rusted_pins")
+        {
+            _properties.Stamina -= 10;
+            _properties.FatigueRecoveryRate -= 2;
+        }
+        else if (key == "dim_soulfire")
+        {
+            _properties.Initiative -= 10;
+            _properties.Vision -= 1;
+        }
+        else if (key == "forgotten_drill")
+        {
+            _properties.MeleeSkill -= 5;
+            _properties.RangedSkill -= 5;
+        }
     }
 
     function countUndeadNeighbours()
@@ -98,6 +123,10 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
         else if (key == "thick_hide" && _hitInfo.BodyPart == ::Const.BodyPart.Head && _hitInfo.BodyDamageMult > 1.0)
             _hitInfo.BodyDamageMult = 1.0 + (_hitInfo.BodyDamageMult - 1.0) * 0.75;
         else if (key == "frail_bone" && _hitInfo.DamageType == ::Const.Damage.DamageType.Blunt)
+            _properties.DamageReceivedTotalMult *= 1.10;
+        else if (key == "loose_skull" && _hitInfo.BodyPart == ::Const.BodyPart.Head)
+            _properties.DamageReceivedTotalMult *= 1.15;
+        else if (key == "cracked_ribs" && _hitInfo.BodyPart == ::Const.BodyPart.Body)
             _properties.DamageReceivedTotalMult *= 1.10;
     }
 

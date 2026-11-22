@@ -1313,6 +1313,8 @@
     "patches/quicker/camp_speed_mult.json",
     "patches/quicker/camp_keep_speed.json",
     "patches/quicker/camp_time_buttons.json",
-    "patches/quicker/camp_time_buttons_js.json"
+    "patches/quicker/camp_time_buttons_js.json",
+    "patches/quicker/hide_vanilla_veryfast.json",
+    "patches/hsc/captive_double_click.json"
   ]
 }

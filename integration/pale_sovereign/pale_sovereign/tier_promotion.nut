@@ -269,6 +269,8 @@ S.tierPromote <- function( _bro, _branch )
     foreach (key in ["PaleJade", "PaleGilded", "PaleGemEyes"])
         flags.remove(key);
     this.restoreTierSkills(_bro);
+    if ("ensureCaptiveChampion" in this)
+        this.ensureCaptiveChampion(_bro);
     this.applyUndeadLook(_bro);
     skills.update();
     _bro.setHitpointsPct(::Math.maxf(oldHealth, 1.0 / _bro.getHitpointsMax()));

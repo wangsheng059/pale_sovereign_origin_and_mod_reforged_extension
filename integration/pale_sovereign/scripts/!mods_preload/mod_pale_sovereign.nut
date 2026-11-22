@@ -22,7 +22,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.17", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.18", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.8");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
@@ -41,6 +41,8 @@
             ::include("pale_sovereign/" + file);
     if ("PandorasHobby" in ::getroottable())
         ::include("pale_sovereign/followers");
+    if ("HumanSlaveCapture" in ::getroottable())
+        ::include("pale_sovereign/captives");
 });
 
 ::PaleSovereign.Mod.queue([">mod_local_rules", ">mod_autopilot_new"], function()

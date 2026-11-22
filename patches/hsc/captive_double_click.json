@@ -1,0 +1,8 @@
+{
+  "source": "捕奴modv5.zip",
+  "member": "ui/mods/hsc_slave_capture.js",
+  "before": "aff301008158bea53244ffbfa8a0630922b9e15f84fffd57f3d2f489c4be2d17",
+  "after": "174906240e0774851b72642ee899283490212e2330fdeb31d4621272c5424086",
+  "old": "\t\t\t\t\t\tdataSource.equipInventoryItem(data.entityId, data.itemId, data.index);\n",
+  "new": "\t\t\t\t\t\t// 亡灵主宰：双击先告诉后端这是双击（后端据此转化为常驻亡灵），右键不经过这里\n\t\t\t\t\t\ttry { SQ.call(dataSource.mSQHandle, 'pale_markCaptiveConvert', data.itemId); } catch (e) {}\n\t\t\t\t\t\tdataSource.equipInventoryItem(data.entityId, data.itemId, data.index);\n"
+}
