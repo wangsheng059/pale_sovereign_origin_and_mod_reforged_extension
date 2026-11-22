@@ -52,6 +52,16 @@ this.pale_follower <- ::inherit("scripts/retinue/ph_follower", {
         return (this.m.Skills & 16777216) != 0 ? 3 : (this.m.Skills & 8388608) != 0 ? 2 : 1;
     }
 
+    function onUpdate()
+    {
+        ::PaleSovereign.followerAssets(this.m.PaleKey, this.getPaleRank());
+    }
+
+    function getMovementSpeedMult()
+    {
+        return ::PaleSovereign.followerMovementMult(this.m.PaleKey);
+    }
+
     function earnVictoryXP()
     {
         if (this.isMaxLevel())
@@ -67,6 +77,7 @@ this.pale_follower <- ::inherit("scripts/retinue/ph_follower", {
             this.setFlag("LVL", this.m.Level);
             this.setFlag("LVLSpent", this.m.LevelsSpent);
             this.setFlag("Skills", this.m.Skills);
+            ::World.Assets.resetToDefaults();
         }
         this.setFlag("XP", this.m.XP);
         this.updateEffects();

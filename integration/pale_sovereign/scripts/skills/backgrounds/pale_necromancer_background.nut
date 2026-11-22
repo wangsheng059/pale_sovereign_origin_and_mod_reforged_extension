@@ -57,6 +57,9 @@ this.pale_necromancer_background <- ::inherit("scripts/skills/backgrounds/bgp_ne
         local skills = this.getContainer();
         if (!skills.hasSkill("actives.pale_soul_chain"))
             skills.add(::new("scripts/skills/actives/pale_soul_chain"));
+        foreach (summon in ["zombie", "skeleton"])
+            if (!skills.hasSkill("actives.pale_summon_" + summon))
+                skills.add(::new("scripts/skills/actives/pale_summon_" + summon));
     }
 
     function onUpdate( _properties )

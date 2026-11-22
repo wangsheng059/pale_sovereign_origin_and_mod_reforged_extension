@@ -258,12 +258,6 @@ S.campPanel <- function( _event, _screen )
     local occupied = this.findPaleTown();
     if (occupied != null && this.conquestMode(occupied) == 2)
         this.option(_screen, "亡者之城征召", @() "@conquest_recruit");
-    if (!::World.Assets.isCamping())
-    {
-        _screen.Text += "\n\n扎营后可管理亡灵、勘察遗址和处理营地事务。";
-        return;
-    }
-
     local story = this.campStory();
     if (story != "camp")
     {

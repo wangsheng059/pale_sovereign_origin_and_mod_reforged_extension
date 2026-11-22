@@ -31,8 +31,7 @@ this.pale_weaken <- ::inherit("scripts/skills/skill", {
         local w = ::BGP.Necro.getWill(this.getContainer().getActor());
         ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "距离 2–" + this.m.MaxRange + " 格，无需视野。造成 12–20 点无视护甲伤害。" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/melee_skill.png", text = "近战技能、远程技能、近战防御各 −" + (2 + ::Math.floor(w / 20.0)) + "，持续 2 回合。" });
-        if (this.m.Champion)
-            ret.push({ id = 12, type = "text", icon = "ui/icons/hitchance.png", text = "标记唯一的冠军猎物。导师与冠军对其命中 +10、伤害 +20%。" });
+        ret.push({ id = 13, type = "text", icon = "ui/icons/hitchance.png", text = "把主目标标记为猎物（2 回合，同一时间只有一个）：亡灵宠物与仆从优先攻击它，导师与冠军对其命中 +10、伤害 +20%。" });
         if (this.m.Scourge)
             ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "相邻敌人承受一半伤害和完整的衰弱效果。" });
         return ret;
@@ -84,7 +83,7 @@ this.pale_weaken <- ::inherit("scripts/skills/skill", {
             }
             effect.m.Penalty = penalty;
             effect.m.Turns = 2;
-            if (this.m.Champion)
+            if (tile.ID == _tile.ID)
                 ::PaleSovereign.markPrey(target);
             skills.update();
         }

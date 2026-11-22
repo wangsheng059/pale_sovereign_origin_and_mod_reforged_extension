@@ -29,8 +29,14 @@ this.pale_soul_strike <- ::inherit("scripts/skills/skill", {
     {
         local ret = this.getDefaultTooltip();
         local actor = this.getContainer().getActor();
+        local resolve = ::BGP.Necro.getResolve(actor);
         local bonus = ::Math.floor(::BGP.Necro.getWill(actor) * 0.10);
-        ret.push({ id = 11, type = "text", icon = "ui/icons/direct_damage.png", text = "距离 1–2 格。命中追加 " + bonus + " 点无视护甲伤害，目标疲劳 +5。" });
+        local staff = actor.getMainhandItem();
+        local low = staff == null ? 0 : staff.m.RegularDamage, high = staff == null ? 0 : staff.m.RegularDamageMax;
+        ret.push({ id = 11, type = "text", icon = "ui/icons/direct_damage.png", text = "距离 1–2 格。伤害 = 法杖伤害 " + low + "–" + high
+            + "（其中 " + ::Math.round(this.m.DirectDamageMult * 100) + "% 无视护甲）+ 追加 ⌊(决心 − " + ::BGP.Necro.WillOffset + ") × 10%⌋ 点无视护甲伤害。"
+            + "当前决心 " + resolve + "，追加 " + bonus + " 点。命中后目标疲劳 +5。" });
+        ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "命中后把目标标记为猎物（2 回合，同一时间只有一个）：亡灵宠物与仆从优先攻击它，导师与冠军对其命中 +10、伤害 +20%。" });
         if (!actor.getCurrentProperties().IsSpecializedInPolearms)
             ret.push({ id = 12, type = "text", icon = "ui/icons/hitchance.png", text = "贴身命中 −15。长柄专精取消此惩罚并降低疲劳消耗。" });
         return ret;
@@ -66,6 +72,8 @@ this.pale_soul_strike <- ::inherit("scripts/skills/skill", {
         if (target == null || ::MSU.isNull(target) || !target.isAlive() || target.isDying())
             return;
         target.setFatigue(::Math.min(target.getFatigueMax(), target.getFatigue() + 5));
+        if (::PaleSovereign.isEnemy(_info.User, target.getTile()))
+            ::PaleSovereign.markPrey(target);
         local spell = strike.getContainer().getSkillByID("actives.pale_weaken");
         ::PaleSovereign.directDamage(_info.User, spell, target, ::BGP.Necro.getWill(_info.User) * 0.10);
     }

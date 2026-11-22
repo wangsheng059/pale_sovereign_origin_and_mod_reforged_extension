@@ -3,7 +3,7 @@ this.pale_wight_order_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_wight_order";
         this.m.Name = "尸妖王的号令";
-        this.m.Description = "侍卫长用一句早已失传的口令催促冠军上前。第 1 回合近战技能 +10。";
+        this.m.Description = "侍卫长用一句早已失传的口令催促冠军上前。前 5 回合近战技能 +20。";
         this.m.Icon = "skills/pale_wight_order.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
@@ -12,13 +12,13 @@ this.pale_wight_order_effect <- ::inherit("scripts/skills/skill", {
 
     function onUpdate( _properties )
     {
-        if (::Time.getRound() <= 1)
-            _properties.MeleeSkill += 10;
+        if (::Time.getRound() <= 5)
+            _properties.MeleeSkill += 20;
     }
 
     function onRoundStart()
     {
-        if (::Time.getRound() > 1)
+        if (::Time.getRound() > 5)
             this.removeSelf();
     }
 });

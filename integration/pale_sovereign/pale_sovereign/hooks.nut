@@ -64,7 +64,7 @@ local oldScale = ::BGP.NecroPet.applyScaling;
     if (S.petGet(item, "Gilded") != 0 && "gildArmor" in S)
         S.gildArmor(_entity);
     S.addBattleBoons(_entity);
-    if (S.followerRank("wight_captain") >= 3 && ::Time.getRound() <= 1
+    if (S.followerRank("wight_captain") >= 3 && ::Time.getRound() <= 5
         && !_entity.getSkills().hasSkill("effects.pale_wight_order"))
         _entity.getSkills().add(::new(S.SkillDir + "effects/pale_wight_order_effect"));
     if (S.ambitionDone("immortal_guard") && !_entity.getSkills().hasSkill("effects.pale_guard_shield"))
@@ -260,7 +260,7 @@ mod.hook("scripts/states/world/asset_manager", function(q)
         S.BlockWorldHealing = true;
         local recovery = this.m.HitpointsPerHourMult;
         if (S.followerRank("blood_steward") > 0)
-            this.m.HitpointsPerHourMult *= 1.20;
+            this.m.HitpointsPerHourMult *= 1.50;
         try { __original(_state); }
         catch (e)
         {
@@ -302,7 +302,7 @@ mod.hook("scripts/entity/world/player_party", function(q)
         local radius = __original();
         if (!S.isActive() || ::World.getTime().IsDaytime)
             return radius;
-        radius *= S.followerRank("banshee") >= 2 ? 1.15 : 1.0;
+        radius *= S.followerRank("banshee") >= 2 ? 1.5 : 1.0;
         local mult = ::World.getGlobalVisibilityMult();
         return mult > 0 && mult < 1.0 ? radius * ((1.0 + mult) * 0.5) / mult : radius;
     };
@@ -487,7 +487,8 @@ mod.hook("scripts/entity/tactical/actor", function(q)
         if (battle.Death.Eligible)
         {
             local fileName = S.scriptBase(battle.Death.Info.Script);
-            if (this.getSkills().hasSkill("racial.champion"))
+            battle.Death.Champion <- this.getSkills().hasSkill("racial.champion");
+            if (battle.Death.Champion)
                 ++battle.Champions;
             if (fileName == "trickster_god")
                 S.set("Legend.Hunt", 1);
@@ -499,11 +500,14 @@ mod.hook("scripts/entity/tactical/actor", function(q)
             if (governor != null && governor.EntityID == battle.Death.ID && !this.isAlive())
                 governor.Died = true;
             local eligible = battle.Death.Eligible;
+            local champion = "Champion" in battle.Death && battle.Death.Champion;
             battle.Death = former;
             if (eligible && (!this.isAlive() || this.isDying()))
             {
                 ++battle.DefenseDead;
                 S.followerOnKill(_killer);
+                if (champion)
+                    S.followerChampionKill(_killer);
             }
             return result;
         }
@@ -658,9 +662,19 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
             && S.canStashPet(actor);
     };
 
+    // 亡灵法师导师不能驯服野兽：驯服技能对导师隐藏且不可用
     q.isHidden = @(__original) function()
     {
+        if (S.isActive() && S.isChief(this.getContainer().getActor()))
+            return true;
         return __original() && !this.isStashMode();
+    };
+
+    q.isUsable = @(__original) function()
+    {
+        if (S.isActive() && S.isChief(this.getContainer().getActor()))
+            return false;
+        return __original();
     };
 
     q.getTooltip = @(__original) function()

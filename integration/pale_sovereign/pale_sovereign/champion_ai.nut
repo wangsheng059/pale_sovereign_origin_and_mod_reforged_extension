@@ -3,7 +3,14 @@ local S = ::PaleSovereign;
 S.isChampionAI <- function( _actor )
 {
     return this.Battle != null && _actor.getFaction() == ::Const.Faction.PlayerAnimals && !_actor.isPlayerControlled()
-        && this.oath() == this.Oath.Champion && this.isDeployed(this.mainPet(), _actor);
+        && this.isDeployed(this.mainPet(), _actor);
+};
+
+// 法杖标记的猎物：AI 控制的友方亡灵（死灵宠物、复活与召唤的仆从）优先攻击
+S.isPreyHunter <- function( _actor )
+{
+    return this.Battle != null && this.Battle.Prey != null && _actor.getFaction() == ::Const.Faction.PlayerAnimals
+        && !_actor.isPlayerControlled() && (_actor.getFlags().has("undead") || this.isUndead(_actor));
 };
 
 S.championTargetPriority <- function( _target )
@@ -37,9 +44,15 @@ S.championTargetPriority <- function( _target )
 
 S.championAttackScore <- function( _score, _actor, _target, _skill )
 {
-    if (_score <= 0 || _skill == null || !_skill.isAttack() || !this.isChampionAI(_actor)
-        || _target.isAlliedWith(_actor) || !_target.getTile().IsVisibleForEntity)
+    if (_score <= 0 || _skill == null || !_skill.isAttack() || _target.isAlliedWith(_actor) || !_target.getTile().IsVisibleForEntity)
         return _score;
+    if (!this.isChampionAI(_actor))
+    {
+        if (!this.isPreyHunter(_actor) || !_target.getSkills().hasSkill("effects.pale_prey"))
+            return _score;
+        local chance = _skill.getHitchance(_target);
+        return _score * (1.0 + 0.65 * ::Math.maxf(0.0, ::Math.minf(1.0, (chance - 25) / 25.0)));
+    }
 
     local hit = _skill.getHitchance(_target);
     local bonus = this.championTargetPriority(_target);

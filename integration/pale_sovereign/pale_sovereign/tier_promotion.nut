@@ -39,14 +39,14 @@ S.restoreTierSkills <- function( _bro )
 
 S.tierCanPromote <- function( _bro, _branch )
 {
-    if (!this.isActive() || !::World.Assets.isCamping() || _bro == null || !_bro.isAlive()
+    if (!this.isActive() || _bro == null || !_bro.isAlive()
         || !this.isUndead(_bro) || _bro.getFlags().has("PaleSoulbound") || _bro.getLevel() < this.TierCost.Level
         || this.undead().find(_bro) == null || !(_branch in this.TierBranches))
         return false;
     local old = this.getUndeadBackground(_bro);
     local next = this.TierBranches[_branch];
     return old != null && next.Tier == old.m.PaleTier + 1 && next.Skeleton == old.m.PaleSkeleton
-        && this.get("Reserve") >= this.TierCost.Reserve && this.countItems("misc.pale_jade") >= this.TierCost.Jade
+        && this.get("Reserve") >= this.tierReserveCost() && this.countItems("misc.pale_jade") >= this.TierCost.Jade
         && ::World.Assets.getMoney() >= this.TierCost.Money;
 };
 
@@ -85,7 +85,7 @@ S.tierPromote <- function( _bro, _branch )
     local oldStats = props.getClone();
     local saved = { Level = _bro.m.Level, XP = _bro.m.XP, LevelUps = _bro.m.LevelUps,
         Attributes = _bro.m.Attributes, Tree = _bro.m.PerkTree };
-    local level = oldLevel - this.TierCost.LevelsSpent;
+    local level = oldLevel - this.tierLevelsSpent();
     // Retain the fraction of progress within the level, using the new level's XP curve.
     local oldMinimum = ::Const.LevelXP[oldLevel - 1];
     local oldInterval = ::Math.max(1, _bro.getXPForNextLevel() - oldMinimum);
@@ -172,7 +172,7 @@ S.tierPromote <- function( _bro, _branch )
     _bro.setHitpointsPct(::Math.maxf(oldHealth, 1.0 / _bro.getHitpointsMax()));
 
     this.removeMaterial("jade");
-    this.changeReserve(-this.TierCost.Reserve);
+    this.changeReserve(-this.tierReserveCost());
     ::World.Assets.addMoney(-this.TierCost.Money);
     ::World.State.updateTopbarAssets();
     return _bro.getName() + " 已升阶为【" + next.Name + "】。等级 " + oldLevel + " → " + level

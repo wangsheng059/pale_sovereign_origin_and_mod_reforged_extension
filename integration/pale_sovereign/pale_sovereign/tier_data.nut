@@ -5,6 +5,9 @@ local S = ::PaleSovereign;
 S.TierPerkCollections <- ["pgc.rf_weapon", "pgc.rf_fighting_style", "pgc.rf_armor", "pgc.rf_shared_1", "pgc.rf_exclusive_1"];
 S.TierCommonExclusions <- ["bow", "crossbow", "throwing", "dagger", "ranged"];
 S.TierCost <- { Level = 7, LevelsSpent = 6, Jade = 1, Reserve = 5, Money = 500 };
+// 防腐师 3 级：升阶少退 2 级（7 级升阶为 3 级），尸骸消耗 −2
+S.tierLevelsSpent <- @() this.TierCost.LevelsSpent - (this.followerRank("embalmer") >= 3 ? 2 : 0);
+S.tierReserveCost <- @() this.TierCost.Reserve - (this.followerRank("embalmer") >= 3 ? 2 : 0);
 S.TierBrushStems <- {
     tomb_blademaster = "blademaster", bloated_corpse = "bloated", frenzied_corpse = "frenzied",
     dread_corpse_lord = "dread_lord", corpse_colossus = "colossus", carnage_fiend = "carnage"

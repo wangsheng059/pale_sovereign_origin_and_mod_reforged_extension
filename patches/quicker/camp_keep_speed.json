@@ -1,0 +1,8 @@
+{
+  "source": "quicker_1.4（加速MOD）.zip",
+  "member": "quicker/world.nut",
+  "before": "9ce74ae2d7ea582e006cf38bc22ce161dafec4841a888cc381305ceb056c4aaf",
+  "after": "a24d18bee8e9b9f5b472880377d93245e0a33fbe9f27fc901049a1c8eb53792e",
+  "old": "\tq.onCamp = @(__original) function()\r\n\t{\r\n\t\tlocal ret = __original();\r\n\t\tif (::World.Assets.isCamping())\r\n\t\t\t::Quicker.updateTopbarButtons();\r\n\t\treturn ret;\r\n\t}",
+  "new": "\tq.onCamp = @(__original) function()\r\n\t{\r\n\t\tlocal before = ::World.getSpeedMult();\r\n\t\tlocal ret = __original();\r\n\t\tif (::World.Assets.isCamping())\r\n\t\t{\r\n\t\t\t// 扎营不改变时间流速：沿用扎营前的速度（暂停中扎营则为 ×1）\r\n\t\t\tif (before > 0)\r\n\t\t\t{\r\n\t\t\t\tthis.m.LastWorldSpeedMult = before;\r\n\t\t\t\t::World.setSpeedMult(before);\r\n\t\t\t}\r\n\t\t\t::Quicker.updateTopbarButtons();\r\n\t\t}\r\n\t\treturn ret;\r\n\t}"
+}

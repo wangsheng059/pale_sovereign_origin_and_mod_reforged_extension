@@ -120,13 +120,18 @@ S.castleDaily <- function()
 S.followerVictory <- @() null;
 S.followerWorldTick <- @() null;
 S.followerOnKill <- @(_killer) null;
+S.followerChampionKill <- @(_killer) null;
+S.followerAssets <- @(_key, _rank) null;
+S.followerMovementMult <- @(_key) 1.0;
+S.isAmbushSafe <- @() false;
+S.isWaryHumanParty <- @(_party) false;
 
 S.repairUndead <- function( _free = false )
 {
     local injured = this.undead().filter(@(_, bro) bro.getHitpoints() < bro.getHitpointsMax());
     if (injured.len() == 0 || (!_free && !this.changeReserve(-1)))
         return;
-    local ratio = this.ambitionDone("ranks_of_dead") ? 0.35 : (this.followerRank("embalmer") >= 2 ? 0.30 : 0.20);
+    local ratio = ::Math.maxf(this.ambitionDone("ranks_of_dead") ? 0.35 : 0.20, this.followerRank("embalmer") >= 2 ? 0.50 : 0.0);
     foreach (bro in injured)
         bro.setHitpoints(::Math.minf(bro.getHitpointsMax(), bro.getHitpoints() + bro.getHitpointsMax() * ratio));
 };

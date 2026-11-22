@@ -1,0 +1,8 @@
+{
+  "source": "quicker_1.4（加速MOD）.zip",
+  "member": "quicker/world.nut",
+  "before": "c66b9345f0b16553af106cec0dd602c203332dc1361c67b474c700d74f951d72",
+  "after": "9ce74ae2d7ea582e006cf38bc22ce161dafec4841a888cc381305ceb056c4aaf",
+  "old": "// 护送默认 ×4，扎营默认 ×2（快进）\r\n::Const.World.SpeedSettings.EscortMult = ::Const.World.SpeedSettings.VeryfastMult;\r\n::Const.World.SpeedSettings.CampMult = ::Const.World.SpeedSettings.FastMult;",
+  "new": "// 护送默认 ×4；扎营不再自动加速（×1，扎营时沿用扎营前选的速度）\r\n::Const.World.SpeedSettings.EscortMult = ::Const.World.SpeedSettings.VeryfastMult;\r\n::Const.World.SpeedSettings.CampMult = ::Const.World.SpeedSettings.NormalMult;"
+}

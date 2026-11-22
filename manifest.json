@@ -1302,6 +1302,8 @@
     "patches/pandora/champion_sample.json",
     "patches/companions/tame_mult_setting.json",
     "patches/companions/tame_mult_fallback.json",
-    "patches/companions/tame_beastmaster_chance.json"
+    "patches/companions/tame_beastmaster_chance.json",
+    "patches/quicker/camp_speed_mult.json",
+    "patches/quicker/camp_keep_speed.json"
   ]
 }

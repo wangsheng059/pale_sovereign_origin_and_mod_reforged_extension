@@ -44,7 +44,7 @@ S.tierBranchPanel <- function( _event, _screen )
     local target = units[0];
     local background = target.getBackground();
     local choices = this.TierChoices[background.m.PaleSkeleton ? 1 : 0][background.m.PaleTier - 1];
-    local nextLevel = target.getLevel() - this.TierCost.LevelsSpent;
+    local nextLevel = target.getLevel() - this.tierLevelsSpent();
     _screen.Text = target.getName() + " · " + background.getName() + "　" + target.getLevel() + " → " + nextLevel + " 级";
     if (_screen.ID == "tier_confirm" && choices.find(_event.m.TierBranch) != null)
     {
@@ -52,11 +52,11 @@ S.tierBranchPanel <- function( _event, _screen )
         local branch = this.TierBranches[chosen];
         _screen.Text += "\n\n" + this.tierBranchSummary(chosen)
             + "\n\n升阶将重置基础属性、已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、装备和中阶专长，旧阶段的魂玉与魂炉强化清空，可再次进行。"
-            + "\n\n消耗古代魂玉 1 枚、防腐尸骸 5 点、500 克朗。";
+            + "\n\n消耗古代魂玉 " + this.TierCost.Jade + " 枚、防腐尸骸 " + this.tierReserveCost() + " 点、" + this.TierCost.Money + " 克朗。";
         if (this.tierCanPromote(target, chosen))
             this.option(_screen, "确认升阶为" + branch.Name, @() S.tierPromote(target, chosen));
         else
-            _screen.Text += "\n\n材料不足，或战团已离开营地。";
+            _screen.Text += "\n\n材料不足。";
         this.option(_screen, "返回选择分支", @() "@tier_branch");
         return;
     }

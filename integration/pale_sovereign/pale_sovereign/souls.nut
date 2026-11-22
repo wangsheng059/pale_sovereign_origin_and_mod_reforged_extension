@@ -136,11 +136,12 @@ S.isDeployed <- function( _pet, _actor = null )
 
 S.makeGuard <- function( _starting )
 {
-    local type = ::BGP.NecroPet.getTypeForScript("scripts/entity/tactical/enemies/skeleton_light", true);
+    // 1.6.7 开局护卫改用古代军团士兵模板，装备在第一次放出时按模板随机生成并记下
+    local type = ::BGP.NecroPet.getTypeForScript("scripts/entity/tactical/enemies/" + (_starting ? "skeleton_medium" : "skeleton_light"), true);
     local pet = ::new(this.ItemDir + "accessory/wardog_item");
     pet.setType(type);
     pet.m.Name = _starting ? "残破的荒坟守卫" : "荒坟守卫";
-    pet.m.BGP_Gear = "S:scripts/items/weapons/militia_spear;S:scripts/items/shields/wooden_shield";
+    pet.m.BGP_Gear = _starting ? null : "S:scripts/items/weapons/militia_spear;S:scripts/items/shields/wooden_shield";
     if (_starting)
         pet.m.Wounds = 25;
     this.petID(pet);

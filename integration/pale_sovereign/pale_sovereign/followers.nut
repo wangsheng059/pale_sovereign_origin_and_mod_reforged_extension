@@ -4,27 +4,27 @@ S.FollowerData <- {
     embalmer = {
         Name = "防腐师", Archetype = "Steward", Image = "ui/campfire/pale_embalmer",
         Description = "他身上的盐味和松脂味怎么也洗不掉。再破烂的尸体到了他手里，也能腌得整整齐齐，在车厢里码得严丝合缝。",
-        Effects = ["每 3 具合格遗骸封存 2 点尸骸", "每日修补量提高至 30%", "开战时在战线后部署 2 具防腐尸体"]
+        Effects = ["每 3 具合格遗骸封存 2 点尸骸", "工具容量 +50、弹药容量 +100、医疗用品容量 +100，修理效率 +50%，常驻亡灵每日修补量提高至 50%", "常驻亡灵升阶后从 3 级起步（7 级升阶为 3 级），升阶消耗的防腐尸骸 −2"]
     },
     gravekeeper = {
         Name = "掘墓人首领", Archetype = "Ranger", Image = "ui/campfire/pale_gravekeeper",
         Description = "他能从野草的颜色和地面的塌陷看出帝国旧墓的位置，也知道哪道墓门还没被人撬开过。",
-        Effects = ["每 7 天标出一处未勘察的古代遗址", "勘察时魂玉概率 +5 个百分点，锁链概率 +10 个百分点", "清剿古代遗址额外获得古代武器或古代金币"]
+        Effects = ["每 5 天标出一处未勘察的古代遗址；白天大地图移动速度 +15%，夜间 +50%", "勘察时魂玉概率和锁链概率各 +20 个百分点", "清剿古代遗址额外获得古代武器或古代金币"]
     },
     wight_captain = {
         Name = "尸妖王侍卫长", Archetype = "Officer", Image = "ui/campfire/pale_wight_captain",
         Description = "一名从古帝国站岗至今的沉默军官。它早已不记得自己的名字，却还记得怎样操练一名冠军。",
-        Effects = ["冠军经验 +20%", "缚魂锁链生命门槛 +5 个百分点", "冠军在首回合获得 +10 近战技能"]
+        Effects = ["冠军经验 +50%", "缚魂锁链生命门槛 +5 个百分点", "冠军在前 5 回合获得 +20 近战技能；战团每击杀一名敌方冠军获得 200 克朗"]
     },
     banshee = {
         Name = "女妖", Archetype = "Agent", Image = "ui/campfire/pale_banshee",
         Description = "只有守夜的人听见过她的歌声。第二天早上，他们谁也不肯复述那首歌。",
-        Effects = ["夜战首回合敌人决心 −5", "夜间大地图视野 +15%", "首回合随机一名敌人做一次 −15 的士气检定"]
+        Effects = ["战斗中所有非亡灵敌人决心 −5（夜战时 −10）", "夜间大地图视野 +50%；在森林与沼泽中不会被伏击", "首回合随机一名敌人做一次 −50 的士气检定；贵族、南方城邦和民兵队伍在大地图上发现战团的距离缩短 30%"]
     },
     blood_steward = {
         Name = "血宴管家", Archetype = "Healer", Image = "ui/campfire/pale_blood_steward",
         Description = "一个举止得体的吸血鬼，深谙如何让活人的血保持新鲜。战团接受了这个有些滑稽的安排，只是没人愿意和他单独吃饭。",
-        Effects = ["活人生命恢复速度 +20%", "战胜后导师恢复 30% 最大生命", "每战导师首次击杀恢复 20 生命和 10 疲劳"]
+        Effects = ["活人生命恢复速度 +50%；活人被击倒时必定幸存，且不会留下永久伤势", "战胜后导师恢复 30% 最大生命", "每战导师首次击杀恢复 20 生命和 10 疲劳"]
     }
 };
 
@@ -57,8 +57,62 @@ S.followerWorldTick = function()
     if (this.followerRank("gravekeeper") > 0 && age >= this.get("NextRangerLead"))
     {
         this.revealAncient(false, true);
-        this.set("NextRangerLead", age + 7 * 24);
+        this.set("NextRangerLead", age + 5 * 24);
     }
+};
+
+// 尸妖王侍卫长 3 级：战团击杀敌方冠军得 200 克朗
+S.followerChampionKill = function( _killer )
+{
+    local chief = this.chief();
+    if (this.followerRank("wight_captain") < 3 || _killer == null || ::MSU.isNull(_killer) || chief == null || !_killer.isAlliedWith(chief))
+        return;
+    ::World.Assets.addMoney(200);
+    ::Tactical.EventLog.log("尸妖王侍卫长清点了冠军的遗物，战团获得 200 克朗。");
+};
+
+// 随从对大地图资产的加成（随从系统重算资产时调用）
+S.followerAssets = function( _key, _rank )
+{
+    if (_key == "embalmer" && _rank >= 2)
+    {
+        ::World.Assets.m.ArmorPartsMaxAdditional += 50;
+        ::World.Assets.m.AmmoMaxAdditional += 100;
+        ::World.Assets.m.MedicineMaxAdditional += 100;
+        ::World.Assets.m.RepairSpeedMult *= 1.5;
+    }
+};
+
+// 掘墓人首领 1 级：白天大地图移动速度 +15%，夜间 +50%
+S.followerMovementMult = function( _key )
+{
+    if (_key != "gravekeeper" || !this.isActive())
+        return 1.0;
+    return ::World.getTime().IsDaytime ? 1.15 : 1.5;
+};
+
+// 女妖 2 级：在森林与沼泽中不会被伏击
+S.AmbushSafeTerrain <- [
+    ::Const.World.TerrainType.Forest, ::Const.World.TerrainType.SnowyForest, ::Const.World.TerrainType.LeaveForest,
+    ::Const.World.TerrainType.AutumnForest, ::Const.World.TerrainType.Swamp
+];
+S.isAmbushSafe = function()
+{
+    if (!this.isActive() || this.followerRank("banshee") < 2 || ::World.State.getPlayer() == null)
+        return false;
+    return this.AmbushSafeTerrain.find(::World.State.getPlayer().getTile().Type) != null;
+};
+
+// 女妖 3 级：这些人类势力的队伍发现战团的距离缩短 30%
+S.WaryFactionTypes <- [::Const.FactionType.NobleHouse, ::Const.FactionType.OrientalCityState, ::Const.FactionType.Settlement];
+S.isWaryHumanParty = function( _party )
+{
+    if (!this.isActive() || this.followerRank("banshee") < 3 || _party.getFaction() == 0)
+        return false;
+    local faction = ::World.FactionManager.getFaction(_party.getFaction());
+    if (faction == null || this.WaryFactionTypes.find(faction.getType()) == null)
+        return false;
+    return !faction.isAlliedWithPlayer();
 };
 
 S.followerOnKill = function( _killer )
@@ -81,26 +135,8 @@ S.followerBattleOpening <- function( _actor )
             foreach (enemy in faction)
                 if (enemy.isAlive() && !enemy.isDying() && enemy.isPlacedOnMap() && !enemy.isAlliedWith(_actor))
                     enemies.push(enemy);
-        if (this.followerRank("embalmer") >= 3)
-        {
-            local tile = _actor.getTile();
-            local rear = this.area(tile).filter(@(_, t) !t.IsOccupiedByActor && !t.IsCorpseSpawned);
-            if (enemies.len() > 0)
-            {
-                local distance = function( _tile )
-                {
-                    local nearest = 999;
-                    foreach (enemy in enemies)
-                        nearest = ::Math.min(nearest, _tile.getDistanceTo(enemy.getTile()));
-                    return nearest;
-                };
-                rear.sort(@(a, b) distance(b) <=> distance(a));
-            }
-            for (local i = 0; i < ::Math.min(2, rear.len()); ++i)
-                this.placeShot(rear[i]);
-        }
         if (this.followerRank("banshee") >= 3 && enemies.len() > 0)
-            enemies[::Math.rand(0, enemies.len() - 1)].checkMorale(-1, -15);
+            enemies[::Math.rand(0, enemies.len() - 1)].checkMorale(-1, -50);
     }
 };
 
@@ -121,6 +157,63 @@ S.Mod.hook("scripts/retinue/retinue_manager", function(q)
     };
 });
 
+// 女妖 2 级：在森林与沼泽中遭遇敌人时，战前照常显示敌情、允许撤退和选阵型
+S.Mod.hook("scripts/states/world_state", function(q)
+{
+    q.showCombatDialog = @(__original) function( _isPlayerInitiated = true, _isCombatantsVisible = true, _allowFormationPicking = true, _properties = null, _pos = null )
+    {
+        if (!_isPlayerInitiated && S.isAmbushSafe())
+        {
+            _isCombatantsVisible = true;
+            _allowFormationPicking = true;
+        }
+        return __original(_isPlayerInitiated, _isCombatantsVisible, _allowFormationPicking, _properties, _pos);
+    };
+});
+
+// 女妖 3 级：贵族、南方城邦和民兵的队伍视野 −30%，更晚发现战团
+S.Mod.hook("scripts/entity/world/party", function(q)
+{
+    q.getVisionRadius = @(__original) function()
+    {
+        local radius = __original();
+        return S.isWaryHumanParty(this) ? radius * 0.7 : radius;
+    };
+});
+
+// 血宴管家 1 级：活人被击倒时必定幸存（不论致命方式），且不留下永久伤势
+S.Mod.hook("scripts/entity/tactical/player", function(q)
+{
+    q.isReallyKilled = @(__original) function( _fatalityType )
+    {
+        if (S.Battle == null || S.followerRank("blood_steward") < 1 || S.isUndead(this) || this.getFlags().has("undead")
+            || ::Tactical.State.isScenarioMode())
+            return __original(_fatalityType);
+        local properties = this.m.CurrentProperties;
+        local chance = properties.SurviveWithInjuryChanceMult;
+        local before = {};
+        foreach (injury in this.getSkills().query(::Const.SkillType.PermanentInjury))
+            before[injury.getID()] <- true;
+        properties.SurviveWithInjuryChanceMult = 1000.0;
+        local result = true;
+        try { result = __original(::Const.FatalityType.None); }
+        catch (e)
+        {
+            properties.SurviveWithInjuryChanceMult = chance;
+            throw e;
+        }
+        properties.SurviveWithInjuryChanceMult = chance;
+        if (!result)
+        {
+            foreach (injury in this.getSkills().query(::Const.SkillType.PermanentInjury))
+                if (!(injury.getID() in before))
+                    this.getSkills().remove(injury);
+            ::Tactical.EventLog.log("血宴管家的秘药吊住了 " + ::Const.UI.getColorizedEntityName(this) + " 的最后一口气。");
+        }
+        return result;
+    };
+});
+
 S.Mod.hook("scripts/entity/tactical/actor", function(q)
 {
     q.onRoundStart = @(__original) function()
@@ -128,12 +221,16 @@ S.Mod.hook("scripts/entity/tactical/actor", function(q)
         __original();
         if (S.Battle == null)
             return;
-        local round = ::Time.getRound();
-        if (round != 1)
-            return;
-        if (S.Battle.Night && S.followerRank("banshee") >= 1 && S.chief() != null && !this.isAlliedWith(S.chief()))
-            this.getSkills().add(::new(S.SkillDir + "effects/pale_banshee_effect"));
-        S.followerBattleOpening(this);
+        local chief = S.chief();
+        if (S.followerRank("banshee") >= 1 && chief != null && this.isAlive() && !this.isAlliedWith(chief)
+            && !this.getFlags().has("undead") && !this.getSkills().hasSkill("effects.pale_banshee"))
+        {
+            local wail = ::new(S.SkillDir + "effects/pale_banshee_effect");
+            wail.m.Penalty = S.Battle.Night ? 10 : 5;
+            this.getSkills().add(wail);
+        }
+        if (::Time.getRound() == 1)
+            S.followerBattleOpening(this);
     };
 });
 
@@ -145,7 +242,7 @@ S.Mod.rawHookTree("scripts/items/accessory/accessory", function(p)
     p.addXP = function( _xp )
     {
         if (S.isActive() && S.isCoffin(this) && (S.mainPet() == this || this.m.PaleID > 0) && S.followerRank("wight_captain") >= 1)
-            _xp = ::Math.round(_xp * 1.20);
+            _xp = ::Math.round(_xp * 1.50);
         return original.call(this, _xp);
     };
 });

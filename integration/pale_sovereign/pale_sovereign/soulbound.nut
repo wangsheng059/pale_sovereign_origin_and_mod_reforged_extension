@@ -34,7 +34,7 @@ S.SoulboundClasses <- {
         ]
     },
     barrow = {
-        Name = "墓穴族", Skeleton = false, Look = "fallen_hero",
+        Name = "墓穴恶鬼", Skeleton = false, Look = "fallen_hero",
         Description = "墓冢里爬出的北地亡者，须发上还挂着冰霜。锁链没能磨掉它的狂怒，只是替这份狂怒指定了方向。",
         Scripts = ["rf_draugr_huskarl", "rf_draugr_huskarl_bodyguard", "rf_draugr_hero"],
         Tree = [
@@ -434,7 +434,7 @@ S.shackleMaterialsAvailable <- function()
 
 S.canForgeShackle <- function()
 {
-    return this.oath() != this.Oath.None && ::World.Assets.isCamping()
+    return this.oath() != this.Oath.None
         && this.countItems("misc.pale_chain") > 0 && this.shackleMaterialsAvailable().len() > 0;
 };
 
@@ -524,7 +524,7 @@ S.worldEvent = function()
 };
 
 // ---------------------------------------------------------------------------
-// 炼化（天灾）：扎营时献祭一名 6 级以上的常驻亡灵，得到 1 枚古代魂玉
+// 炼化（天灾）：在亡灵营地献祭一名 6 级以上的常驻亡灵，得到 1 枚古代魂玉
 // ---------------------------------------------------------------------------
 S.RefineLevel <- 6;
 
@@ -537,7 +537,7 @@ S.refineTargets <- function()
 
 S.canRefine <- function()
 {
-    return this.oath() == this.Oath.Scourge && ::World.Assets.isCamping() && this.refineTargets().len() > 0;
+    return this.oath() == this.Oath.Scourge && this.refineTargets().len() > 0;
 };
 
 S.refineUndead <- function( _bro )
@@ -587,7 +587,7 @@ S.refineConfirmPanel <- function( _screen )
     local target = this.RefineTarget == null || ::MSU.isNull(this.RefineTarget) ? null : this.RefineTarget.get();
     if (target == null || !this.canRefine() || this.refineTargets().find(target) == null)
     {
-        _screen.Text = "炼化的人选已经不在了，或战团已离开营地。";
+        _screen.Text = "炼化的人选已经不在了。";
         this.option(_screen, "返回炼化名单", @() "@refine");
         return;
     }

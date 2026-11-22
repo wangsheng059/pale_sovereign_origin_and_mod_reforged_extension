@@ -127,12 +127,12 @@ S.inspectAncient <- function( _site )
 
     if (this.oath() == this.Oath.Champion)
     {
-        // 魂玉 30%、锁链 60%、其余是陪葬的古钱
+        // 魂玉 30%、锁链 60%、其余是陪葬的古钱；掘墓人首领 2 级各 +20 个百分点（50% / 80%）
         local roll = ::Math.rand(1, 100);
         local found = null;
         local scout = this.followerRank("gravekeeper") >= 2;
-        local jade = roll <= (scout ? 35 : 30);
-        local chain = roll > 30 && (scout || roll <= 90);
+        local jade = roll <= (scout ? 50 : 30);
+        local chain = roll > (scout ? 20 : 40);
         if (jade || chain)
         {
             local needed = jade && chain ? 2 : 1;
@@ -167,12 +167,12 @@ S.inspectAncient <- function( _site )
         local text = "清点地宫角落后，从遗址中回收了 " + (this.get("Reserve") - before) + " 点防腐尸骸。库存 " + before + " → " + this.get("Reserve") + "。";
         local ruins = this.get(_site.Key + "Kind") == 1;
         local scout = this.followerRank("gravekeeper") >= 2;
-        if (ruins && ::Math.rand(1, 100) <= (scout ? 15 : 10))
+        if (ruins && ::Math.rand(1, 100) <= (scout ? 30 : 10))
         {
             this.pendingItem("misc/pale_jade_item");
             text += "盗墓贼还从裹尸布里摸到一枚古代魂玉。";
         }
-        if (ruins && scout && ::Math.rand(1, 100) <= 10)
+        if (ruins && scout && ::Math.rand(1, 100) <= 20)
         {
             this.pendingItem("misc/pale_chain_item");
             text += "石棺里还留着一条缚魂锁链。";
