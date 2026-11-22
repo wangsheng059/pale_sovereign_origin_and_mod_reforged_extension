@@ -15,7 +15,10 @@ this.pale_summon_zombie <- ::inherit("pale_sovereign/classes/pale_summon_undead"
         this.m.EliteScript = "scripts/entity/tactical/bgp_undead/bgp_undead_zombie_knight";
         this.m.EliteName = "受缚堕落英雄";
         this.m.EliteGear = {
-            Mainhand = ["weapons/winged_mace", "weapons/fighting_axe", "weapons/noble_sword", "weapons/flail"],
+            ReplaceWeapon = true,
+            Mainhand = ["weapons/winged_mace", "weapons/fighting_axe", "weapons/noble_sword", "weapons/flail",
+                "weapons/greataxe", "weapons/two_handed_flail", "weapons/greatsword"],
+            Offhand = ["shields/kite_shield", "shields/heater_shield"],
             Body = ["armor/mail_hauberk", "armor/reinforced_mail_hauberk", "armor/scale_armor"],
             Head = ["helmets/flat_top_helmet", "helmets/kettle_hat_with_mail", "helmets/nasal_helmet_with_mail"]
         };

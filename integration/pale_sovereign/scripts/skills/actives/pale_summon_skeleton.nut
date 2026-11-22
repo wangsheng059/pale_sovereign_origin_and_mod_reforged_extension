@@ -15,7 +15,10 @@ this.pale_summon_skeleton <- ::inherit("pale_sovereign/classes/pale_summon_undea
         this.m.EliteScript = "scripts/entity/tactical/bgp_undead/bgp_undead_skeleton_heavy";
         this.m.EliteName = "受缚古代禁卫军";
         this.m.EliteGear = {
-            Mainhand = ["weapons/ancient/crypt_cleaver", "weapons/ancient/khopesh", "weapons/ancient/ancient_sword"],
+            ReplaceWeapon = true,
+            Mainhand = ["weapons/ancient/crypt_cleaver", "weapons/ancient/khopesh", "weapons/ancient/ancient_sword",
+                "weapons/ancient/bladed_pike", "weapons/ancient/rhomphaia", "weapons/ancient/warscythe"],
+            Offhand = ["shields/ancient/tower_shield", "shields/ancient/coffin_shield"],
             Body = ["armor/ancient/ancient_plate_harness", "armor/ancient/ancient_plated_scale_hauberk", "armor/ancient/ancient_double_layer_mail"],
             Head = ["helmets/ancient/ancient_honorguard_helmet", "helmets/ancient/ancient_legionary_helmet"]
         };

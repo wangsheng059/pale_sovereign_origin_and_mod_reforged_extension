@@ -117,7 +117,19 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         local gear = [this.m.Gear, this.m.MasteryGear, this.m.EliteGear][rank];
         if (gear != null)
         {
+            // 第 7 阶：换掉自带的武器和副手，从列表里重新挑（双手武器不配副手，单手武器配盾）
+            local items = e.getItems();
+            if ("ReplaceWeapon" in gear && gear.ReplaceWeapon)
+                foreach (slot in [::Const.ItemSlot.Mainhand, ::Const.ItemSlot.Offhand])
+                {
+                    local held = items.getItemAtSlot(slot);
+                    if (held != null)
+                        items.unequip(held);
+                }
             this.equipFrom(e, ::Const.ItemSlot.Mainhand, gear.Mainhand);
+            local weapon = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
+            if ("Offhand" in gear && (weapon == null || !weapon.isItemType(::Const.Items.ItemType.TwoHanded)))
+                this.equipFrom(e, ::Const.ItemSlot.Offhand, gear.Offhand);
             this.equipFrom(e, ::Const.ItemSlot.Body, gear.Body);
             this.equipFrom(e, ::Const.ItemSlot.Head, gear.Head);
         }
