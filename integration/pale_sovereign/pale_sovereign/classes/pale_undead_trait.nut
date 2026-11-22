@@ -31,12 +31,30 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
         else if (key == "deathgrip")
             _properties.IsImmuneToKnockBackAndGrab = true;
         else if (key == "dense_bone")
-            _properties.DamageReceivedTotalMult *= 0.95;
+            _properties.DamageReceivedTotalMult *= 0.90;
         else if (key == "old_drill")
         {
             _properties.MeleeSkill += 4;
             _properties.RangedSkill += 4;
+            _properties.MeleeDefense += 4;
+            _properties.RangedDefense += 4;
         }
+        else if (key == "thick_hide")
+            _properties.ThresholdToReceiveInjuryMult *= 1.25;
+        else if (key == "refined_joints")
+        {
+            _properties.Stamina += 10;
+            _properties.FatigueRecoveryRate += 2;
+        }
+        else if (key == "tall_frame")
+        {
+            _properties.MeleeDamageMult *= 1.10;
+            _properties.Hitpoints += 8;
+            _properties.MeleeDefense -= 5;
+            _properties.RangedDefense -= 5;
+        }
+        else if (key == "frail_bone")
+            _properties.Hitpoints -= 10;
         else if (key == "brittle")
         {
             _properties.Initiative -= 10;
@@ -73,8 +91,24 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
 
     function onBeforeDamageReceived( _attacker, _skill, _hitInfo, _properties )
     {
-        if (this.m.PaleKey == "hollow_skull" && _hitInfo.BodyPart == ::Const.BodyPart.Head)
+        local key = this.m.PaleKey;
+        if (key == "hollow_skull" && _hitInfo.BodyPart == ::Const.BodyPart.Head)
             _properties.DamageReceivedTotalMult *= 0.75;
+        else if (key == "thick_hide" && _hitInfo.BodyPart == ::Const.BodyPart.Head && _hitInfo.BodyDamageMult > 1.0)
+            _hitInfo.BodyDamageMult = 1.0 + (_hitInfo.BodyDamageMult - 1.0) * 0.75;
+        else if (key == "frail_bone" && _hitInfo.DamageType == ::Const.Damage.DamageType.Blunt)
+            _properties.DamageReceivedTotalMult *= 1.10;
+    }
+
+    function onDamageReceived( _attacker, _damageHitpoints, _damageArmor )
+    {
+        if (this.m.PaleKey != "toxic_flesh" || _damageHitpoints <= 0 || _attacker == null || ::MSU.isNull(_attacker)
+            || !_attacker.isAlive() || _attacker.getFlags().has("undead") || !_attacker.isPlacedOnMap())
+            return;
+        local actor = this.getContainer().getActor();
+        if (!actor.isPlacedOnMap() || actor.getTile().getDistanceTo(_attacker.getTile()) > 1)
+            return;
+        _attacker.setFatigue(::Math.min(_attacker.getFatigueMax(), _attacker.getFatigue() + 5));
     }
 
     function onAnySkillUsed( _skill, _targetEntity, _properties )

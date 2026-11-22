@@ -51,7 +51,7 @@ S.tierBranchPanel <- function( _event, _screen )
         local chosen = _event.m.TierBranch;
         local branch = this.TierBranches[chosen];
         _screen.Text += "\n\n" + this.tierBranchSummary(chosen)
-            + "\n\n升阶将重置基础属性、已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、装备和中阶专长，旧阶段的魂玉与魂炉强化清空，可再次进行。"
+            + "\n\n升阶将重置基础属性、已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、特质、装备和中阶专长，旧阶段的魂玉与魂炉强化清空，可再次进行。"
             + "\n\n消耗古代魂玉 " + this.TierCost.Jade + " 枚、防腐尸骸 " + this.tierReserveCost() + " 点、" + this.TierCost.Money + " 克朗。";
         if (this.tierCanPromote(target, chosen))
             this.option(_screen, "确认升阶为" + branch.Name, @() S.tierPromote(target, chosen));

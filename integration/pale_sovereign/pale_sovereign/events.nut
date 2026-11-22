@@ -335,8 +335,15 @@ S.campPanel <- function( _event, _screen )
             });
         if (this.canRecruitUndead(site))
             this.option(_screen, "征召常驻亡灵（" + this.recruitCost() + " 点防腐尸骸）", function() { S.RecruitSite = site; return "@recruit"; });
+        else if (this.get(site.Key + "Recruited") != 0)
+            _screen.Text += "\n\n" + site.Name + " 已经征召过常驻亡灵，每处登记地点只能征召一次。";
     }
+    if (oath != this.Oath.None)
+        _screen.Text += "\n\n" + (site == null ? "附近没有登记地点。" : "") + this.SiteRule;
 };
+
+// 登记地点的说明（营地账簿、征召页和读档提示共用）
+S.SiteRule <- "登记地点：打赢一仗的战场会自动登记（就是交战的那一格，地图上没有标记）；清剿过的古代遗址、亡灵墓地，以及随从、野心和事件给出的遗址线索也会登记。站在登记地点 2 格以内打开账簿，才能勘察和征召常驻亡灵，每处只能征召一次。";
 
 S.jadeTargets <- function()
 {

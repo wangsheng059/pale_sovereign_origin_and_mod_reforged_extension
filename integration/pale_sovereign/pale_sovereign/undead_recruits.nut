@@ -20,15 +20,16 @@ S.undeadKindOf <- function( _kind )
 
 // 特质池：原版特质里挑适合亡灵的，加上 12 个亡灵专属特质（scripts/skills/traits/pale_undead_*）
 S.UndeadTraitPool <- {
-    Both = ["iron_jaw_trait", "eagle_eyes_trait", "short_sighted_trait", "clumsy_trait", "dexterous_trait", "sure_footing_trait",
-        "quick_trait", "hesitant_trait", "strong_trait", "lucky_trait", "bloodthirsty_trait", "brute_trait", "bright_trait",
-        "dumb_trait", "night_owl_trait", "night_blind_trait",
+    Both = ["iron_jaw_trait", "eagle_eyes_trait", "clumsy_trait", "dexterous_trait", "sure_footing_trait",
+        "quick_trait", "strong_trait", "lucky_trait", "bloodthirsty_trait", "brute_trait", "bright_trait", "dumb_trait",
         "pale_undead_sleepless_trait", "pale_undead_grudge_trait", "pale_undead_soulfire_trait"],
     Zombie = ["huge_trait", "tough_trait", "fat_trait", "clubfooted_trait", "iron_lungs_trait",
-        "pale_undead_salted_trait", "pale_undead_gnawing_trait", "pale_undead_deathgrip_trait", "pale_undead_putrid_trait"],
+        "pale_undead_salted_trait", "pale_undead_gnawing_trait", "pale_undead_deathgrip_trait", "pale_undead_putrid_trait",
+        "pale_undead_embalmed_trait", "pale_undead_thick_hide_trait", "pale_undead_toxic_flesh_trait"],
     Skeleton = ["tiny_trait", "fragile_trait", "athletic_trait",
         "pale_undead_dense_bone_trait", "pale_undead_hollow_skull_trait", "pale_undead_old_drill_trait",
-        "pale_undead_legion_discipline_trait", "pale_undead_brittle_trait"]
+        "pale_undead_legion_discipline_trait", "pale_undead_brittle_trait",
+        "pale_undead_refined_joints_trait", "pale_undead_tall_frame_trait", "pale_undead_frail_bone_trait"]
 };
 
 // 亡灵专属特质的数据（Icon 借用原版特质的图标）
@@ -45,15 +46,16 @@ S.UndeadTraits <- {
     putrid = { Name = "腐坏之躯", Icon = "fragile_trait", Excluded = ["trait.tough", "trait.huge", "trait.pale_salted"],
         Description = "盐没能留住这具身体，腐肉一碰就往下掉。",
         Effects = [["ui/icons/health.png", "生命 " + ::MSU.Text.colorNegative("-12")]] },
-    dense_bone = { Name = "致密骨骼", Icon = "strong_trait", Excluded = ["trait.fragile", "trait.pale_brittle"],
+    dense_bone = { Name = "致密骨骼", Icon = "strong_trait", Excluded = ["trait.fragile", "trait.pale_brittle", "trait.pale_frail_bone"],
         Description = "这副骨架沉得出奇，像是在墓土里慢慢长成了石头。",
-        Effects = [["ui/icons/armor_body.png", "受到的伤害 -5%"]] },
+        Effects = [["ui/icons/armor_body.png", "受到的伤害 -10%"]] },
     hollow_skull = { Name = "空鸣颅骨", Icon = "iron_jaw_trait", Excluded = [],
         Description = "颅腔里早已空空如也，敲上去只有一声闷响。",
         Effects = [["ui/icons/armor_head.png", "头部受到的伤害 -25%"]] },
     old_drill = { Name = "旧日武艺", Icon = "dexterous_trait", Excluded = ["trait.clumsy"],
         Description = "它忘了自己的名字，却没忘生前操练过千百遍的招式。",
-        Effects = [["ui/icons/melee_skill.png", "近战技能 +4"], ["ui/icons/ranged_skill.png", "远程技能 +4"]] },
+        Effects = [["ui/icons/melee_skill.png", "近战技能 +4"], ["ui/icons/ranged_skill.png", "远程技能 +4"],
+            ["ui/icons/melee_defense.png", "近战防御 +4"], ["ui/icons/ranged_defense.png", "远程防御 +4"]] },
     legion_discipline = { Name = "军团纪律", Icon = "teamplayer_trait", Excluded = [],
         Description = "古帝国军团的队列刻进了骨头里，身边有同袍时站得格外稳。",
         Effects = [["ui/icons/melee_defense.png", "每有 1 名相邻的友方亡灵，近战防御 +3（最多 +9）"]] },
@@ -66,6 +68,25 @@ S.UndeadTraits <- {
     grudge = { Name = "不灭执念", Icon = "deathwish_trait", Excluded = [],
         Description = "生前的某桩恨意仍旧缠着它，越是残破越是凶狠。",
         Effects = [["ui/icons/regular_damage.png", "生命低于 50% 时造成的伤害 +15%"]] },
+    embalmed = { Name = "精良防腐", Icon = "spartan_trait", Excluded = ["trait.pale_putrid"],
+        Description = "缝合它的人用足了药草和松脂，这具身体几乎看不出腐坏的痕迹。",
+        Effects = [["ui/icons/health.png", "每日用防腐尸骸修补时额外恢复 10% 最大生命"], ["ui/icons/health.png", "战斗中受到死灵技能的治疗 +25%"]] },
+    thick_hide = { Name = "硬皮", Icon = "survivor_trait", Excluded = [],
+        Description = "盐痂结成了厚厚一层硬壳，刀砍上去像劈在老树皮上。",
+        Effects = [["ui/icons/special.png", "受到重伤的阈值提高 25%"], ["ui/icons/armor_head.png", "被击中头部时的额外伤害降低 25%"]] },
+    toxic_flesh = { Name = "腐毒血肉", Icon = "gluttonous_trait", Excluded = [],
+        Description = "砍开它的皮肉，溅出来的不是血，而是一股呛人的腐毒。",
+        Effects = [["ui/icons/fatigue.png", "每次受到近战生命伤害时，1 格内的活人攻击者疲劳 +5"]] },
+    refined_joints = { Name = "精炼骨节", Icon = "impatient_trait", Excluded = [],
+        Description = "关节被细细打磨过，铜索换成了上好的银线，动起来几乎没有声响。",
+        Effects = [["ui/icons/fatigue.png", "最大疲劳 +10，每回合额外恢复 2 点疲劳"]] },
+    tall_frame = { Name = "高大骨架", Icon = "brave_trait", Excluded = ["trait.tiny"],
+        Description = "这副骨架生前属于一个异常高大的人，挥起兵器来分量十足，却也更容易被打中。",
+        Effects = [["ui/icons/regular_damage.png", "近战伤害 +10%"], ["ui/icons/health.png", "生命 +8"],
+            ["ui/icons/melee_defense.png", "近战防御 " + ::MSU.Text.colorNegative("-5")], ["ui/icons/ranged_defense.png", "远程防御 " + ::MSU.Text.colorNegative("-5")]] },
+    frail_bone = { Name = "脆化骨质", Icon = "insecure_trait", Excluded = ["trait.pale_dense_bone"],
+        Description = "骨头在墓里放得太久，已经发酥发脆，一锤下去就是一片裂纹。",
+        Effects = [["ui/icons/health.png", "生命 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/armor_body.png", "受到的钝击伤害 " + ::MSU.Text.colorNegative("+10%")]] },
     soulfire = { Name = "魂火炽烈", Icon = "quick_trait", Excluded = ["trait.hesitant", "trait.pale_brittle"],
         Description = "眼窝里的魂火烧得比同类更旺，总是第一个动起来。",
         Effects = [["ui/icons/initiative.png", "主动 +10"]] }
@@ -132,6 +153,21 @@ S.recruitBoundUndead <- function( _item )
     return true;
 };
 
+// 精良防腐：战斗中受到死灵技能（BGP.heal）的治疗 +25%
+local bgpHeal = ::BGP.heal;
+::BGP.heal = function( _a, _amount )
+{
+    try
+    {
+        if (_amount > 0 && _a.getSkills().hasSkill("trait.pale_embalmed"))
+            _amount = ::Math.floor(_amount * 1.25);
+    }
+    catch (e)
+    {
+    }
+    return bgpHeal(_a, _amount);
+};
+
 S.isUndeadCamp <- function( _location )
 {
     local faction = ::World.FactionManager.getFaction(_location.getFaction());
@@ -149,7 +185,7 @@ S.recruitPanel <- function( _screen )
         this.option(_screen, "返回营地", @() "@camp");
         return;
     }
-    _screen.Text = "选择要从盐封棺里唤起的亡灵，花费 " + this.recruitCost() + " 点防腐尸骸，每处登记地点只能征召一次。属性按种类在范围内随机，另有天赋星和 1–2 个特质。";
+    _screen.Text = "在 " + site.Name + " 选择要从盐封棺里唤起的亡灵，花费 " + this.recruitCost() + " 点防腐尸骸，每处登记地点只能征召一次。属性按种类在范围内随机，另有天赋星和 1–2 个特质，升阶后特质保留。";
     foreach (kind in this.UndeadKindOrder)
     {
         local recruitKind = kind;

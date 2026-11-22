@@ -1,10 +1,11 @@
 // 召唤僵尸 / 召唤骷髅：在相邻空格召出一名临时亡灵仆从（战斗结束后消散），每场每种 1 次
 // 1.6.8：召出的仆从必定有武器和护甲；施法者学会“死灵精通”后召出更强的种类、换上更好的装备；
 //        召唤僵尸也给普通死灵法师（背景 bgp_necromancer），召唤骷髅只给亡灵法师导师
+// 1.6.9：学会第 7 阶特技（不灭冠军或尸爆）后再升一档
 this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
     m = {
-        Script = "", MasteryScript = "", MinionName = "", MasteryName = "", ForNecromancers = false,
-        Gear = null, MasteryGear = null, Used = false
+        Script = "", MasteryScript = "", EliteScript = "", MinionName = "", MasteryName = "", EliteName = "", ForNecromancers = false,
+        Gear = null, MasteryGear = null, EliteGear = null, Used = false
     },
     function create()
     {
@@ -32,12 +33,23 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         return this.getContainer().getActor().getSkills().hasSkill("perk.bgp_necro_mastery");
     }
 
+    // 0 = 基础，1 = 死灵精通（第 4 阶），2 = 第 7 阶（不灭冠军 / 尸爆）
+    function getRank()
+    {
+        local skills = this.getContainer().getActor().getSkills();
+        if (skills.hasSkill("perk.bgp_necro_undying_champion") || skills.hasSkill("perk.bgp_corpse_explosion"))
+            return 2;
+        return skills.hasSkill("perk.bgp_necro_mastery") ? 1 : 0;
+    }
+
     function getTooltip()
     {
         local ret = this.skill.getDefaultUtilityTooltip();
-        local mastery = this.hasMastery();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "在相邻的空格召出一名" + (mastery ? this.m.MasteryName : this.m.MinionName) + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
-        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通后改为召出" + this.m.MasteryName + "，装备更好" + (mastery ? "（已生效）" : "") });
+        local rank = this.getRank();
+        local names = [this.m.MinionName, this.m.MasteryName, this.m.EliteName];
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "在相邻的空格召出一名" + names[rank] + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
+        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
+            + "；学会第 7 阶特技（不灭冠军或尸爆）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
         if (this.m.Used)
             ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = "本场已经使用过" });
@@ -95,14 +107,14 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         local s = ::PaleSovereign;
         if (!this.isUsable() || !_targetTile.IsEmpty)
             return false;
-        local mastery = this.hasMastery();
-        local e = ::Tactical.spawnEntity(mastery ? this.m.MasteryScript : this.m.Script, _targetTile.Coords.X, _targetTile.Coords.Y);
+        local rank = this.getRank();
+        local e = ::Tactical.spawnEntity([this.m.Script, this.m.MasteryScript, this.m.EliteScript][rank], _targetTile.Coords.X, _targetTile.Coords.Y);
         if (e == null)
             return false;
         this.m.Used = true;
         try { e.setFaction(::Const.Faction.PlayerAnimals); } catch (err) {}
         try { e.assignRandomEquipment(); } catch (err) {}
-        local gear = mastery ? this.m.MasteryGear : this.m.Gear;
+        local gear = [this.m.Gear, this.m.MasteryGear, this.m.EliteGear][rank];
         if (gear != null)
         {
             this.equipFrom(e, ::Const.ItemSlot.Mainhand, gear.Mainhand);
@@ -110,7 +122,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
             this.equipFrom(e, ::Const.ItemSlot.Head, gear.Head);
         }
         ::BGP.Necro.markGearNoLoot(e);
-        try { e.m.Name = e.m.BGP_MinionName; } catch (err) {}
+        e.m.Name = [this.m.MinionName, this.m.MasteryName, this.m.EliteName][rank];
         try { e.riseFromGround(); } catch (err) {}
         ::BGP.Necro.copySocket(_user, e);
         ::BGP.Necro.markMinion(_user, e);

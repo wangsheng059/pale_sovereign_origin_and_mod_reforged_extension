@@ -132,7 +132,10 @@ S.repairUndead <- function( _free = false )
         return;
     local ratio = ::Math.maxf(this.ambitionDone("ranks_of_dead") ? 0.35 : 0.20, this.followerRank("embalmer") >= 2 ? 0.50 : 0.0);
     foreach (bro in injured)
-        bro.setHitpoints(::Math.minf(bro.getHitpointsMax(), bro.getHitpoints() + bro.getHitpointsMax() * ratio));
+    {
+        local bonus = bro.getSkills().hasSkill("trait.pale_embalmed") ? 0.10 : 0.0;
+        bro.setHitpoints(::Math.minf(bro.getHitpointsMax(), bro.getHitpoints() + bro.getHitpointsMax() * (ratio + bonus)));
+    }
 };
 
 S.spawnBrother <- function( _background, _gear, _position = -1, _traits = true )
