@@ -91,12 +91,29 @@ S.revealAncient <- function( _elite = false, _fresh = false, _focus = true )
     nearest.setDiscovered(true);
     if (_focus)
         this.focusLocation(nearest);
+    this.LastRevealedTile = nearest.getTile().SquareCoords;
     this.registerSite(nearest.getTile(), 1, nearest.getName(), 4, false);
     if (_elite || this.oath() == this.Oath.Champion)
         nearest.getFlags().set("PaleEliteLead", true);
     if (_fresh)
         nearest.getFlags().set("PaleRangerLead", true);
     return nearest.getName();
+};
+
+S.LastRevealedTile <- null;
+
+// 按格子坐标找回地点（用于事件稍后再移镜头）
+S.locationAt <- function( _x, _y )
+{
+    foreach (loc in ::World.EntityManager.getLocations())
+    {
+        if (loc == null || !loc.isAlive())
+            continue;
+        local c = loc.getTile().SquareCoords;
+        if (c.X == _x && c.Y == _y)
+            return loc;
+    }
+    return null;
 };
 
 // 1.6.20 揭开周围的战争迷雾并把大地图镜头移到地点上（原版藏宝图事件的做法）
@@ -191,8 +208,10 @@ S.inspectAncient <- function( _site )
     return "立誓后可勘察这处遗址。";
 };
 
-S.SkeletonTitles <- ["盐封骷髅", "铜索枯骨", "墓穴哨兵", "锈刃骸骨", "无名骨卒", "荒冢白骨"];
-S.ZombieTitles <- ["缝合行尸", "盐渍尸卒", "腐土力士", "裹尸重步", "僵步死士", "墓泥行尸"];
+// 1.6.21 头衔各扩充到 15 个以上；骷髅弓手单独一组
+S.SkeletonTitles <- ["盐封骷髅", "铜索枯骨", "墓穴哨兵", "锈刃骸骨", "无名骨卒", "荒冢白骨", "古墓卫卒", "帝国残兵", "长墙戍卒", "黄沙枯骨", "碎盾骨兵", "墓道守者", "铁箍骸骨", "魂火骨卒", "旧朝遗骨", "残甲骷髅", "墓土白骨", "沉睡军团"];
+S.ArcherTitles <- ["骨弦射手", "墓穴弓卒", "空眶神射", "荒冢弓骸", "白骨箭手", "长墙弓骨", "冷火射手", "无名弓兵", "古墓猎骨", "铜索弓手", "残弓枯骨", "骨羽射手", "夜望弓骸", "沉默箭骨", "旧朝弓卒", "盐封弩手"];
+S.ZombieTitles <- ["缝合行尸", "盐渍尸卒", "腐土力士", "裹尸重步", "僵步死士", "墓泥行尸", "黑线尸兵", "无名死者", "盐棺归人", "腐肉盾卫", "沉默尸奴", "乱葬岗客", "铁颚死士", "冻土尸卒", "旧坟苦力", "缝尸残兵", "灰皮行尸", "麻布尸卫"];
 
 S.revealLegendarySites <- function()
 {

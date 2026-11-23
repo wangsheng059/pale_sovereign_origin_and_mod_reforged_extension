@@ -55,7 +55,13 @@ S.followerWorldTick = function()
     local age = this.worldHours();
     if (this.followerRank("gravekeeper") > 0 && age >= this.get("NextRangerLead"))
     {
-        this.revealAncient(false, true, false);
+        // 1.6.21 标出后弹出事件，打开事件时镜头移过去
+        if (this.revealAncient(false, true, false) != null && this.LastRevealedTile != null)
+        {
+            this.set("RangerLeadX", this.LastRevealedTile.X);
+            this.set("RangerLeadY", this.LastRevealedTile.Y);
+            this.set("RangerNotice", 1);
+        }
         this.set("NextRangerLead", age + 5 * 24);
     }
 };

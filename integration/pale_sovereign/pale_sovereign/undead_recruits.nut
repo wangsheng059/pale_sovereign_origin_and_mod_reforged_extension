@@ -223,7 +223,7 @@ S.createUndead <- function( _kind, _roster = null, _purify = true )
     try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 常驻亡灵天赋: " + e); }
     this.addUndeadTraits(bro, kind.Skeleton, null, _purify);
     bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
-    local titles = kind.Skeleton ? this.SkeletonTitles : this.ZombieTitles;
+    local titles = this.undeadKindOf(_kind) == "archer" ? this.ArcherTitles : kind.Skeleton ? this.SkeletonTitles : this.ZombieTitles;
     bro.setTitle(titles[::Math.rand(0, titles.len() - 1)]);
     bro.m.MoraleState = ::Const.MoraleState.Ignore;
     this.applyUndeadLook(bro);

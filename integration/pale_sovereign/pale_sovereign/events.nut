@@ -49,6 +49,16 @@ S.worldEvent <- function()
         this.set("OathNotice", 0);
         return;
     }
+    if (this.get("RangerNotice") != 0)
+    {
+        if (this.locationAt(this.get("RangerLeadX"), this.get("RangerLeadY")) == null)
+            this.set("RangerNotice", 0);
+        else if (this.openEvent("ranger_lead"))
+        {
+            this.set("RangerNotice", 0);
+            return;
+        }
+    }
     if (this.get("HarvestNotice") != 0 && this.openEvent("harvest"))
     {
         this.set("HarvestNotice", 0);
@@ -517,6 +527,19 @@ S.renderEvent <- function( _event, _screen )
                     + "\n\n（立下【亡灵天灾】誓约，另一条路线的独有特技永久封闭，死灵精通仍可学习。名册上限 " + ::World.Assets.getBrothersMax() + " 人、每场部署 " + ::World.Assets.getBrothersMaxInCombat() + " 人；全队可投掷防腐尸骸作尸弹；常驻亡灵数量只受名册限制；古代魂玉可为常驻亡灵点睛，营地可炼化 6 级以上常驻亡灵换取魂玉；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为千魂法杖。）";
                 this.option(_screen, "“让死者涨潮。”", @() null);
             }
+            break;
+
+        case "ranger_lead":
+            title = "掘墓人的线索";
+            art = "shovels";
+            closing = false;
+            local lead = this.locationAt(this.get("RangerLeadX"), this.get("RangerLeadY"));
+            local leadName = lead == null ? "一处古墓" : lead.getName();
+            if (lead != null)
+                this.focusLocation(lead);
+            _screen.Text = "掘墓人首领一大早就蹲在路边，用铲尖拨弄着一片颜色发暗的野草。他抓起一把土凑到鼻子底下闻了闻，又用指甲刮开草根下面的碎石，露出半块刻着古帝国纹样的墓砖。\n\n“错不了，”他把墓砖往你手里一塞，咧嘴露出一口黄牙，“下面是空的，而且还没被人撬开过。”他在地图边缘画了个歪歪扭扭的圈，又在圈里点了三下，那是他们这一行表示“值得一挖”的暗号。"
+                + "\n\n（掘墓人首领标出了 " + leadName + "。已在大地图上标出，镜头已移到那里。每 5 天标出一处未勘察的古代遗址）";
+            this.option(_screen, "“记下来，我们会去的。”", @() null);
             break;
 
         case "harvest":
