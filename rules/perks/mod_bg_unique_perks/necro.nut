@@ -448,10 +448,12 @@
 	{
 		::logError("mod_bg_unique_perks: 死灵仆从标记失败: " + e);
 	}
-	::BGP.Necro.applyZombieFear(_e);
+	::BGP.Necro.applyZombieFear(_e, _user);
+	::BGP.Necro.addBannerEffect(_e);
 }
 
 // 1.6.7 我方僵尸类（复活、召唤、死灵宠物）：“压制”换成“恐惧”，决心降到 60
+// 1.6.9 有施法者时（复活、召唤）决心改为施法者当前决心的一半；没有施法者（倒下后自己爬起）仍按 60 封顶
 ::BGP.Necro.ZombieFearBravery <- 60;
 ::BGP.Necro.isZombieKind <- function( _e )
 {
@@ -460,7 +462,7 @@
 	return false;
 }
 
-::BGP.Necro.applyZombieFear <- function( _e )
+::BGP.Necro.applyZombieFear <- function( _e, _user = null )
 {
 	try
 	{
@@ -479,7 +481,25 @@
 			changed = true;
 		}
 		local b = _e.getBaseProperties();
-		if (b.Bravery > ::BGP.Necro.ZombieFearBravery)
+		local half = null;
+		try
+		{
+			if (_user != null && !::MSU.isNull(_user))
+				half = ::Math.max(1, ::Math.floor(_user.getCurrentProperties().getBravery() / 2.0));
+		}
+		catch (err)
+		{
+			half = null;
+		}
+		if (half != null)
+		{
+			if (b.Bravery != half)
+			{
+				b.Bravery = half;
+				changed = true;
+			}
+		}
+		else if (b.Bravery > ::BGP.Necro.ZombieFearBravery)
 		{
 			b.Bravery = ::BGP.Necro.ZombieFearBravery;
 			changed = true;
@@ -491,6 +511,46 @@
 	{
 		::logError("mod_bg_unique_perks: 僵尸换恐惧失败: " + e);
 	}
+}
+
+// 1.6.9 战旗光环：原版“为了战团！”只看与自己同一阵营的掌旗者，复活 / 召唤的仆从（PlayerAnimals）拿不到；
+// 仆从身上补挂这个效果，具体加成由 necro_hooks.nut 里的 battle_standard_effect 钩子补算
+::BGP.Necro.addBannerEffect <- function( _e )
+{
+	try
+	{
+		if (!_e.getSkills().hasSkill("effects.battle_standard"))
+			_e.getSkills().add(::new("scripts/skills/effects/battle_standard_effect"));
+	}
+	catch (err)
+	{
+	}
+}
+
+// 4 格内我方掌旗者（玩家或玩家宠物阵营）给的决心：掌旗者决心的 10%，加完不超过掌旗者的决心（同原版说明）
+::BGP.Necro.bannerBraveryBonus <- function( _actor, _currentBravery )
+{
+	if (!::Tactical.isActive() || !_actor.isPlacedOnMap())
+		return 0;
+	local faction = _actor.getFaction();
+	if (faction != ::Const.Faction.Player && faction != ::Const.Faction.PlayerAnimals)
+		return 0;
+	local myTile = _actor.getTile();
+	local best = 0;
+	foreach (f in [::Const.Faction.Player, ::Const.Faction.PlayerAnimals])
+		foreach (ally in ::Tactical.Entities.getInstancesOfFaction(f))
+		{
+			if (ally.getID() == _actor.getID() || !ally.isPlacedOnMap() || !ally.isAlive() || ally.getTile().getDistanceTo(myTile) > 4)
+				continue;
+			local weapon = ally.getMainhandItem();
+			if (weapon == null || !::isKindOf(weapon, "player_banner"))
+				continue;
+			local bearer = ally.getCurrentProperties().getBravery();
+			local bonus = ::Math.min(::Math.floor(bearer * 0.1), ::Math.max(0, bearer - _currentBravery));
+			if (bonus > best)
+				best = bonus;
+		}
+	return best;
 }
 
 // 复活的仆从击杀时，主人的出手经验是否已经由伤害归属给了（xp_share.nut 存在时为 true）

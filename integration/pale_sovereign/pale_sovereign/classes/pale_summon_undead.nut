@@ -54,7 +54,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
             + "；学会第 7 阶特技（不灭冠军或尸爆）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
         if (this.m.FearInsteadOfOverwhelm)
-            ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”，决心降为 60" });
+            ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”，决心为施法者当前决心的一半，可获得战旗加成" });
         if (this.m.EliteExtraText != "")
             ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = this.m.EliteExtraText });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });

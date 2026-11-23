@@ -51,6 +51,7 @@ mod.hook("scripts/ui/screens/character/character_screen", function(q)
     q.pale_markCaptiveConvert <- function( _itemId )
     {
         S.CaptiveConvertMark = { ID = _itemId, Time = ::Time.getRealTimeF() };
+        return true;
     };
 });
 

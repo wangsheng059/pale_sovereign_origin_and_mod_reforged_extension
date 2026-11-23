@@ -17,12 +17,41 @@
 		try
 		{
 			if (e != null && e.getFaction() == ::Const.Faction.PlayerAnimals)
+			{
 				::BGP.Necro.applyZombieFear(e);
+				::BGP.Necro.addBannerEffect(e);
+			}
 		}
 		catch (err)
 		{
 		}
 		return e;
+	};
+});
+
+// 1.6.9 亡灵（常驻亡灵、复活 / 召唤的仆从，旗标 undead）在原版没给加成时补算战旗决心，原版已给的不重复加
+::BGP.HooksMod.hook("scripts/skills/effects/battle_standard_effect", function(q)
+{
+	q.onUpdate = @(__original) function( _properties )
+	{
+		__original(_properties);
+		try
+		{
+			if (this.m.Difference > 0)
+				return;
+			local actor = this.getContainer().getActor();
+			if (!actor.getFlags().has("undead"))
+				return;
+			local bonus = ::BGP.Necro.bannerBraveryBonus(actor, _properties.getBravery());
+			if (bonus <= 0)
+				return;
+			_properties.Bravery += bonus;
+			this.m.Difference = bonus;
+			this.m.IsHidden = false;
+		}
+		catch (err)
+		{
+		}
 	};
 });
 

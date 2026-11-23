@@ -1315,6 +1315,7 @@
     "patches/quicker/camp_time_buttons.json",
     "patches/quicker/camp_time_buttons_js.json",
     "patches/quicker/hide_vanilla_veryfast.json",
+    "patches/hsc/captive_face_icon.json",
     "patches/hsc/captive_double_click.json"
   ]
 }

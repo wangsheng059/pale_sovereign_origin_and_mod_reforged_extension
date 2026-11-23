@@ -1,0 +1,8 @@
+{
+  "source": "捕奴modv5.zip",
+  "member": "ui/mods/hsc_slave_capture.js",
+  "before": "aff301008158bea53244ffbfa8a0630922b9e15f84fffd57f3d2f489c4be2d17",
+  "after": "0b125a786d14557cf6fca5aa21ceda9d0dd8a60690516db38479bb0a32bd811a",
+  "old": "if (typeof imagePath !== \"string\" || imagePath.indexOf(\"hsc_captive\") < 0) return;",
+  "new": "if (typeof imagePath !== \"string\" || (imagePath.indexOf(\"hsc_captive\") < 0 && imagePath.indexOf(\"hsc_faces/\") < 0)) return;"
+}

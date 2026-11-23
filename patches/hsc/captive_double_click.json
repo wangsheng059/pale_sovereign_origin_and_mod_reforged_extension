@@ -1,8 +1,8 @@
 {
   "source": "捕奴modv5.zip",
   "member": "ui/mods/hsc_slave_capture.js",
-  "before": "aff301008158bea53244ffbfa8a0630922b9e15f84fffd57f3d2f489c4be2d17",
-  "after": "174906240e0774851b72642ee899283490212e2330fdeb31d4621272c5424086",
-  "old": "\t\t\t\t\t\tdataSource.equipInventoryItem(data.entityId, data.itemId, data.index);\n",
-  "new": "\t\t\t\t\t\t// 亡灵主宰：双击先告诉后端这是双击（后端据此转化为常驻亡灵），右键不经过这里\n\t\t\t\t\t\ttry { SQ.call(dataSource.mSQHandle, 'pale_markCaptiveConvert', data.itemId); } catch (e) {}\n\t\t\t\t\t\tdataSource.equipInventoryItem(data.entityId, data.itemId, data.index);\n"
+  "before": "0b125a786d14557cf6fca5aa21ceda9d0dd8a60690516db38479bb0a32bd811a",
+  "after": "f59fdf389ea04088fbd676941607a52e7472e4b3cc8dce61030c0c1bd4b3987f",
+  "old": "\t\t\t\t\t\tdataSource.equipInventoryItem(data.entityId, data.itemId, data.index);\n\n\t\t\t\t\t\t// 招募后刷新兄弟列表（新兄弟才会立刻出现）\n\t\t\t\t\t\twindow.setTimeout(function ()\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\ttry\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tif (!dataSource.mSQHandle) return;\n\n\t\t\t\t\t\t\t\tvar brothers = dataSource.notifyBackendQueryBrothersList();\n\n\t\t\t\t\t\t\t\tif (brothers !== null && brothers !== undefined)\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tdataSource.loadBrothersList(brothers);\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tcatch (err)\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}, 100);\n",
+  "new": "\t\t\t\t\t\t// 亡灵主宰：先告诉后端这是双击（后端据此转化为常驻亡灵），后端回调后再使用物品；右键不经过这里\n\t\t\t\t\t\tvar useItem = function ()\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\tdataSource.equipInventoryItem(data.entityId, data.itemId, data.index);\n\n\t\t\t\t\t\t\t// 招募后刷新兄弟列表（新兄弟才会立刻出现）\n\t\t\t\t\t\t\twindow.setTimeout(function ()\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\ttry\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tif (!dataSource.mSQHandle) return;\n\n\t\t\t\t\t\t\t\t\tvar brothers = dataSource.notifyBackendQueryBrothersList();\n\n\t\t\t\t\t\t\t\t\tif (brothers !== null && brothers !== undefined)\n\t\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\t\tdataSource.loadBrothersList(brothers);\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\tcatch (err)\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t}, 100);\n\t\t\t\t\t\t};\n\n\t\t\t\t\t\ttry { SQ.call(dataSource.mSQHandle, 'pale_markCaptiveConvert', data.itemId, useItem); }\n\t\t\t\t\t\tcatch (e) { useItem(); }\n"
 }

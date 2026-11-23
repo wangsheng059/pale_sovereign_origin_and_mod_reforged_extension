@@ -148,6 +148,7 @@ mod.hook("scripts/entity/tactical/player", function(q)
         {
             S.set("Oath", route);
             S.applyRosterLimits();
+            S.set("OathNotice", 1);
         }
         return ok;
     };
