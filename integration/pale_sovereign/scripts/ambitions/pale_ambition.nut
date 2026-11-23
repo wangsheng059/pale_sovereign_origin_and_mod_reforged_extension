@@ -32,6 +32,8 @@ this.pale_ambition <- ::inherit("scripts/ambitions/ambition", {
     {
         if (this.m.Goal == "night_walker")
             ::PaleSovereign.set("NightGoalStart", ::PaleSovereign.get("NightWins"));
+        else if (this.m.Goal == "castle_taken")
+            ::PaleSovereign.set("CastleGoalStart", ::PaleSovereign.get("CastleConquests"));
     }
 
     function onUpdateScore()

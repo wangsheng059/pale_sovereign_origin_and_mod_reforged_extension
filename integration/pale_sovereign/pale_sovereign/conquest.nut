@@ -306,10 +306,21 @@ S.conquestDay = function()
 S.conquestReserveBonus = function()
 {
     local bonus = 0;
+    local castle = S.ambitionDone("castle_taken");
     foreach (town in ::World.EntityManager.getSettlements())
         if (town != null && town.isAlive() && S.conquestMode(town) > 0)
-            bonus += 30;
+            bonus += castle && town.isMilitary() ? 50 : 30;
     return bonus;
+};
+
+// 野心「城堡易主」：记录亡灵主宰攻下的城堡数
+local capture = C.capture;
+C.capture = function( _s )
+{
+    local castle = S.isActive() && !C.isOwnedByPlayer(_s) && _s.isMilitary();
+    capture(_s);
+    if (castle && C.isOwnedByPlayer(_s))
+        S.set("CastleConquests", S.get("CastleConquests") + 1);
 };
 
 S.findPaleTown = function()

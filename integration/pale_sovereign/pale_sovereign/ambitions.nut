@@ -36,8 +36,21 @@ S.ambitionScore <- function( _key )
             if (chief == null || day < 60 || this.get("Ascended") != 0 || !this.hasEvolvedStaff())
                 return 0;
             return day >= 100 || chief.getLevel() >= 10 ? 25 : 12;
+        case "castle_taken":
+            if (!("Conquest" in ::getroottable()) || day < 30 || this.targetCastle() == null)
+                return 0;
+            return ::World.Assets.getBusinessReputation() >= 1000 || ::Conquest.getOwnedSettlements().len() > 0 ? 20 : 10;
     }
     return 0;
+};
+
+// 攻城 mod 能攻打的城堡（军事定居点；村庄、城镇、南方城邦都不是）
+S.targetCastle <- function()
+{
+    foreach (town in ::World.EntityManager.getSettlements())
+        if (town != null && town.isAlive() && town.isMilitary() && ::Conquest.canTarget(town))
+            return town;
+    return null;
 };
 
 S.hasEvolvedStaff <- function()
@@ -91,6 +104,8 @@ S.ambitionComplete <- function( _key )
             return this.undead().len() >= 4 && this.get("UndeadSquadWins") >= 3;
         case "forbidden_glimpse":
             return this.get("Legend.Hunt") != 0 || this.get("Legend.Goblin") != 0 || this.get("Legend.Monolith") != 0;
+        case "castle_taken":
+            return this.get("CastleConquests") > this.get("CastleGoalStart");
     }
     return false;
 };
@@ -204,8 +219,22 @@ S.rewardAmbition <- function( _ambition, _key )
                 this.amReward(_ambition, "每场最多部署 16 人，补充 8 点防腐尸骸");
             }
             break;
+        case "castle_taken":
+            ::World.Assets.addMoney(600);
+            this.amReward(_ambition, "获得 600 克朗。此后每座统治或屠城的城堡防腐尸骸上限再 +20");
+            if (oath == this.Oath.Champion)
+            {
+                this.pendingItem("misc/pale_jade_item");
+                this.amReward(_ambition, "获得 1 枚古代魂玉");
+            }
+            else
+            {
+                this.changeReserve(oath == this.Oath.Scourge ? 15 : 5);
+                this.amReward(_ambition, oath == this.Oath.Scourge ? "补充 15 点防腐尸骸" : "补充 5 点防腐尸骸");
+            }
+            break;
     }
-    if (_key == "night_walker" || _key == "pale_banner")
+    if (_key == "night_walker" || _key == "pale_banner" || _key == "castle_taken")
         foreach (bro in this.humans())
             bro.improveMood(1.0, _ambition.getUIText() + "，野心达成");
     if (!::World.Assets.getStash().hasEmptySlot())
