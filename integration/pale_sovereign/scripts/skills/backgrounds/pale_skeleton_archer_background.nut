@@ -11,11 +11,6 @@ this.pale_skeleton_archer_background <- ::inherit("scripts/skills/backgrounds/pa
         this.m.BackgroundDescription = "指骨扣弦的姿势还和生前一模一样，空洞的眼窝里，魂火替它瞄准。";
     }
 
-    function onBuildDescription()
-    {
-        return this.m.BackgroundDescription;
-    }
-
     function onChangeAttributes()
     {
         return {

@@ -55,7 +55,7 @@ S.followerWorldTick = function()
     local age = this.worldHours();
     if (this.followerRank("gravekeeper") > 0 && age >= this.get("NextRangerLead"))
     {
-        this.revealAncient(false, true);
+        this.revealAncient(false, true, false);
         this.set("NextRangerLead", age + 5 * 24);
     }
 };
@@ -145,9 +145,9 @@ S.Mod.hook("scripts/entity/world/settlements/buildings/tavern_building", functio
         local ret = __original(_isPaidFor);
         if (!_isPaidFor || !S.isActive() || S.followerRank("blood_steward") < 3 || ::World.State.getPlayer() == null)
             return ret;
-        local lead = S.revealAncient(true, true);
+        local lead = S.revealAncient(true, true, false);
         if (lead == null)
-            lead = S.revealAncient(true);
+            lead = S.revealAncient(true, false, false);
         if (lead != null)
             ret = (ret == null ? "" : ret + "\n\n") + "血宴管家端着酒杯回到桌边，低声补了一句：“" + lead + "那边，有人还守着没被撬开的墓。”（已在地图上标出）";
         return ret;

@@ -198,7 +198,7 @@ S.tierPromote <- function( _bro, _branch )
         _bro.m.Background = background;
         foreach (i, key in statNames)
             props[key] = next.Stats[i];
-        props.Bravery = 120;
+        props.Bravery = 100;
         // These fields are unspecified. Use the untrained low-tier range midpoint.
         local template = ::new(this.SkillDir + "backgrounds/pale_" + (next.Skeleton ? "skeleton" : "zombie") + "_background");
         local adjustments = template.onChangeAttributes();

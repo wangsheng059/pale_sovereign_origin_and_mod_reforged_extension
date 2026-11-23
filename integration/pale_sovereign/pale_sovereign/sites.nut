@@ -69,7 +69,7 @@ S.localSite <- function( _kind = 0, _cleared = false )
     return null;
 };
 
-S.revealAncient <- function( _elite = false, _fresh = false )
+S.revealAncient <- function( _elite = false, _fresh = false, _focus = true )
 {
     local feet = ::World.State.getPlayer().getTile();
     local nearest = null;
@@ -89,12 +89,21 @@ S.revealAncient <- function( _elite = false, _fresh = false )
     if (nearest == null)
         return null;
     nearest.setDiscovered(true);
+    if (_focus)
+        this.focusLocation(nearest);
     this.registerSite(nearest.getTile(), 1, nearest.getName(), 4, false);
     if (_elite || this.oath() == this.Oath.Champion)
         nearest.getFlags().set("PaleEliteLead", true);
     if (_fresh)
         nearest.getFlags().set("PaleRangerLead", true);
     return nearest.getName();
+};
+
+// 1.6.20 揭开周围的战争迷雾并把大地图镜头移到地点上（原版藏宝图事件的做法）
+S.focusLocation <- function( _location )
+{
+    try { ::World.uncoverFogOfWar(_location.getTile().Pos, 500.0); } catch (e) {}
+    try { ::World.getCamera().moveTo(_location); } catch (e) { ::logError("[PaleSovereign] 镜头移动: " + e); }
 };
 
 S.populateEliteLead <- function( _location )

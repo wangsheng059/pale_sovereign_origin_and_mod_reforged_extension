@@ -15,19 +15,6 @@ this.pale_tier_background <- ::inherit("scripts/skills/backgrounds/pale_undead_b
         this.m.BackgroundDescription = branch.Description;
     }
 
-    function onBuildDescription()
-    {
-        return this.m.BackgroundDescription;
-    }
-
-    function buildDescription( _isFinal = false )
-    {
-        if (!this.m.PaleRanged)
-            return this.pale_undead_background.buildDescription(_isFinal);
-        this.m.RawDescription = this.m.BackgroundDescription;
-        this.m.Description = this.m.BackgroundDescription;
-    }
-
     function getTooltip()
     {
         local ret = this.pale_undead_background.getTooltip();

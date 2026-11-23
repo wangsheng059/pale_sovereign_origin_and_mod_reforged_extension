@@ -398,7 +398,10 @@ mod.hook("scripts/states/world_state", function(q)
         local ret = __original.acall(args);
         S.applyPartyLook();
         if (S.isActive())
+        {
             S.applyRosterLimits();
+            S.refreshUndeadLore();
+        }
         return ret;
     };
 
