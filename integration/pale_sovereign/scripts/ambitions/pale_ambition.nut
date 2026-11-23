@@ -13,6 +13,8 @@ this.pale_ambition <- ::inherit("scripts/ambitions/ambition", {
         this.m.TaskTooltip = goal.Task;
         this.m.RewardTooltip = goal.Reward;
         this.m.SuccessText = goal.Story;
+        if ("SuccessIllustration" in goal)
+            this.m.SuccessText = "[img]" + goal.SuccessIllustration + "[/img]" + this.m.SuccessText;
         this.m.SuccessButtonText = "让亡者记住此刻。";
         this.m.IsShowingMood = false;
         this.m.ButtonIcon = goal.Icon;

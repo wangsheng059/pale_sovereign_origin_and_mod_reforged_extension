@@ -70,5 +70,6 @@
         Renown = 350,
         Reward = "获得 600 克朗。此后每座由你统治或屠城的城堡，防腐尸骸上限再 +20。冠军誓约另得 1 枚古代魂玉，天灾誓约补充 15 点防腐尸骸，尚未立誓则补充 5 点防腐尸骸。活人兄弟的心情会变好。",
         Icon = "skills/pale_amb_castle.png",
+        SuccessIllustration = "gfx/ui/events/pale/ambition_castle_taken.jpg",
     },
 };
