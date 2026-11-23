@@ -15,6 +15,7 @@ this.pale_summon_skeleton <- ::inherit("pale_sovereign/classes/pale_summon_undea
         this.m.MasteryName = "受缚古代军团士兵";
         this.m.EliteScript = "scripts/entity/tactical/bgp_undead/bgp_undead_skeleton_heavy";
         this.m.EliteName = "受缚古代禁卫军";
+        this.m.EliteExtraText = "受缚古代禁卫军另有“恐惧之容”：造成生命伤害时目标做士气检定，失败则惊骇（直到下回合都无法行动）";
         this.m.EliteGear = {
             ReplaceWeapon = true,
             Mainhand = ["weapons/ancient/crypt_cleaver", "weapons/ancient/khopesh", "weapons/ancient/ancient_sword",

@@ -76,8 +76,12 @@ S.refreshDeadCommand <- function()
 {
     if (this.Battle == null || !::Tactical.isActive())
         return;
-    local commanders = ::World.getPlayerRoster().getAll().filter(@(_, bro) S.tierActorOnMap(bro)
-        && bro.getSkills().hasSkill("effects.pale_dead_command"));
+    // 1.6.32 尸妖王（冠军宠物，不在名册里）也能发出号令
+    local commanders = [];
+    foreach (faction in ::Tactical.Entities.getAllInstances())
+        foreach (actor in faction)
+            if (S.tierActorOnMap(actor) && actor.getSkills().hasSkill("effects.pale_dead_command"))
+                commanders.push(actor);
     if (commanders.len() == 0 && !("HadDeadCommand" in this.Battle))
         return;
     this.Battle.HadDeadCommand <- true;

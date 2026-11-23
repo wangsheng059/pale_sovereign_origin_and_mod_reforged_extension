@@ -47,6 +47,9 @@ local oldEquip = ::BGP.NecroPet.canEquip;
 local oldScale = ::BGP.NecroPet.applyScaling;
 ::BGP.NecroPet.applyScaling = function( _entity )
 {
+    // 旧存档的尸妖王先补属性，再由原逻辑写进实体
+    if (S.isActive() && S.isCoffin(_entity.m.Item))
+        S.upgradeLich(_entity.m.Item);
     oldScale(_entity);
     if (!S.isActive() || !S.isCoffin(_entity.m.Item))
         return;
@@ -69,6 +72,8 @@ local oldScale = ::BGP.NecroPet.applyScaling;
         _entity.getSkills().add(::new(S.SkillDir + "effects/pale_wight_order_effect"));
     if (S.ambitionDone("immortal_guard") && !_entity.getSkills().hasSkill("effects.pale_guard_shield"))
         _entity.getSkills().add(::new(S.SkillDir + "effects/pale_guard_shield"));
+    if (S.isLich(item))
+        S.applyLichSkills(_entity, chief);
 };
 
 local oldFly = ::BGP.Necro.isFlySwarmMinion;
@@ -628,7 +633,7 @@ mod.hook("scripts/skills/skill_container", function(q)
     q.buildPropertiesForUse = @(__original) function( _skill, _target )
     {
         local properties = __original(_skill, _target);
-        if (S.Battle == null || S.Battle.Prey == null || _target == null || !_skill.isAttack()
+        if (S.Battle == null || _target == null || !_skill.isAttack()
             || !_target.getSkills().hasSkill("effects.pale_prey"))
             return properties;
         local actor = this.getActor();

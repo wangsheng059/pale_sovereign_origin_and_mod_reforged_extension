@@ -10,7 +10,7 @@ S.isActive <- function()
     return (kind == "table" || kind == "instance") && origin.getID() == this.ID;
 };
 
-// 名册 18 人、部署 12 人；立下亡灵天灾誓约后名册 20 人、部署 14 人
+// 名册 18 人、部署 10 人；立下亡灵天灾誓约后名册 20 人、部署 13 人
 S.applyRosterLimits <- function()
 {
     if (!("Assets" in ::World) || ::World.Assets == null)

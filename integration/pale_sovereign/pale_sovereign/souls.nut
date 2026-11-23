@@ -370,15 +370,37 @@ S.applyPetProgress <- function( _pet, _entity )
 };
 
 // 古代魂玉的冠军用途
+// 1.6.32 尸妖王的基础属性改为固定值；守卫起步是死灵宠物的通用基础值（necro_ac_library.nut），
+// 晋升时补上两者之差，之前的成长与淬骨保留
+S.GuardBaseStats <- { Hitpoints = 60, Bravery = 50, Initiative = 80, MeleeSkill = 55, MeleeDefense = 5 };
+S.LichStats <- { Hitpoints = 150, Bravery = 150, Initiative = 150, MeleeSkill = 80, MeleeDefense = 30 };
+// 1.6.31 及以前的晋升加成，旧存档补差时扣掉
+S.OldLichBonus <- { Hitpoints = 15, Bravery = 10, Initiative = 0, MeleeSkill = 5, MeleeDefense = 5 };
+
 S.promoteGuard <- function( _pet )
 {
     this.petSet(_pet, "Promoted", 1);
+    this.petSet(_pet, "LichV2", 1);
     _pet.m.Name = "尸妖王";
-    _pet.m.Attributes.Hitpoints += 15;
-    _pet.m.Attributes.MeleeSkill += 5;
-    _pet.m.Attributes.MeleeDefense += 5;
-    _pet.m.Attributes.Bravery += 10;
+    foreach (key, value in this.LichStats)
+        _pet.m.Attributes[key] += value - this.GuardBaseStats[key];
     _pet.updateCompanion();
+};
+
+// 旧存档里已晋升的尸妖王补到新属性，只执行一次
+S.upgradeLich <- function( _pet )
+{
+    if (_pet == null || _pet.m.PaleID == 0 || this.petGet(_pet, "Promoted") == 0 || this.petGet(_pet, "LichV2") != 0)
+        return;
+    this.petSet(_pet, "LichV2", 1);
+    foreach (key, value in this.LichStats)
+        _pet.m.Attributes[key] += value - this.GuardBaseStats[key] - this.OldLichBonus[key];
+    _pet.updateCompanion();
+};
+
+S.isLich <- function( _pet )
+{
+    return _pet != null && _pet.m.PaleID != 0 && this.petGet(_pet, "Promoted") != 0;
 };
 
 S.AttributeNames <- { Hitpoints = "生命", Stamina = "体力", Bravery = "决心", Initiative = "主动性",

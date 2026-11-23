@@ -248,6 +248,8 @@ S.campPanel <- function( _event, _screen )
     local oath = this.oath();
     local pet = this.mainPet();
     local reserve = this.reservePet();
+    this.upgradeLich(pet);
+    this.upgradeLich(reserve);
     local site = this.localSite(0, true);
     local limit = this.permanentUndeadLimit();
     local undeadCount = this.undead().len() + (limit == null ? "" : " / " + limit);
@@ -312,7 +314,7 @@ S.campPanel <- function( _event, _screen )
                 for (local i = 0; i < 3; ++i)
                     S.removeMaterial("jade");
                 S.promoteGuard(pet);
-                return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：永久 +15 生命、+5 近战技能、+5 近战防御、+10 决心）";
+                return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：基础生命 150、决心 150、主动性 150、近战技能 80、近战防御 30，之前的成长保留；获得【号令亡魂】【冢王威压】和换位，在场时导师受到的伤害 −15%）";
             });
         if (pet != null && jade > 0)
             this.option(_screen, "魂玉淬骨 · 1 枚古代魂玉，" + pet.m.Name + " 随机 4 项属性各 +2", function()

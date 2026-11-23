@@ -52,6 +52,37 @@ S.restoreTierSkills <- function( _bro )
         talent.configure(key);
         skills.add(talent);
     }
+    if (branch.Tier == 3)
+        this.grantVisage(_bro, true);
+};
+
+// 1.6.32 高阶亡灵默认带“恐惧之容”：不占特技点、不能退还；_tree 为 true 时在特技树第 1 行显示为已学会
+S.VisageID <- "perk.rf_terrifying_visage";
+S.VisageScript <- "scripts/skills/perks/perk_rf_terrifying_visage";
+S.grantVisage <- function( _actor, _tree )
+{
+    local skills = _actor.getSkills();
+    if (_tree)
+    {
+        try
+        {
+            local tree = _actor.getPerkTree();
+            if (tree != null && !tree.hasPerk(this.VisageID))
+                tree.addPerk(this.VisageID, 1);
+        }
+        catch (e)
+        {
+            ::logError("Pale Sovereign: could not add Terrifying Visage to the perk tree: " + e);
+        }
+    }
+    local perk = skills.getSkillByID(this.VisageID);
+    if (perk == null)
+    {
+        perk = ::new(this.VisageScript);
+        skills.add(perk);
+    }
+    perk.m.PaleTierSkill <- true;
+    try { perk.m.IsRefundable = false; } catch (e) {}
 };
 
 S.tierCanPromote <- function( _bro, _branch )
