@@ -299,7 +299,7 @@ S.conquestDay = function()
         if (S.conquestMode(town) > 0)
             foreach (attached in town.getActiveAttachedLocations())
                 if (attached.getTypeID() == "attached_location.pale_cemetery")
-                    S.changeReserve(1);
+                    S.changeReserve(3);
 };
 
 // 1.6.12：每座统治或屠城的城镇防腐尸骸上限 +30

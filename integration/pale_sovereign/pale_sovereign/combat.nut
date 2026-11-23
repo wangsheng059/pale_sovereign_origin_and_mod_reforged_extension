@@ -145,33 +145,14 @@ S.battleCorpseTiles <- function()
     return ret;
 };
 
-// 不能封存的原因（"Faction" / "Kind" / "Shot"），能封存返回 null
+// 不能封存的原因（只剩 "Shot"），能封存返回 null
 // 1.6.15：不再排除“看起来会自己爬起来”的尸体。那个判断只看 IsResurrectable / IsConsumable 两个标记，
 // 原版有的人类（如野蛮人）尸体本来就是这样标的，结果整场的遗骸都被排除；战斗结束后也不会再有尸体爬起
 S.harvestReject <- function( _corpse )
 {
+    // 1.6.31：战场上所有死亡单位都计入（含我方与友军、野兽、兽人等），只排除被尸弹打烂的
     if ("PaleShot" in _corpse)
         return "Shot";
-    local chief = this.chief();
-    local faction = "Faction" in _corpse ? _corpse.Faction : ::Const.Corpse.Faction;
-    if (faction == ::Const.Faction.Player || faction == ::Const.Faction.PlayerAnimals
-        || (chief != null && chief.getAlliedFactions().find(faction) != null))
-        return "Faction";
-    local info = ::BGP.Necro.getInfo(_corpse);
-    local native = false;
-    if ("PaleNative" in _corpse)
-        native = _corpse.PaleNative;
-    else if (info != null)
-        native = info.IsHuman || (info.Script in ::BGP.Necro.RaiseMap
-            && ::BGP.Necro.WrapperCategory[::BGP.Necro.RaiseMap[info.Script]] == "undead");
-    else
-    {
-        // 没有生前记录：按原版人类尸体的规则（能复活、类型不是兽人）
-        try { native = (_corpse.IsResurrectable || ::BGP.Necro.isPendingResurrection(_corpse)) && _corpse.Type != null && _corpse.Type.find("orc") == null; }
-        catch (e) { native = false; }
-    }
-    if (!native)
-        return "Kind";
     return null;
 };
 
@@ -219,7 +200,7 @@ S.onVictory <- function( _loot )
     }
     if (!this.castleDefenseLoot(strategic, this.Battle.DefenseDead) && this.oath() != this.Oath.None)
     {
-        // 复活技能拉起来的敌方遗骸照样算一具（复活时记下，见 hooks.nut）
+        // 复活技能拉起来的遗骸照样算一具（复活时记下，见 hooks.nut）
         local total = corpses.len() + this.Battle.RaisedHarvest;
         local before = this.get("Reserve");
         local embalmer = this.followerRank("embalmer") > 0;

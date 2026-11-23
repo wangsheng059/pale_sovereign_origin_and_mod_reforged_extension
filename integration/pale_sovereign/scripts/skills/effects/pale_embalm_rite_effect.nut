@@ -152,9 +152,9 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
 
     function onBeforeDamageReceived( _attacker, _skill, _hitInfo, _properties )
     {
-        // 厚骨覆甲：受到攻击时穿甲比例 ×0.85（爆头免疫在 onUpdate）
-        if (this.hasRite("armor") && _skill != null && _skill.isAttack())
-            _properties.DamageReceivedDirectMult *= 0.85;
+        // 厚骨覆甲：受到攻击时穿甲比例减 15 个百分点（30% → 15%），本来无视护甲的伤害不变；爆头免疫在 onUpdate
+        if (this.hasRite("armor") && _skill != null && _skill.isAttack() && _hitInfo.DamageDirect < 1.0)
+            _hitInfo.DamageDirect = ::Math.maxf(0.0, _hitInfo.DamageDirect - 0.15);
         if (!this.hasRite("fumigate"))
             return;
         local burning = false;
