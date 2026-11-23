@@ -60,6 +60,7 @@ S.followerWorldTick = function()
         {
             this.set("RangerLeadX", this.LastRevealedTile.X);
             this.set("RangerLeadY", this.LastRevealedTile.Y);
+            this.set("RangerArtStep", (this.get("RangerArtStep") + 1) % 4);
             this.set("RangerNotice", 1);
         }
         this.set("NextRangerLead", age + 5 * 24);

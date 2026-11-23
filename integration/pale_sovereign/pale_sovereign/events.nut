@@ -397,6 +397,11 @@ S.jadePanel <- function( _screen )
     this.option(_screen, "收起魂玉", @() "@camp");
 };
 
+local function eventIllustrationVariant( _stem, _step )
+{
+    return _step == 0 ? _stem : format("%s_%02d", _stem, _step + 1);
+}
+
 S.renderEvent <- function( _event, _screen )
 {
     local pet = this.mainPet();
@@ -531,7 +536,7 @@ S.renderEvent <- function( _event, _screen )
 
         case "ranger_lead":
             title = "掘墓人的线索";
-            art = "ranger_lead";
+            art = eventIllustrationVariant("ranger_lead", this.get("RangerArtStep"));
             closing = false;
             local lead = this.locationAt(this.get("RangerLeadX"), this.get("RangerLeadY"));
             local leadName = lead == null ? "一处古墓" : lead.getName();
@@ -544,6 +549,7 @@ S.renderEvent <- function( _event, _screen )
 
         case "harvest":
             title = "遗骸采集";
+            art = eventIllustrationVariant("harvest", this.get("HarvestArtStep"));
             _screen.Text = this.HarvestOpenings[::Math.rand(0, this.HarvestOpenings.len() - 1)]
                 + "\n\n战后清点出 " + this.get("LastCorpseCount") + " 具合格遗骸，封存 " + this.get("LastHarvest") + " 点。防腐尸骸库存 " + (this.get("Reserve") - this.get("LastHarvest")) + " → " + this.get("Reserve") + "。";
             break;

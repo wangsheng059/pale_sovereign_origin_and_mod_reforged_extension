@@ -171,7 +171,8 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
                 }
             }
         e.getSkills().update();
-        try { s.playBattleArt("resurrect", _targetTile, 28); } catch (err) {}
+        local art = this.m.ArtStem.slice("pale_".len()) + "_" + ::Math.rand(1, 3);
+        try { s.playBattleArt(art, _targetTile, 28); } catch (err) {}
         if (!_user.isHiddenToPlayer())
             ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + " 召出了 " + ::Const.UI.getColorizedEntityName(e));
         return true;

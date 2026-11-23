@@ -228,6 +228,7 @@ S.onVictory <- function( _loot )
         this.Battle.Uncollected = ::Math.max(0, corpses.len() - (embalmer ? ::Math.ceil(gathered * 1.5) : gathered * 2));
         this.set("LastHarvest", gathered);
         this.set("LastCorpseCount", total);
+        this.set("HarvestArtStep", (this.get("HarvestArtStep") + 1) % 4);
         this.set("HarvestNotice", 1);
         ::Tactical.EventLog.log("清点合格遗骸 " + total + " 具，封存防腐尸骸：" + before + " → " + this.get("Reserve") + "。");
         ::logInfo("[PaleSovereign] 遗骸采集：地上尸体 " + stats.Seen + "，合格 " + corpses.len() + "，复活计入 " + this.Battle.RaisedHarvest
@@ -266,6 +267,13 @@ S.applyUndeadVariants <- function( _actor, _model )
     {
         local index = this.getOrRollUndeadIndex(flags, variant.Flag, variant.Count);
         local name = format("%s_%s_%02d", _model, variant.Layer, index + 1);
+        if (variant.Layer == "body")
+        {
+            local detail = this.getOrRollUndeadIndex(flags, "PaleDetailVariant", 6);
+            local dressed = format("%s_detail_%02d", name, detail + 1);
+            if (::doesBrushExist(dressed))
+                name = dressed;
+        }
         if (::doesBrushExist(name))
             _actor.getSprite(variant.Layer).setBrush(name);
     }
