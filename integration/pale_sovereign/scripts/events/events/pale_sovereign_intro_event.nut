@@ -18,6 +18,28 @@ this.pale_sovereign_intro_event <- ::inherit("scripts/events/event", {
                     Text = "“上路吧。亡者的时代开始了。”",
                     function getResult( _event )
                     {
+                        return "B";
+                    }
+                }
+            ],
+            function start( _event )
+            {
+                this.Banner = "ui/banners/" + ::World.Assets.getBanner() + "s.png";
+            }
+        });
+        // 1.6.22 开局荒坟守卫的来历
+        this.m.Screens.push({
+            ID = "B",
+            Text = "",
+            Image = "",
+            Banner = "",
+            List = [],
+            Characters = [],
+            Options = [
+                {
+                    Text = "“起来吧，你还有仗要打。”",
+                    function getResult( _event )
+                    {
                         return 0;
                     }
                 }
@@ -25,6 +47,7 @@ this.pale_sovereign_intro_event <- ::inherit("scripts/events/event", {
             function start( _event )
             {
                 this.Banner = "ui/banners/" + ::World.Assets.getBanner() + "s.png";
+                this.Text = "[img]gfx/ui/events/pale/banner.jpg[/img]" + ::PaleSovereign.GuardLoreFull;
             }
         });
     }

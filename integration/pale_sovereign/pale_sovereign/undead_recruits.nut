@@ -180,6 +180,10 @@ S.purgeNegativeUndeadTraits <- function( _bro )
             ++left;
     if (left == 0)
         this.addUndeadTraits(_bro, kind.Skeleton, 1);
+    // 头衔来自被去掉的负面特质时重新挑一个
+    local titleTrait = flags.has("PaleTitleTrait") ? flags.get("PaleTitleTrait") : null;
+    if (titleTrait != null && !skills.hasSkill(titleTrait))
+        this.assignUndeadTitle(_bro);
     skills.update();
 };
 
@@ -211,6 +215,85 @@ S.addUndeadTraits <- function( _bro, _skeleton, _count = null, _purify = true )
     return added;
 };
 
+// 1.6.22 头衔与特质挂钩：有表里的特质时 70% 从这些头衔里挑（行尸 / 骷髅 / 骷髅弓手各一列）
+S.UndeadTraitTitles <- {
+    ["trait.pale_sleepless"] = { zombie = "不眠尸卫", skeleton = "长夜骨哨", archer = "不眠弓骸" },
+    ["trait.pale_grudge"] = { zombie = "怨念死士", skeleton = "含恨枯骨", archer = "怨火射手" },
+    ["trait.pale_soulfire"] = { zombie = "炽魂行尸", skeleton = "炽魂骨卒", archer = "炽魂射手" },
+    ["trait.pale_dim_soulfire"] = { zombie = "残烛行尸", skeleton = "残烛骸骨", archer = "残烛弓骸" },
+    ["trait.pale_forgotten_drill"] = { zombie = "失忆尸卒", skeleton = "忘武骨兵", archer = "忘弦弓骨" },
+    ["trait.pale_salted"] = { zombie = "盐腌重尸" },
+    ["trait.pale_gnawing"] = { zombie = "噬咬行尸" },
+    ["trait.pale_deathgrip"] = { zombie = "铁握尸卒" },
+    ["trait.pale_putrid"] = { zombie = "烂肉行尸" },
+    ["trait.pale_embalmed"] = { zombie = "精腌尸卫" },
+    ["trait.pale_thick_hide"] = { zombie = "硬痂尸兵" },
+    ["trait.pale_toxic_flesh"] = { zombie = "毒血行尸" },
+    ["trait.pale_stiff_corpse"] = { zombie = "僵直尸卒" },
+    ["trait.pale_broken_fingers"] = { zombie = "残指尸兵" },
+    ["trait.pale_maggot_ridden"] = { zombie = "蛆巢行尸" },
+    ["trait.pale_dense_bone"] = { skeleton = "石骨卫卒", archer = "石骨弓手" },
+    ["trait.pale_hollow_skull"] = { skeleton = "空颅骨兵", archer = "空颅射手" },
+    ["trait.pale_old_drill"] = { skeleton = "老练骨卒", archer = "老练弓骨" },
+    ["trait.pale_legion_discipline"] = { skeleton = "军团骨卫", archer = "军团弓卒" },
+    ["trait.pale_brittle"] = { skeleton = "朽节骸骨", archer = "朽节弓骸" },
+    ["trait.pale_refined_joints"] = { skeleton = "银线骨卒", archer = "银线射手" },
+    ["trait.pale_tall_frame"] = { skeleton = "长骨巨卒", archer = "长臂弓骸" },
+    ["trait.pale_frail_bone"] = { skeleton = "酥骨残兵", archer = "酥骨弓骸" },
+    ["trait.pale_loose_skull"] = { skeleton = "松颅骸骨", archer = "松颅弓骨" },
+    ["trait.pale_cracked_ribs"] = { skeleton = "裂肋骨兵", archer = "裂肋弓骸" },
+    ["trait.pale_rusted_pins"] = { skeleton = "锈钉枯骨", archer = "锈钉弓骸" },
+    ["trait.iron_jaw"] = { zombie = "铁颌尸卒", skeleton = "铁颌骨兵", archer = "铁颌弓骸" },
+    ["trait.eagle_eyes"] = { zombie = "鹰眼行尸", skeleton = "鹰眼骨哨", archer = "鹰眼神射" },
+    ["trait.clumsy"] = { zombie = "笨手尸奴", skeleton = "笨拙骨卒", archer = "拙手弓骸" },
+    ["trait.dexterous"] = { zombie = "巧手行尸", skeleton = "灵指骨卒", archer = "灵指射手" },
+    ["trait.sure_footing"] = { zombie = "稳步尸卫", skeleton = "稳足骨卒", archer = "稳足弓骸" },
+    ["trait.quick"] = { zombie = "疾步行尸", skeleton = "疾骨骨卒", archer = "疾弦射手" },
+    ["trait.strong"] = { zombie = "蛮力尸卒", skeleton = "重骨骨兵", archer = "强弓骸骨" },
+    ["trait.lucky"] = { zombie = "命硬行尸", skeleton = "不散骸骨", archer = "福星弓骨" },
+    ["trait.bloodthirsty"] = { zombie = "嗜血行尸", skeleton = "嗜血骸骨", archer = "嗜血射手" },
+    ["trait.brute"] = { zombie = "蛮横尸卒", skeleton = "粗野骨兵", archer = "粗野弓骸" },
+    ["trait.bright"] = { zombie = "机敏行尸", skeleton = "慧眼骨卒", archer = "慧眼射手" },
+    ["trait.dumb"] = { zombie = "呆滞行尸", skeleton = "痴骨骨卒", archer = "痴骨弓骸" },
+    ["trait.huge"] = { zombie = "巨躯行尸" },
+    ["trait.tough"] = { zombie = "铁皮尸卫" },
+    ["trait.fat"] = { zombie = "臃肿行尸" },
+    ["trait.clubfooted"] = { zombie = "跛足行尸" },
+    ["trait.iron_lungs"] = { zombie = "铁肺尸卒" },
+    ["trait.tiny"] = { skeleton = "矮小骨卒", archer = "矮小弓骸" },
+    ["trait.fragile"] = { skeleton = "薄骨残兵", archer = "薄骨弓骸" },
+    ["trait.athletic"] = { skeleton = "健骨骨卒", archer = "健骨弓手" }
+};
+
+S.undeadTitleFamily <- function( _bro )
+{
+    local kind = this.undeadKindOf(_bro.getFlags().get("PaleUndeadKind"));
+    return kind == "archer" ? "archer" : kind == "zombie" ? "zombie" : "skeleton";
+};
+
+S.assignUndeadTitle <- function( _bro )
+{
+    local family = this.undeadTitleFamily(_bro);
+    local picks = [];
+    foreach (trait in _bro.getSkills().query(::Const.SkillType.Trait))
+    {
+        local id = trait.getID();
+        if (id in this.UndeadTraitTitles && family in this.UndeadTraitTitles[id])
+            picks.push([id, this.UndeadTraitTitles[id][family]]);
+    }
+    local flags = _bro.getFlags();
+    if (picks.len() > 0 && ::Math.rand(1, 100) <= 70)
+    {
+        local pick = picks[::Math.rand(0, picks.len() - 1)];
+        _bro.setTitle(pick[1]);
+        flags.set("PaleTitleTrait", pick[0]);
+        return;
+    }
+    local titles = family == "archer" ? this.ArcherTitles : family == "zombie" ? this.ZombieTitles : this.SkeletonTitles;
+    _bro.setTitle(titles[::Math.rand(0, titles.len() - 1)]);
+    flags.remove("PaleTitleTrait");
+};
+
 // 生成一名常驻亡灵：属性按背景范围随机，抽天赋星和特质
 // _purify = false：不受“死灵精通后无负面特质”影响（受缚亡灵）
 S.createUndead <- function( _kind, _roster = null, _purify = true )
@@ -223,8 +306,7 @@ S.createUndead <- function( _kind, _roster = null, _purify = true )
     try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 常驻亡灵天赋: " + e); }
     this.addUndeadTraits(bro, kind.Skeleton, null, _purify);
     bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
-    local titles = this.undeadKindOf(_kind) == "archer" ? this.ArcherTitles : kind.Skeleton ? this.SkeletonTitles : this.ZombieTitles;
-    bro.setTitle(titles[::Math.rand(0, titles.len() - 1)]);
+    this.assignUndeadTitle(bro);
     bro.m.MoraleState = ::Const.MoraleState.Ignore;
     this.applyUndeadLook(bro);
     bro.getSkills().update();
