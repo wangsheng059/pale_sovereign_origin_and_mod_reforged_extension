@@ -254,15 +254,21 @@ S.onVictory <- function( _loot )
     this.followerLoot(_loot);
 };
 
-S.UndeadHeadCount <- 12;
+local undeadSpriteVariants = [
+    { Layer = "head", Flag = "PaleHeadVariant", Count = 12 },
+    { Layer = "body", Flag = "PaleBodyVariant", Count = 6 }
+];
 
-S.applyUndeadHead <- function( _actor, _model )
+S.applyUndeadVariants <- function( _actor, _model )
 {
-    local i = this.getOrRollUndeadIndex(_actor.getFlags(), "PaleHeadVariant", this.UndeadHeadCount);
-    local name = format("%s_head_%02d", _model, i + 1);
-    if (!::doesBrushExist(name))
-        return;
-    _actor.getSprite("head").setBrush(name);
+    local flags = _actor.getFlags();
+    foreach (variant in undeadSpriteVariants)
+    {
+        local index = this.getOrRollUndeadIndex(flags, variant.Flag, variant.Count);
+        local name = format("%s_%s_%02d", _model, variant.Layer, index + 1);
+        if (::doesBrushExist(name))
+            _actor.getSprite(variant.Layer).setBrush(name);
+    }
     local appearance = _actor.getItems().getAppearance();
     appearance.HideHair = true;
     appearance.HideBeard = true;
@@ -298,7 +304,7 @@ S.applyUndeadLook <- function( _bro )
     {
         body.setBrush("pale_skeleton_archer_body");
         head.setBrush("pale_skeleton_archer_head");
-        this.applyUndeadHead(_bro, "pale_skeleton_archer");
+        this.applyUndeadVariants(_bro, "pale_skeleton_archer");
     }
     else if (branch != null)
     {
@@ -310,7 +316,7 @@ S.applyUndeadLook <- function( _bro )
     }
     else if (background.getID() == "background.pale_skeleton" || background.getID() == "background.pale_zombie")
     {
-        this.applyUndeadHead(_bro, skeleton ? "pale_summon_skeleton_0" : "pale_summon_zombie_0");
+        this.applyUndeadVariants(_bro, skeleton ? "pale_summon_skeleton_0" : "pale_summon_zombie_0");
     }
     body.Color = ::createColor(branch != null || skeleton ? "#ffffff" : "#b4c4a5");
     head.Color = body.Color;
@@ -345,14 +351,11 @@ S.applySummonedLook <- function( _actor, _stem )
 {
     _actor.getSprite("body").setBrush(_stem + "_body");
     _actor.getSprite("head").setBrush(_stem + "_head");
-    this.applyUndeadHead(_actor, _stem);
+    this.applyUndeadVariants(_actor, _stem);
     foreach (layer in ["body", "head"])
         _actor.getSprite(layer).Color = ::createColor("#ffffff");
     foreach (layer in ["hair", "beard", "beard_top", "injury", "injury_body", "body_blood_always"])
         if (_actor.hasSprite(layer))
             _actor.getSprite(layer).Visible = false;
-    local appearance = _actor.getItems().getAppearance();
-    appearance.HideHair = true;
-    appearance.HideBeard = true;
     _actor.setDirty(true);
 };
