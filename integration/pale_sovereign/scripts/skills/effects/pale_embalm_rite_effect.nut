@@ -115,6 +115,8 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
             _properties.RangedDefense += 15;
             _properties.IsImmuneToFire = true;
         }
+        if (this.hasRite("armor"))
+            _properties.IsImmuneToCriticals = true;
         if (this.hasRite("tendon"))
             _properties.IsImmuneToKnockBackAndGrab = true;
         if (this.hasRite("imprint"))
@@ -135,8 +137,24 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
         }
     }
 
+    // 尸脂熏蒸：自己回合开始和结束时，在相邻敌人脚下铺开 / 续上苍白冷焰
+    function onTurnStart()
+    {
+        if (this.hasRite("fumigate"))
+            ::PaleSovereign.spreadColdfire(this.getContainer().getActor());
+    }
+
+    function onTurnEnd()
+    {
+        if (this.hasRite("fumigate"))
+            ::PaleSovereign.spreadColdfire(this.getContainer().getActor());
+    }
+
     function onBeforeDamageReceived( _attacker, _skill, _hitInfo, _properties )
     {
+        // 厚骨覆甲：受到攻击时穿甲比例 ×0.85（爆头免疫在 onUpdate）
+        if (this.hasRite("armor") && _skill != null && _skill.isAttack())
+            _properties.DamageReceivedDirectMult *= 0.85;
         if (!this.hasRite("fumigate"))
             return;
         local burning = false;

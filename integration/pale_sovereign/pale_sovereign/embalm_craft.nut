@@ -11,15 +11,15 @@ S.EmbalmUnit <- 0;
 // 临时秘仪：Single / All 为指定 1 名 / 全体常驻亡灵的花费，Battles 为参战场数
 S.Rites <- [
     { Key = "armor", Name = "厚骨覆甲", Single = 3, All = 6, Battles = 3,
-        Effect = "每场战斗开局头部与身体各获得 +40 临时护甲（先于装备承受伤害，战后消失）" },
+        Effect = "每场战斗开局头部与身体各获得 +40 临时护甲（先于装备承受伤害，战后消失）；战斗全程受到攻击的穿甲比例降低 15%，免疫爆头额外伤害" },
     { Key = "infuse", Name = "死气灌注", Single = 4, All = 8, Battles = 3,
         Effect = "开局获得 3 层【充盈死气】。近战或远程攻击命中敌人时消耗 1 层，额外造成 8 + 导师决心 × 10% 点无视护甲伤害，目标疲劳 +10 并进行一次低难度士气检定" },
     { Key = "poison", Name = "恶臭涂抹", Single = 3, All = 6, Battles = 3,
         Effect = "近战或远程命中活人敌人时附加 2 回合【尸毒】：行动点 −2，每回合疲劳恢复 −5" },
     { Key = "imprint", Name = "残忆拓印", Single = 2, All = 4, Battles = 3,
         Effect = "战斗经验 +40%；1–6 级的常驻亡灵再 +20%（共 +60%）" },
-    { Key = "fumigate", Name = "尸脂熏蒸", Single = 2, All = 4, Battles = 3,
-        Effect = "远程防御 +15；免疫火焰（燃烧地面、燃烧瓶等燃烧伤害）与酸液（酸液瓶、林德蠕龙酸液）" },
+    { Key = "fumigate", Name = "尸脂熏蒸", Single = 3, All = 6, Battles = 3,
+        Effect = "远程防御 +15；免疫火焰（燃烧地面、燃烧瓶等燃烧伤害）与酸液（酸液瓶、林德蠕龙酸液）；自己回合开始和结束时，在相邻敌人脚下铺开持续 2 回合的【苍白冷焰】（只灼伤活人敌人，在其中结束回合受到 15–30 点火焰伤害）" },
     { Key = "tendon", Name = "韧筋接驳", Single = 2, All = 4, Battles = 3,
         Effect = "获得探路者的移动消耗；已有探路者时每格行动点再 −1（最低 1）、疲劳再减半；免疫击退与抓取；挣脱投网、藤蔓等的行动点消耗减半" }
 ];
@@ -297,6 +297,97 @@ S.startRites <- function( _actor )
     effect.m.Rites = active;
     skills.add(effect);
     effect.setupBattle();
+};
+
+// ---------------- 尸脂熏蒸：苍白冷焰地块 ----------------
+// 复用原版地块效果流程（Tactical.State.spawnEffectOnTile），伤害照重铸的火焰地块：15–30，护甲伤害同值，10% 穿甲，燃烧类型
+S.ColdfireTimeout <- 2;
+
+S.coldfireCanBurn <- function( _entity )
+{
+    if (_entity == null || ::MSU.isNull(_entity) || !_entity.isAlive() || _entity.isDying() || _entity.getFlags().has("undead"))
+        return false;
+    // 不灼伤玩家一方的活人（冷焰只铺在敌人脚下，防止我方踩进去误伤）
+    local faction = _entity.getFaction();
+    if (faction == ::Const.Faction.Player || faction == ::Const.Faction.PlayerAnimals)
+        return false;
+    try { return !::World.FactionManager.isAllied(::Const.Faction.Player, faction); } catch (e) { return true; }
+};
+
+S.onApplyColdfire <- function( _tile, _entity )
+{
+    if (!::PaleSovereign.coldfireCanBurn(_entity) || _entity.getCurrentProperties().IsImmuneToFire)
+        return;
+    ::Tactical.spawnIconEffect("status_effect_116", _tile, ::Const.Tactical.Settings.SkillIconOffsetX, ::Const.Tactical.Settings.SkillIconOffsetY,
+        ::Const.Tactical.Settings.SkillIconScale, ::Const.Tactical.Settings.SkillIconFadeInDuration, ::Const.Tactical.Settings.SkillIconStayDuration,
+        ::Const.Tactical.Settings.SkillIconFadeOutDuration, ::Const.Tactical.Settings.SkillIconMovement);
+    local damage = ::Math.rand(15, 30);
+    local hit = clone ::Const.Tactical.HitInfo;
+    hit.DamageRegular = damage * _entity.getCurrentProperties().DamageReceivedFireMult;
+    hit.DamageArmor = damage;
+    hit.DamageDirect = 0.1;
+    try { hit.DamageType = ::Const.Damage.DamageType.Burning; } catch (e) {}
+    hit.BodyPart = ::Const.BodyPart.Body;
+    hit.BodyDamageMult = 1.0;
+    hit.FatalityChanceMult = 0.0;
+    hit.Injuries = ::Const.Injury.Burning;
+    hit.IsPlayingArmorSound = false;
+    if (!_entity.isHiddenToPlayer())
+        ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_entity) + " 被苍白冷焰灼伤");
+    _entity.onDamageReceived(_entity, null, hit);
+};
+
+S.spawnColdfire <- function( _tile )
+{
+    local effect = _tile.Properties.Effect;
+    if (effect != null && effect.Type == "pale_coldfire")
+    {
+        effect.Timeout = ::Time.getRound() + this.ColdfireTimeout;
+        return;
+    }
+    if (_tile.Type == ::Const.Tactical.TerrainType.ShallowWater || _tile.Type == ::Const.Tactical.TerrainType.DeepWater)
+        return;
+    local coldfire = {
+        Type = "pale_coldfire",
+        Tooltip = "苍白冷焰在这里无声燃烧，只灼烧活人的血肉",
+        IsPositive = false,
+        IsAppliedAtRoundStart = false,
+        IsAppliedAtTurnEnd = true,
+        IsAppliedOnMovement = false,
+        IsAppliedOnEnter = false,
+        IsByPlayer = true,
+        Timeout = ::Time.getRound() + this.ColdfireTimeout,
+        Callback = this.onApplyColdfire,
+        function Applicable( _a )
+        {
+            return ::PaleSovereign.coldfireCanBurn(_a);
+        }
+    };
+    local particles = [];
+    foreach (fx in ::Const.Tactical.FireParticles)
+        particles.push({ Entity = true, Brushes = fx.Brushes, Tile = _tile, Delay = fx.Delay, Quantity = fx.Quantity,
+            Lifetime = fx.LifeTimeQuantity, Rate = fx.SpawnRate, Stages = fx.Stages });
+    ::Tactical.State.spawnEffectOnTile(_tile, "pale_coldfire", coldfire, particles);
+};
+
+S.spreadColdfire <- function( _actor )
+{
+    if (!::Tactical.isActive() || _actor == null || !_actor.isAlive() || !_actor.isPlacedOnMap())
+        return;
+    local tile = _actor.getTile();
+    local spread = 0;
+    for (local i = 0; i < 6; ++i)
+    {
+        if (!tile.hasNextTile(i))
+            continue;
+        local next = tile.getNextTile(i);
+        if (!next.IsOccupiedByActor || next.getEntity() == null || next.getEntity().isAlliedWith(_actor)
+            || !this.coldfireCanBurn(next.getEntity()))
+            continue;
+        try { this.spawnColdfire(next); ++spread; } catch (e) { ::logError("[PaleSovereign] 苍白冷焰: " + e); }
+    }
+    if (spread > 0 && !_actor.isHiddenToPlayer())
+        ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_actor) + " 骨隙间渗出的黑雾在 " + spread + " 名敌人脚下燃起苍白冷焰");
 };
 
 // 厚骨覆甲：临时天然护甲写在基础属性里，战后按旗标还原（防止遗留到存档）
