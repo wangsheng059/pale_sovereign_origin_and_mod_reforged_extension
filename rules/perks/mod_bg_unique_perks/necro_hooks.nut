@@ -176,3 +176,36 @@
 		return ret;
 	}
 });
+
+
+// Native growth replaces the head and body brushes. Restore the raised ghoul's selected look immediately.
+::BGP.HooksMod.hook("scripts/entity/tactical/enemies/ghoul", function(q)
+{
+	q.grow = @(__original) function( _instant = false )
+	{
+		__original(_instant);
+		if (this.getFlags().has("bgp_bound_variant"))
+			::BGP.Necro.applyBoundArt(this);
+	};
+});
+
+// Reforged refreshes vampire head art as hitpoints cross injury thresholds.
+::BGP.HooksMod.hook("scripts/entity/tactical/enemies/vampire", function(q)
+{
+	q.onUpdateInjuryLayer = @(__original) function()
+	{
+		__original();
+		if (this.getFlags().has("bgp_bound_variant"))
+			::BGP.Necro.applyBoundArt(this);
+	};
+});
+
+// The native method derives an injury sprite ID from the original head name.
+::BGP.HooksMod.hook("scripts/entity/tactical/enemies/rf_zombie_orc_berserker", function(q)
+{
+	q.getZombifyBrushNameHead = @(__original) function()
+	{
+		local flags = this.getFlags();
+		return flags.has("bgp_bound_orc_injury") ? flags.get("bgp_bound_orc_injury") : __original();
+	};
+});

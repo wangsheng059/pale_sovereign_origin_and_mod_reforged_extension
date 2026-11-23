@@ -332,6 +332,7 @@
 		try { e.setFaction(::Const.Faction.PlayerAnimals); } catch (err) {}
 		// 1.5.1 起野兽也调用（装甲巨魔的甲在这里生成；其他野兽父类没有装备，调用不生成东西）
 		try { e.assignRandomEquipment(); } catch (err) {}
+		::BGP.Necro.applyBoundArt(e, true);
 		// 新生成的装备不掉落（死亡时不进战利品，战斗结束时复活类的 onBeforeCombatResult 也不放出来）
 		::BGP.Necro.markGearNoLoot(e);
 		try { e.m.Name = e.m.BGP_MinionName; } catch (err) {}

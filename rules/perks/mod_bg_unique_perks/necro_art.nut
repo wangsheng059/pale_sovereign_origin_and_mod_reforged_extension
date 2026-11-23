@@ -197,14 +197,127 @@
     zombify_body_02 = "bgpu_zombify_body_02",
 };
 
-::BGP.Necro.applyBoundArt <- function( _actor )
+// Match the standing brush so equipment and native creature subtypes retain their own layer layout.
+::BGP.Necro.BoundVariantPools <- {
+    bust_direwolf_01_head = "direwolf",
+    bust_direwolf_02_head = "direwolf",
+    bust_direwolf_03_head = "direwolf",
+    bust_wolf_01_head = "wolf",
+    bust_wolf_02_head = "wolf",
+    bust_goblin_01_head_01 = "goblin",
+    bust_goblin_01_head_02 = "goblin",
+    bust_goblin_01_head_03 = "goblin",
+    bust_goblin_02_head_01 = "goblin_shaman",
+    bust_goblin_03_head_01 = "goblin_leader",
+    bust_unhold_head_01 = "unhold_frost",
+    bust_unhold_head_02 = "unhold",
+    bust_unhold_head_03 = "unhold_bog",
+    bust_snake_01_head_01 = "serpent",
+    bust_snake_01_head_02 = "serpent",
+    bust_snake_02_head_01 = "serpent_dark",
+    bust_snake_02_head_02 = "serpent_dark",
+    bust_ghoul_head_01 = "ghoul_small",
+    bust_ghoul_02_head_01 = "ghoul_medium",
+    bust_ghoul_02_head_02 = "ghoul_medium",
+    bust_ghoul_02_head_03 = "ghoul_medium",
+    bust_ghoul_03_head_01 = "ghoul_large",
+    bust_ghoul_03_head_02 = "ghoul_large",
+    bust_ghoul_03_head_03 = "ghoul_large",
+    bust_ghoul_04_head_01 = "ghoul_apex",
+    bust_ghoul_04_head_02 = "ghoul_apex",
+    bust_ghoul_04_head_03 = "ghoul_apex",
+    bust_schrat_head_01 = "schrat",
+    bust_schrat_head_02 = "schrat",
+    bust_spider_body_01 = "spider",
+    bust_spider_body_02 = "spider",
+    bust_spider_body_03 = "spider",
+    bust_spider_body_04 = "spider",
+    bust_skeleton_head = "skeleton",
+    bust_skeleton_head_03 = "skeleton",
+    bust_skeleton_head_04 = "skeleton",
+    bust_skeleton_head_05 = "skeleton",
+    bust_alp_head_01 = "alp",
+    bust_alp_head_02 = "alp",
+    bust_alp_head_03 = "alp",
+    bust_hyena_01_head = "hyena",
+    bust_hyena_02_head = "hyena",
+    bust_hyena_03_head = "hyena",
+    bust_hyena_04_head = "hyena",
+    bust_hyena_05_head = "hyena",
+    bust_hyena_06_head = "hyena",
+    bust_orc_01_head_01 = "orc_young",
+    bust_orc_01_head_02 = "orc_young",
+    bust_orc_01_head_03 = "orc_young",
+    bust_orc_02_head_01 = "orc_berserker",
+    bust_orc_02_head_02 = "orc_berserker",
+    bust_orc_02_head_03 = "orc_berserker",
+    orc_02_head_01 = "orc_berserker",
+    orc_02_head_02 = "orc_berserker",
+    orc_02_head_03 = "orc_berserker",
+    bust_orc_03_head_01 = "orc_warrior",
+    bust_orc_03_head_02 = "orc_warrior",
+    bust_orc_03_head_03 = "orc_warrior",
+    bust_orc_04_head_01 = "orc_warlord",
+    bust_flesh_golem_head_01 = "golem",
+    bust_flesh_golem_head_02 = "golem",
+    bust_flesh_golem_head_03 = "golem",
+    bust_greater_flesh_golem_head_01 = "golem_greater",
+    bust_greater_flesh_golem_head_02 = "golem_greater",
+    bust_greater_flesh_golem_head_03 = "golem_greater",
+    bust_rf_vampire_head_01 = "vampire",
+    bust_rf_vampire_lord_head_01 = "vampire_lord",
+    bust_rf_vampire_lord_head_02 = "vampire_lord",
+    bust_rf_vampire_lord_head_03 = "vampire_lord",
+    bust_rf_hollenhund_01 = "hollenhund",
+    bust_rf_hollenhund_02 = "hollenhund",
+    bust_rf_hollenhund_03 = "hollenhund",
+};
+
+::BGP.Necro.applyBoundArt <- function( _actor, _rollVariant = false )
 {
+    local flags = _actor.getFlags();
+    local variant = flags.has("bgp_bound_variant") ? flags.get("bgp_bound_variant") : 0;
     foreach (layer in ["body", "head", "injury", "body_detail", "head_frenzy", "wolf", "wolf_head", "legs_front", "legs_back", "rf_draugr_body", "rf_draugr_head", "body_injury", "tattoo_body", "tattoo_head", "blur_1"])
     {
         if (!_actor.hasSprite(layer)) continue;
         local sprite = _actor.getSprite(layer);
         if (!sprite.HasBrush) continue;
         local key = sprite.getBrush().Name;
+        // A freshly raised actor already received its standard undead art in onInit.
+        local source = key.find("bgpu_") == 0 ? key.slice(5) : key;
+        local pool = null;
+        if (_rollVariant || variant > 0)
+        {
+            pool = source in this.BoundVariantPools ? this.BoundVariantPools[source] : null;
+            if (layer == "head" && source.find("bust_head_") == 0)
+            {
+                if (_actor.hasSprite("rf_draugr_head")) pool = "draugr";
+                else pool = source.find("bust_head_southern_") == 0 ? "zombie_south" : "zombie";
+            }
+            if (pool == "skeleton" && _actor.hasSprite("rf_vampire_blood_head")) pool = "vampire";
+        }
+        if (pool != null)
+        {
+            local frenzy = pool == "direwolf" && _actor.hasSprite("head_frenzy") && _actor.getSprite("head_frenzy").HasBrush;
+            if (frenzy) pool = "direwolf_frenzy";
+            if (variant == 0)
+            {
+                variant = ::Math.rand(1, 12);
+                flags.set("bgp_bound_variant", variant);
+            }
+
+            local brush = ::format("bgpv_%s_%02d", pool, variant);
+            if (::doesBrushExist(brush))
+            {
+                if (pool == "orc_berserker" && ::MSU.isKindOf(_actor, "rf_zombie_orc_berserker") && !flags.has("bgp_bound_orc_injury"))
+                    flags.set("bgp_bound_orc_injury", _actor.getZombifyBrushNameHead());
+                sprite.setBrush(brush);
+                // Both new heads already include facial detail. The native death paths still look up these layers.
+                if (pool == "skeleton" && _actor.hasSprite("face")) _actor.getSprite("face").setBrush("bgpv_face_overlay");
+                if (frenzy) _actor.getSprite("head_frenzy").setBrush("bgpv_frenzy_overlay");
+                continue;
+            }
+        }
         if (key in this.BoundBrushes) sprite.setBrush(this.BoundBrushes[key]);
     }
 }
