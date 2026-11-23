@@ -11,7 +11,7 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
         this.m.Name = def.Name;
         this.m.Description = def.Description;
         this.m.Excluded = clone def.Excluded;
-        this.m.Icon = "Icon" in def ? def.Icon : "ui/traits/pale_" + this.m.PaleKey + ".png";
+        this.m.Icon = "ui/traits/pale_" + this.m.PaleKey + ".png";
     }
 
     function getTooltip()

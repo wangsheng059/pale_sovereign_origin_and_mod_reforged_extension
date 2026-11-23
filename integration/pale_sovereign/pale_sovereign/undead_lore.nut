@@ -254,7 +254,7 @@ S.undeadLoreFamily <- function( _bg )
 };
 
 // 取一个存在旗标里的下标；没有时随机一个并存起来（没有角色时只随机，不存）
-S.undeadLoreIndex <- function( _flags, _key, _len )
+S.getOrRollUndeadIndex <- function( _flags, _key, _len )
 {
     if (_flags != null && _flags.has(_key))
     {
@@ -286,9 +286,9 @@ S.undeadLore <- function( _bg )
     {
         flags = null;
     }
-    local origin = origins[this.undeadLoreIndex(flags, "PaleLoreOrigin", origins.len())];
-    local form = forms != null ? forms[this.undeadLoreIndex(flags, "PaleLoreForm", forms.len())] : _bg.m.BackgroundDescription;
-    local camp = camps[this.undeadLoreIndex(flags, "PaleLoreCamp", camps.len())];
+    local origin = origins[this.getOrRollUndeadIndex(flags, "PaleLoreOrigin", origins.len())];
+    local form = forms != null ? forms[this.getOrRollUndeadIndex(flags, "PaleLoreForm", forms.len())] : _bg.m.BackgroundDescription;
+    local camp = camps[this.getOrRollUndeadIndex(flags, "PaleLoreCamp", camps.len())];
     if (flags != null)
         flags.set("PaleLoreVer", this.UndeadLoreVersion);
     return origin + form + "\n\n" + camp;

@@ -47,7 +47,7 @@ this.pale_sovereign_intro_event <- ::inherit("scripts/events/event", {
             function start( _event )
             {
                 this.Banner = "ui/banners/" + ::World.Assets.getBanner() + "s.png";
-                this.Text = "[img]gfx/ui/events/pale/banner.jpg[/img]" + ::PaleSovereign.GuardLoreFull + "\n\n" + ::PaleSovereign.IntroGuide;
+                this.Text = "[img]gfx/ui/events/pale/guard_lore.jpg[/img]" + ::PaleSovereign.GuardLoreFull + "\n\n" + ::PaleSovereign.IntroGuide;
             }
         });
     }

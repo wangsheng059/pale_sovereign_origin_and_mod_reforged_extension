@@ -254,6 +254,20 @@ S.onVictory <- function( _loot )
     this.followerLoot(_loot);
 };
 
+S.UndeadHeadCount <- 12;
+
+S.applyUndeadHead <- function( _actor, _model )
+{
+    local i = this.getOrRollUndeadIndex(_actor.getFlags(), "PaleHeadVariant", this.UndeadHeadCount);
+    local name = format("%s_head_%02d", _model, i + 1);
+    if (!::doesBrushExist(name))
+        return;
+    _actor.getSprite("head").setBrush(name);
+    local appearance = _actor.getItems().getAppearance();
+    appearance.HideHair = true;
+    appearance.HideBeard = true;
+};
+
 S.applyUndeadLook <- function( _bro )
 {
     local background = this.getUndeadBackground(_bro);
@@ -284,6 +298,7 @@ S.applyUndeadLook <- function( _bro )
     {
         body.setBrush("pale_skeleton_archer_body");
         head.setBrush("pale_skeleton_archer_head");
+        this.applyUndeadHead(_bro, "pale_skeleton_archer");
     }
     else if (branch != null)
     {
@@ -292,6 +307,10 @@ S.applyUndeadLook <- function( _bro )
             stem = "pale_sb_" + background.m.PaleSoulClass;
         body.setBrush(stem + "_body");
         head.setBrush(stem + "_head");
+    }
+    else if (background.getID() == "background.pale_skeleton" || background.getID() == "background.pale_zombie")
+    {
+        this.applyUndeadHead(_bro, skeleton ? "pale_summon_skeleton_0" : "pale_summon_zombie_0");
     }
     body.Color = ::createColor(branch != null || skeleton ? "#ffffff" : "#b4c4a5");
     head.Color = body.Color;
@@ -326,6 +345,7 @@ S.applySummonedLook <- function( _actor, _stem )
 {
     _actor.getSprite("body").setBrush(_stem + "_body");
     _actor.getSprite("head").setBrush(_stem + "_head");
+    this.applyUndeadHead(_actor, _stem);
     foreach (layer in ["body", "head"])
         _actor.getSprite(layer).Color = ::createColor("#ffffff");
     foreach (layer in ["hair", "beard", "beard_top", "injury", "injury_body", "body_blood_always"])

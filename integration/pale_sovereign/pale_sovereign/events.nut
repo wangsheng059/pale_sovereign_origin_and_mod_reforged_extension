@@ -514,7 +514,7 @@ S.renderEvent <- function( _event, _screen )
             if (this.oath() == this.Oath.Champion)
             {
                 title = "冠军之誓";
-                art = "soul";
+                art = "oath_champion";
                 _screen.Text = "你在篝火旁坐到了后半夜。法杖横放在膝上，杖头的魂火一明一灭，像在等你开口。马车里那口旧棺比平日更安静，安静得近乎恭顺。\n\n你终于念出了那句誓词。不是向任何神祇，而是向棺中那具不肯腐朽的枯骨：从今往后，你不再驱使成群的死者，只锻造一尊冠军。你会用锁链去捕捉强者濒死时的残魂，把它们一缕缕抹进它的骨缝，直到它强得足以替你挡下世间所有的刀剑。誓言落定的一刻，另一条路在你心里无声地塌了下去，再也回不去了。"
                     + "\n\n（立下【亡灵冠军】誓约，另一条路线的独有特技永久封闭，死灵精通仍可学习。缚魂锁链可在战场标记濒死强敌，胜利后为冠军注魂、吞魂或承誓；冠军路线最多 3 名常驻亡灵；古代魂玉可为冠军淬骨、晋升荒坟守卫；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为骸骨权杖。）";
                 this.option(_screen, "“它会是我唯一的剑。”", @() null);
@@ -522,7 +522,7 @@ S.renderEvent <- function( _event, _screen )
             else
             {
                 title = "天灾之誓";
-                art = "soul_muster";
+                art = "oath_scourge";
                 _screen.Text = "你把法杖插进营地边的冻土，对着荒野里看不见尽头的黑暗低声立誓。没有冠军，没有王座，也不需要谁来替你挡刀——你要的是数量，是潮水，是让每一片战场都在你身后重新站起来的死者。\n\n誓词出口时，四周的风忽然停了。盗墓贼放下铲子，不安地望向远处的坟岗；马车里的盐封裹尸布轻轻鼓动，像是底下有什么东西翻了个身。你知道，从这一夜起，你走过的每一处战场都会成为你的兵源，而另一条路已经永远关上了门。"
                     + "\n\n（立下【亡灵天灾】誓约，另一条路线的独有特技永久封闭，死灵精通仍可学习。名册上限 " + ::World.Assets.getBrothersMax() + " 人、每场部署 " + ::World.Assets.getBrothersMaxInCombat() + " 人；全队可投掷防腐尸骸作尸弹；常驻亡灵数量只受名册限制；古代魂玉可为常驻亡灵点睛，营地可炼化 6 级以上常驻亡灵换取魂玉；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为千魂法杖。）";
                 this.option(_screen, "“让死者涨潮。”", @() null);
@@ -531,7 +531,7 @@ S.renderEvent <- function( _event, _screen )
 
         case "ranger_lead":
             title = "掘墓人的线索";
-            art = "shovels";
+            art = "ranger_lead";
             closing = false;
             local lead = this.locationAt(this.get("RangerLeadX"), this.get("RangerLeadY"));
             local leadName = lead == null ? "一处古墓" : lead.getName();
