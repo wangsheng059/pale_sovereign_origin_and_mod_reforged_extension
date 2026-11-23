@@ -123,10 +123,58 @@ S.RewardItems <- [
     "misc/pale_bound_undead_item"
 ];
 
+// 1.6.29：城堡易主随机发放的名器（红装），按路径存待领取数
+S.NamedRewardPools <- ["NamedWeapons", "NamedHelmets", "NamedArmors"];
+
+S.rewardPaths <- function()
+{
+    local paths = clone this.RewardItems;
+    foreach (pool in this.NamedRewardPools)
+        if (pool in ::Const.Items)
+            foreach (path in ::Const.Items[pool])
+                if (paths.find(path) == null)
+                    paths.push(path);
+    return paths;
+};
+
+S.namedTwoHanded <- function()
+{
+    local result = [];
+    foreach (path in ::Const.Items.NamedWeapons)
+    {
+        local item = ::new(this.ItemDir + path);
+        if (item.isItemType(::Const.Items.ItemType.TwoHanded) && !item.isItemType(::Const.Items.ItemType.RangedWeapon))
+            result.push(path);
+    }
+    return result;
+};
+
+// 有空位时直接入库并返回名字（名器多在入库时才起名）；没空位返回 null
+S.giveNamedNow <- function( _path )
+{
+    local stash = ::World.Assets.getStash();
+    if (!stash.hasEmptySlot())
+        return null;
+    local item = ::new(this.ItemDir + _path);
+    stash.add(item);
+    if (stash.getItems().find(item) == null)
+        return null;
+    if (item.getName() == "")
+    {
+        try { item.setName(item.createRandomName()); } catch (e) {}
+    }
+    return item.getName();
+};
+
+S.randomNamed <- function( _list )
+{
+    return _list.len() == 0 ? null : _list[::Math.rand(0, _list.len() - 1)];
+};
+
 S.deliverAmbitionItems <- function()
 {
     local stash = ::World.Assets.getStash();
-    foreach (path in this.RewardItems)
+    foreach (path in this.rewardPaths())
     {
         local key = "Reward." + path;
         local count = this.get(key);
@@ -221,16 +269,22 @@ S.rewardAmbition <- function( _ambition, _key )
             break;
         case "castle_taken":
             ::World.Assets.addMoney(600);
-            this.amReward(_ambition, "获得 600 克朗。此后每座统治或屠城的城堡防腐尸骸上限再 +20");
-            if (oath == this.Oath.Champion)
+            this.pendingItem("misc/pale_jade_item", 2);
+            this.pendingItem("misc/pale_chain_item", 2);
+            this.amReward(_ambition, "获得 600 克朗、2 枚古代魂玉和 2 条缚魂锁链。此后每座统治或屠城的城堡防腐尸骸上限再 +20");
+            local labels = ["名器双手武器", "名器头盔", "名器护甲"];
+            foreach (i, path in [this.randomNamed(this.namedTwoHanded()), this.randomNamed(::Const.Items.NamedHelmets), this.randomNamed(::Const.Items.NamedArmors)])
             {
-                this.pendingItem("misc/pale_jade_item");
-                this.amReward(_ambition, "获得 1 枚古代魂玉");
-            }
-            else
-            {
-                this.changeReserve(oath == this.Oath.Scourge ? 15 : 5);
-                this.amReward(_ambition, oath == this.Oath.Scourge ? "补充 15 点防腐尸骸" : "补充 5 点防腐尸骸");
+                if (path == null)
+                    continue;
+                local name = this.giveNamedNow(path);
+                if (name == null)
+                {
+                    this.pendingItem(path);
+                    this.amReward(_ambition, "获得 1 件" + labels[i]);
+                }
+                else
+                    this.amReward(_ambition, "获得" + labels[i] + "「" + name + "」");
             }
             break;
     }
@@ -238,7 +292,7 @@ S.rewardAmbition <- function( _ambition, _key )
         foreach (bro in this.humans())
             bro.improveMood(1.0, _ambition.getUIText() + "，野心达成");
     if (!::World.Assets.getStash().hasEmptySlot())
-        foreach (path in this.RewardItems)
+        foreach (path in this.rewardPaths())
             if (this.get("Reward." + path) > 0)
             {
                 this.amReward(_ambition, "仓库空间不足，腾出空位后余下物品会自动入库");
