@@ -498,7 +498,7 @@ S.renderEvent <- function( _event, _screen )
 
         case "conquest_recruit":
             title = "亡者之城";
-            art = "conquest_raze";
+            art = "conquest_recruit";
             this.conquestRecruitPanel(_screen);
             break;
 
