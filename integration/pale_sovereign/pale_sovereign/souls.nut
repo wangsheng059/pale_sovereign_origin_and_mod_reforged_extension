@@ -257,9 +257,29 @@ S.canDevour <- function( _pet )
         && this.petGet(_pet, "Species." + species) == 0;
 };
 
+// 1.7.5 承誓能继承的内容：冠军加成（冠军还没有时）和具名武器；都没有时不显示承誓选项，也不消耗锁链
+S.inheritParts <- function( _pet )
+{
+    local parts = [];
+    if (this.get("SoulChampion") != 0 && this.petGet(_pet, "ChampionRacial") == 0)
+        parts.push("冠军加成");
+    local script = ::World.Flags.get("Pale.Soul.Weapon");
+    if (typeof script == "string" && script.len() > 0)
+    {
+        local text = "具名武器【" + ::World.Flags.get("Pale.Soul.WeaponName") + "】";
+        local old = ::World.Flags.get("Pale." + this.petKey(_pet.m.PaleID, "WeaponName"));
+        if (typeof old == "string" && old.len() > 0)
+            text += "（替换现有的【" + old + "】）";
+        parts.push(text);
+    }
+    return parts;
+};
+
 S.resolveSoul <- function( _choice )
 {
     if (!this.canUseSoul())
+        return false;
+    if (_choice == "inherit" && this.inheritParts(this.mainPet()).len() == 0)
         return false;
     local pet = this.mainPet();
     if (_choice == "soul" && !this.canDevour(pet))

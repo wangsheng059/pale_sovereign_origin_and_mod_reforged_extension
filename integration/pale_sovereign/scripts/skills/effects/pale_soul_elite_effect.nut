@@ -22,7 +22,7 @@ this.pale_soul_elite_effect <- ::inherit("scripts/skills/skill", {
         if (species > 0 && species < S.Souls.len())
             text += "\n\n吞魂可得：【" + S.Souls[species].Name + "】" + S.Souls[species].Desc;
         local inherit = S.inheritPreview(actor);
-        text += "\n承誓可得：" + (inherit == "" ? "无（它既没有冠军标记，也没有具名武器）" : inherit);
+        text += "\n承誓可得：" + (inherit == "" ? "无（它既没有冠军标记，也没有具名武器，战后不会出现承誓选项）" : inherit);
         if (S.Battle != null && S.Battle.Mark != null)
             text += "\n\n本场已经锚定了另一名强敌。";
         else if (S.countItems("misc.pale_chain") == 0)

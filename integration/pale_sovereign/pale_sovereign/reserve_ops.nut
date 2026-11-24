@@ -167,6 +167,61 @@ S.reserveWorkshopPanel <- function( _event, _screen )
         });
     else if (cart < this.CartCost.Limit)
         _screen.Text += "\n\n加固尸车需要 6 点防腐尸骸、500 克朗和 15 工具（已加固 " + cart + " / 3）。";
+    local captives = this.slaughterableCaptives();
+    if (captives.len() > 0 && reserve < this.reserveLimit())
+        this.option(_screen, "宰杀俘虏 · 每名防腐尸骸 +" + this.SlaughterGain + "（仓库里有 " + captives.len() + " 名）", function() { S.EmbalmPage = 0; return "@x_slaughter"; });
+    else if (captives.len() > 0)
+        _screen.Text += "\n\n防腐尸骸已满，暂时不能宰杀俘虏。";
+};
+
+// 1.7.5 宰杀俘虏（捕奴 mod 的 misc.hsc_captive）：任意地点，每名 +1 点防腐尸骸；古堡献祭坑仍是 2 点
+S.SlaughterGain <- 1;
+
+S.slaughterableCaptives <- function()
+{
+    return ::World.Assets.getStash().getItems().filter(function( _, item )
+    {
+        if (item == null || item.getID() != "misc.hsc_captive")
+            return false;
+        try { return !item.m.HSC_Used; } catch (e) { return true; }
+    });
+};
+
+S.captiveLabel <- function( _item )
+{
+    // 捕奴 mod 的俘虏名字里已带等级，例如“被俘的奴隶（1级）”
+    local name = _item.getName();
+    local champion = false;
+    try { champion = _item.m.HSC_Champion == true; } catch (e) {}
+    return champion && name.find("冠军") == null ? name + "（冠军）" : name;
+};
+
+S.slaughterPanel <- function( _event, _screen )
+{
+    _screen.Text = "俘虏被拖到盐袋旁，绳子还没解开。盗墓贼已经磨好了刀，只等你点头。宰下的血肉会和战场上收来的遗骸一起封进盐里。\n\n（选一名俘虏，宰杀后防腐尸骸 +"
+        + this.SlaughterGain + "。在古堡献祭坑献祭能得 2 点。双击仓库里的俘虏则是转化为常驻行尸。" + this.resourceLine() + "）";
+    local captives = this.slaughterableCaptives();
+    if (captives.len() == 0)
+    {
+        _screen.Text += "\n\n仓库里没有俘虏了。";
+        return;
+    }
+    if (this.get("Reserve") >= this.reserveLimit())
+    {
+        _screen.Text += "\n\n防腐尸骸已满。";
+        return;
+    }
+    this.pagedUnits(_screen, captives, this.EmbalmPage, @(item) S.captiveLabel(item), function( item )
+    {
+        local stash = ::World.Assets.getStash();
+        if (stash.getItems().find(item) == null || S.get("Reserve") >= S.reserveLimit())
+            return "这名俘虏已经不在仓库里，或者防腐尸骸已满。";
+        local name = item.getName();
+        stash.remove(item);
+        S.changeReserve(S.SlaughterGain);
+        ::World.State.updateTopbarAssets();
+        return "刀起刀落，没有多余的声响。盗墓贼把尸身抬进盐桶，压上石板。\n\n（" + name + " 被宰杀，防腐尸骸 +" + S.SlaughterGain + "，现有 " + S.get("Reserve") + " / " + S.reserveLimit() + " 点）";
+    });
 };
 
 S.mendPanel <- function( _event, _screen )
@@ -225,11 +280,12 @@ S.addPage("x_reserve", "尸骸工坊", "reserve_workshop", @(_event, _screen) S.
 S.addPage("x_mend", "战地急修", "reserve_workshop", @(_event, _screen) S.mendPanel(_event, _screen), "@x_reserve");
 S.addPage("x_strip", "拆解重组", "reserve_workshop", @(_event, _screen) S.stripPanel(_event, _screen), "@x_reserve");
 S.addPage("x_strip_pick", "拆解重组", "reserve_workshop", @(_event, _screen) S.stripPickPanel(_event, _screen), "@x_strip");
+S.addPage("x_slaughter", "宰杀俘虏", "reserve_workshop", @(_event, _screen) S.slaughterPanel(_event, _screen), "@x_reserve");
 
 local campPanelReserve = S.campPanel;
 S.campPanel = function( _event, _screen )
 {
     if (this.oath() != this.Oath.None)
-        this.option(_screen, "尸骸工坊 · 急修、拆解、骨髓膏、拆骨充备、加固尸车", @() "@x_reserve");
+        this.option(_screen, "尸骸工坊 · 急修、拆解、骨髓膏、拆骨充备、加固尸车、宰杀俘虏", @() "@x_reserve");
     return campPanelReserve.call(this, _event, _screen);
 };

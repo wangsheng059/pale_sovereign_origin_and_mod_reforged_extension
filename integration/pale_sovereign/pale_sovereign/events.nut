@@ -574,7 +574,16 @@ S.renderEvent <- function( _event, _screen )
                 _screen.Text += "\n\n该冠军已拥有【" + soul.Name + "】。";
             else
                 _screen.Text += "\n\n该冠军的吞魂次数已满（" + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）。";
-            this.option(_screen, "承誓 · 继承冠军加成及具名武器", @() S.resolveSoul("inherit") ? "冠军接过亡者的誓言与武艺。" + S.soulJadeText() : "这次注魂未完成。");
+            local inherit = S.inheritParts(pet);
+            if (inherit.len() > 0)
+            {
+                local inheritText = "";
+                foreach (i, part in inherit)
+                    inheritText += (i == 0 ? "" : "、") + part;
+                this.option(_screen, "承誓 · 继承" + inheritText, @() S.resolveSoul("inherit") ? "冠军接过亡者的誓言与武艺。（继承" + inheritText + "）" + S.soulJadeText() : "这次注魂未完成。");
+            }
+            else
+                _screen.Text += "\n\n它既没有冠军加成可传（或冠军已经有了），也没有具名武器，无可承誓。";
             this.option(_screen, "放走残魂，保留锁链", function() { S.set("PendingSoul", 0); return null; });
             break;
 
