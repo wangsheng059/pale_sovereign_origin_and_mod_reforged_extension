@@ -1,0 +1,3 @@
+Third-party material
+
+This repository includes third-party mods and modified third-party material. The MIT License in LICENSE applies only to material that Sheng Wang owns or has the right to license under MIT. It does not grant rights to third-party code, artwork, game assets, or other material. Those materials remain subject to their respective owners' terms. The presence of a file in this repository does not establish permission to redistribute or relicense it. Consult manifest.json and Readme.txt for source and mod information; individual permissions have not been verified.
