@@ -6,7 +6,7 @@ S.CastleBuildings <- {
     pale_salt_cellar = { Name = "盐窖", Cost = 850, Icon = "pale_salt_cellar", Page = "castle",
         Flavor = "盐桶一直堆到拱顶，腌好的尸骸在这里能放上许多年。", Effect = "尸骸库存上限 +20。在古堡停留时，每天免费修补全体常驻亡灵。" },
     pale_soul_anvil = { Name = "缚魂铁砧", Cost = 1200, Icon = "pale_soul_anvil", Page = "castle",
-        Flavor = "这块黑铁砧取自古帝国的刑场，打在上面的每一环铁链都缠着死者的哀嚎。", Effect = "每 10 天可用 200 克朗、10 工具和 1 块铜锭打一条缚魂锁链（队里有学徒时冷却缩短 2 天）。" },
+        Flavor = "这块黑铁砧取自古帝国的刑场，打在上面的每一环铁链都缠着死者的哀嚎。", Effect = "每 10 天可用 200 克朗、10 工具和 1 块铜锭打一条缚魂锁链（队里有学徒或铁匠时冷却缩短 2 天）。" },
     pale_mausoleum = { Name = "冠军陵寝", Cost = 1300, Icon = "pale_mausoleum", Page = "castle_tombs",
         Flavor = "三座墓室的棺盖上刻着冠军的名字，它们在长眠中也不会停止变强。", Effect = "可寄存 3 口候补棺椁。每口棺椁每日恢复 10% 最大生命并获得 10 经验。" },
     pale_dead_barracks = { Name = "亡者兵营", Cost = 1200, Icon = "pale_dead_barracks", Page = "castle_barracks",

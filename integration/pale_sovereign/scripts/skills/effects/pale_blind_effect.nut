@@ -5,7 +5,7 @@ this.pale_blind_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_blind";
         this.m.Name = "致盲";
-        this.m.Description = "祭司的禁咒灼伤了此人的双眼，眼前只剩一片幽蓝的残影。";
+        this.m.Description = "古老禁咒的冷光灼过双目，此人眼前只剩摇晃的幽蓝残影，连刀刃与盾缘都难以辨清。";
         this.m.Icon = "skills/pale_mark_blind.png";
         this.m.IconDisabled = "skills/pale_mark_blind_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;

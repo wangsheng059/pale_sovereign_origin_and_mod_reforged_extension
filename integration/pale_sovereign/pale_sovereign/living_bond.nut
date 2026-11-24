@@ -375,10 +375,14 @@ S.ritualPanel <- function( _event, _screen )
         @(bro) bro.getName() + "（" + bro.getLevel() + " 级，永久伤势 " + bro.getSkills().query(::Const.SkillType.PermanentInjury).len() + " 处）",
         function( bro )
         {
+            local stash = ::World.Assets.getStash();
+            local need = bro.getItems().getAllItems().len();
+            if (stash.getNumberOfEmptySlots() < need)
+                return "仓库空位不足（需要 " + need + " 格存放卸下的装备），请先清理仓库。";
             if (!S.changeReserve(-S.ConvertCost.Ritual))
                 return null;
             local rec = S.snapshotBro(bro);
-            bro.getItems().transferToStash(::World.Assets.getStash());
+            bro.getItems().transferToStash(stash);
             ::World.getPlayerRoster().remove(bro);
             local undead = S.convertToUndead(rec, false);
             return "他躺上油布时没有出声。黑气退去以后，" + undead.getName() + " 坐了起来，不再瘸，也不再咳。\n\n（" + undead.getName() + " 转为常驻亡灵，" + undead.getLevel() + " 级，获得【旧日同袍】）";

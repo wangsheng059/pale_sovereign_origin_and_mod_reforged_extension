@@ -50,17 +50,15 @@ this.pale_living_bond_effect <- ::inherit("scripts/skills/skill", {
         if (S.Battle == null)
             return;
         local actor = this.getContainer().getActor();
-        if (S.isChief(actor))
-        {
-            _properties.Bravery += S.cultistResolve();
-            return;
-        }
         if (actor.getFlags().has("undead"))
             return;
-        if (S.isProDeath(actor))
+        local chief = S.isChief(actor);
+        if (chief)
+            _properties.Bravery += S.cultistResolve();
+        else if (S.isProDeath(actor))
             _properties.Bravery += 2 * (this.residentsOnField() / 3);
         local near = S.neighbours(actor);
-        local undeadOnly = near.len() > 0;
+        local undeadOnly = !chief && near.len() > 0;
         local comrade = false;
         foreach (other in near)
         {
@@ -70,7 +68,10 @@ this.pale_living_bond_effect <- ::inherit("scripts/skills/skill", {
                 comrade = true;
         }
         if (comrade)
+        {
+            _properties.MeleeDefense += 3;
             _properties.Bravery += 5;
+        }
         if (undeadOnly && !S.isAcclimated(actor))
             _properties.Bravery -= 2;
     }
@@ -82,18 +83,13 @@ this.pale_living_bond_effect <- ::inherit("scripts/skills/skill", {
         if (S.Battle == null || actor.getFlags().has("undead"))
             return;
         local shielded = false;
-        local comrade = false;
         foreach (other in S.neighbours(actor))
         {
             if (S.isUndead(other))
                 shielded = true;
-            if (other.getSkills().hasSkill("trait.pale_former_comrade"))
-                comrade = true;
         }
         if (shielded)
             _properties.RangedDefense += 5;
-        if (comrade)
-            _properties.MeleeDefense += 3;
     }
 
     function onAnySkillUsed( _skill, _targetEntity, _properties )

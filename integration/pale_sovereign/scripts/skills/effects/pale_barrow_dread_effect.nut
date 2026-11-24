@@ -5,7 +5,7 @@ this.pale_barrow_dread_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_barrow_dread";
         this.m.Name = "冢王威压";
-        this.m.Description = "古冢之王的魂火压在每一个靠近它的活物心头。\n每回合开始时，2 格内的敌人各做一次士气检定，失败者成为猎物（亡灵宠物与仆从优先攻击；导师与冠军对其命中 +10、伤害 +20%），持续 2 回合。触及距离 +1。";
+        this.m.Description = "古冢之王的魂火压在每一个靠近它的活物心头。\n每回合开始时，2 格内的敌人各做一次士气检定，失败者成为猎物（所有友方亡灵优先攻击；它们和导师对其命中 +10、伤害 +20%），持续 2 回合。触及距离 +1。";
         this.m.Icon = "skills/pale_barrow_dread_status.png";
         this.m.IconDisabled = "skills/pale_barrow_dread_status_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;

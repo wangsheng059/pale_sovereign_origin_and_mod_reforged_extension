@@ -272,6 +272,11 @@ S.nearTown <- function( _range, _smith = false )
     local distance = _range + 1;
     foreach (town in ::World.EntityManager.getSettlements())
     {
+        if (town == null || !town.isAlive())
+            continue;
+        local faction = ::World.FactionManager.getFaction(town.getFaction());
+        if (faction != null && faction.getType() == ::Const.FactionType.Player)
+            continue;
         if (_smith && !town.hasBuilding("building.weaponsmith") && !town.hasBuilding("building.weaponsmith_oriental")
             && !town.hasBuilding("building.armorsmith") && !town.hasBuilding("building.armorsmith_oriental"))
             continue;

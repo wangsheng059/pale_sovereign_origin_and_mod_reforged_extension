@@ -199,8 +199,17 @@ S.uevtTakeFood <- function( _event, _amount )
 S.uevtItem <- function( _event, _script )
 {
     local item = ::new("scripts/items/" + _script);
-    ::World.Assets.getStash().add(item);
-    _event.m.Effects.push({ id = 10, icon = "ui/items/" + item.getIcon(), text = "获得 " + item.getName() });
+    local stash = ::World.Assets.getStash();
+    if (stash.hasEmptySlot())
+    {
+        stash.add(item);
+        _event.m.Effects.push({ id = 10, icon = "ui/items/" + item.getIcon(), text = "获得 " + item.getName() });
+    }
+    else
+    {
+        this.pendingItem(_script);
+        _event.m.Effects.push({ id = 10, icon = "ui/items/" + item.getIcon(), text = "仓库已满，" + item.getName() + " 将在腾出空位后自动入库" });
+    }
 };
 
 S.uevtRelation <- function( _event, _town, _change, _reason )

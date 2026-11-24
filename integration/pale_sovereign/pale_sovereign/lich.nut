@@ -1,7 +1,7 @@
 local S = ::PaleSovereign;
 
-// 1.6.32 尸妖王：放出时获得号令亡魂、冢王威压、换位；在场时导师受到的伤害 −15%
-S.LichWardMult <- 0.85;
+// 1.7.7 尸妖王：放出时获得号令亡魂、冢王威压、换位；在场时导师每回合首次受击伤害 −12 并免疫爆头额外伤害与击退抓取
+S.LichWardFlat <- 12;
 
 S.applyLichSkills <- function( _entity, _chief )
 {
@@ -94,22 +94,3 @@ S.addPrey <- function( _target )
     }
     effect.m.Turns = 2;
 };
-
-// 1.7.0 保命与减伤效果全部保留，但我方单位每次受击的减伤合计最多 50%（受到的伤害至少保留 50%）
-S.DamageFloor <- 0.5;
-S.Mod.hook("scripts/skills/skill_container", function(q)
-{
-    q.buildPropertiesForBeingHit = @(__original) function( _attacker, _skill, _hitinfo )
-    {
-        local properties = __original(_attacker, _skill, _hitinfo);
-        if (S.Battle == null || properties == null)
-            return properties;
-        local faction = this.getActor().getFaction();
-        if (faction != ::Const.Faction.Player && faction != ::Const.Faction.PlayerAnimals)
-            return properties;
-        local regular = ::Math.maxf(0.01, properties.DamageReceivedRegularMult);
-        if (properties.DamageReceivedTotalMult * regular < S.DamageFloor)
-            properties.DamageReceivedTotalMult = S.DamageFloor / regular;
-        return properties;
-    };
-});

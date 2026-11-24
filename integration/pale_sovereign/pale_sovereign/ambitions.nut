@@ -120,7 +120,7 @@ S.pendingItem <- function( _path, _count = 1 )
 S.RewardItems <- [
     "tools/pale_bone_lantern", "tools/pale_battle_standard", "accessory/pale_signet",
     "misc/pale_jade_item", "misc/pale_chain_item", "loot/ancient_gold_coins_item", "weapons/ancient/ancient_sword",
-    "misc/pale_bound_undead_item"
+    "misc/pale_bound_undead_item", "loot/signet_ring_item", "supplies/ground_grains_item"
 ];
 
 // 1.6.29：城堡易主随机发放的名器（红装），按路径存待领取数
@@ -316,10 +316,26 @@ S.Mod.hook("scripts/ambitions/ambitions/wagon_ambition", function(q)
     q.onReward = @(__original) function()
     {
         local stash = ::World.Assets.getStash();
-        local capacity = stash.getCapacity();
+        local before = stash.getCapacity();
+        local saved = S.isActive() ? clone stash.getItems() : null;
         __original();
-        if (S.isActive() && S.ambitionDone("laden_cart") && stash.getCapacity() != capacity)
-            stash.resize(stash.getCapacity() + 9);
+        if (!S.isActive())
+            return;
+        local cartSlots = "CartCost" in S ? S.get("CartUpgrades") * S.CartCost.Slots : 0;
+        local extra = (S.ambitionDone("laden_cart") ? 9 : 0) + cartSlots;
+        if (extra > 0)
+        {
+            local target = ::Math.max(before + 18, stash.getCapacity() + extra);
+            if (stash.getCapacity() < target)
+                stash.resize(target);
+        }
+        if (saved != null)
+        {
+            local current = stash.getItems();
+            foreach (item in saved)
+                if (item != null && current.find(item) == null && stash.hasEmptySlot())
+                    stash.add(item);
+        }
     };
 });
 

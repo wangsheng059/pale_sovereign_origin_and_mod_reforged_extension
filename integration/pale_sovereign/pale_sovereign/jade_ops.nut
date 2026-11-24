@@ -402,8 +402,11 @@ S.refreshLeaderAuras <- function()
                 else if (!needEcho && echo != null)
                     echo.removeSelf();
             }
-            else if (!actor.isAlliedWith(this.chief()))
+            else
             {
+                local chief = this.chief();
+                if (chief == null || actor.isAlliedWith(chief))
+                    continue;
                 // 死兆导引
                 local doomed = this.nearLeader(actor, 3, 3) != null && (skills.hasSkill("effects.pale_shot_mark") || skills.hasSkill("effects.pale_weaken")
                     || skills.hasSkill("effects.pale_corpse_poison") || skills.hasSkill("effects.bgp_curse_of_ages"));
@@ -497,8 +500,10 @@ S.preventPaleDeath <- function( _actor )
     {
         shell.m.Spent = true;
         _actor.setHitpoints(::Math.max(1, ::Math.floor(_actor.getHitpointsMax() * 0.2)));
-        foreach (id in ["effects.stunned", "effects.rooted", "effects.net", "effects.bleeding"])
-            skills.removeByID(id);
+        local cleanse = ["effects.stunned", "effects.rooted", "effects.net", "effects.bleeding"];
+        foreach (skill in skills.getSkillsByFunction(@(sk) cleanse.find(sk.getID()) != null))
+            skill.removeSelf();
+        skills.collectGarbage();
         skills.add(::new(this.SkillDir + "effects/pale_jade_guard_effect"));
         skills.update();
         _actor.setDirty(true);

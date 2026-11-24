@@ -138,6 +138,9 @@ S.UndeadTraits <- {
     fallen_saint = { Name = "堕落圣徒", Excluded = [],
         Description = "他亲手丢掉了旧护符。救下他的是一具行尸，而不是天上的神。",
         Effects = [["ui/icons/bravery.png", "决心 +4"], ["ui/icons/special.png", "免疫亡灵相关事件的心情下降；友方常驻亡灵阵亡不再触发他的士气检定"]] },
+    gem_eyes = { Name = "宝石眼窝", Icon = "soulfire", Excluded = [],
+        Description = "古堡魂炉将打磨过的宝石嵌进它的眼眶，幽冷的折光让它在暗夜与箭雨里也能一眼看清猎物。",
+        Effects = [["ui/icons/initiative.png", "主动性 +10"], ["ui/icons/ranged_defense.png", "远程防御 +5"], ["ui/icons/vision.png", "视野 +3"], ["ui/icons/special.png", "古堡魂炉镶嵌，升阶保留，终生仅生效一次"]] },
     forgotten_drill = { Name = "遗忘武艺", Excluded = ["trait.bright", "trait.pale_old_drill"],
         Description = "生前学过的招式早已随魂魄散尽，它挥舞兵器的样子和村夫抡锄头没什么两样。",
         Effects = [["ui/icons/melee_skill.png", "近战技能 " + ::MSU.Text.colorNegative("-5")], ["ui/icons/ranged_skill.png", "远程技能 " + ::MSU.Text.colorNegative("-5")]] }

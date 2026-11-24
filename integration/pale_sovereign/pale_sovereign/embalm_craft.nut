@@ -347,7 +347,7 @@ S.spawnColdfire <- function( _tile )
         effect.Timeout = ::Time.getRound() + this.ColdfireTimeout;
         return;
     }
-    if (_tile.Type == ::Const.Tactical.TerrainType.ShallowWater || _tile.Type == ::Const.Tactical.TerrainType.DeepWater)
+    if (effect != null || _tile.Type == ::Const.Tactical.TerrainType.ShallowWater || _tile.Type == ::Const.Tactical.TerrainType.DeepWater)
         return;
     local coldfire = {
         Type = "pale_coldfire",

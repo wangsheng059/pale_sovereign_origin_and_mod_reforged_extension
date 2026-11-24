@@ -1,12 +1,5 @@
 local S = ::PaleSovereign;
 
-S.CastleJobs <- [
-    { Name = "魂玉淬骨", ID = "misc.pale_jade", Amount = 1 },
-    { Name = "古币灌注", ID = "misc.ancient_gold_coins", Amount = 3 },
-    { Name = "镀金骨甲", ID = "loot.pale_gold_ingot", Amount = 1 },
-    { Name = "宝石眼窝", ID = "misc.gemstones", Amount = 1 }
-];
-
 S.takeItems <- function( _id, _count )
 {
     local stash = ::World.Assets.getStash();
@@ -59,128 +52,9 @@ S.castleTrain <- function( _bro, _levels = 1 )
     }
 };
 
-S.castleCanForge <- function( _job, _target, _isPet )
-{
-    if (_isPet)
-    {
-        if (!this.isCoffin(_target) || this.oath() != this.Oath.Champion || _job == 1)
-            return false;
-        if (_job == 0)
-            return true;
-        return this.petGet(_target, _job == 2 ? "Gilded" : "GemEyes") == 0;
-    }
-    if (_target == null || !this.isUndead(_target))
-        return false;
-    local flags = _target.getFlags();
-    return _job == 0 ? !flags.has("PaleJade")
-        : _job == 1 ? _target.getXPForNextLevel() > _target.getXP()
-        : !flags.has(_job == 2 ? "PaleGilded" : "PaleGemEyes");
-};
-
 S.forgeTargetName <- function( _target, _pet )
 {
     return _pet ? _target.m.Name : _target.getName();
-};
-
-S.queueCastleForge <- function( _town, _job, _target, _isPet )
-{
-    local flags = _town.getFlags();
-    local recipe = this.CastleJobs[_job];
-    if (flags.getAsInt("PaleForge") != 0 || !this.castleCanForge(_job, _target, _isPet)
-        || this.countItems(recipe.ID) < recipe.Amount)
-        return "魂炉无法接下这项工作。";
-    if (!_isPet && !_target.getFlags().has("PaleUnitID"))
-    {
-        local id = this.get("NextCastleUnit") + 1;
-        _target.getFlags().set("PaleUnitID", id);
-        this.set("NextCastleUnit", id);
-    }
-    flags.set("PaleForge", _job + 1);
-    flags.set("PaleForgeEnd", this.worldHours() + 24);
-    flags.set("PaleForgeIsCoffin", _isPet);
-    flags.set("PaleForgeTarget", _isPet ? this.petID(_target) : _target.getFlags().getAsInt("PaleUnitID"));
-    flags.set("PaleForgeTier", _isPet ? 0 : this.getUndeadTier(_target));
-    flags.set("PaleForgeNotice", "");
-    return "开始为 " + this.forgeTargetName(_target, _isPet) + " 准备" + recipe.Name
-        + "。在古堡地格扎营或停留一天，完工后扣除材料。离开地格会重新计时。";
-};
-
-S.forgeApply <- function( _job, _target, _isPet )
-{
-    if (_isPet)
-    {
-        if (_job == 0)
-        {
-            this.raiseRandomAttributes(_target.m.Attributes, 4, 2);
-            this.petSet(_target, "JadeTemper", this.petGet(_target, "JadeTemper") + 1);
-        }
-        else if (_job == 2)
-            this.petSet(_target, "Gilded", 1);
-        else
-        {
-            _target.m.Attributes.Initiative += 10;
-            _target.m.Attributes.RangedDefense += 5;
-            this.petSet(_target, "GemEyes", 1);
-        }
-        _target.updateCompanion();
-        return;
-    }
-
-    local stats = _target.getBaseProperties();
-    if (_job == 0)
-    {
-        this.raiseRandomAttributes(stats, 4, 2);
-        _target.getFlags().set("PaleJade", true);
-    }
-    else if (_job == 1)
-        this.castleTrain(_target);
-    else if (_job == 2)
-    {
-        _target.getFlags().set("PaleGilded", true);
-        this.gildArmor(_target);
-    }
-    else
-    {
-        stats.Initiative += 10;
-        stats.RangedDefense += 5;
-        _target.getFlags().set("PaleGemEyes", true);
-    }
-    _target.getSkills().update();
-};
-
-S.castleForgeTick <- function( _town, _present, _now )
-{
-    local flags = _town.getFlags();
-    local job = flags.getAsInt("PaleForge") - 1;
-    if (job < 0)
-        return;
-    if (!_present)
-    {
-        flags.set("PaleForgeEnd", _now + 24);
-        return;
-    }
-    if (_now < flags.getAsInt("PaleForgeEnd"))
-        return;
-    flags.set("PaleForge", 0);
-    local id = flags.getAsInt("PaleForgeTarget");
-    local pet = flags.get("PaleForgeIsCoffin") == true;
-    local targets = pet ? this.companyCoffins() : this.undead();
-    local recipe = this.CastleJobs[job];
-    foreach (target in targets)
-    {
-        local targetID = pet ? target.m.PaleID : target.getFlags().getAsInt("PaleUnitID");
-        if (id != targetID)
-            continue;
-        if ((!pet && this.getUndeadTier(target) != ::Math.max(1, flags.getAsInt("PaleForgeTier")))
-            || !this.castleHas(_town, "pale_soul_furnace") || !this.castleCanForge(job, target, pet)
-            || !this.takeItems(recipe.ID, recipe.Amount))
-            break;
-        this.forgeApply(job, target, pet);
-        flags.set("PaleForgeNotice", this.forgeTargetName(target, pet) + " 完成了" + recipe.Name + "。");
-        ::World.State.updateTopbarAssets();
-        return;
-    }
-    flags.set("PaleForgeNotice", "强化取消。材料、目标或魂炉已不可用。");
 };
 
 S.castleDaily = function()
@@ -281,7 +155,7 @@ S.castlePanel <- function( _screen )
                 if (data.Page == "castle" || !this.castleHas(town, key))
                     continue;
                 local page = data.Page;
-                this.option(_screen, data.Name, @() "@" + page);
+                this.option(_screen, data.Name, function() { S.EmbalmPage = 0; return "@" + page; });
             }
             if (this.castleHas(town, "pale_soul_anvil"))
                 this.option(_screen, "缚魂铁砧 · 200 金、10 工具、1 块铜锭", @() S.castleAnvil(town));
@@ -290,24 +164,6 @@ S.castlePanel <- function( _screen )
             _screen.Text += "\n\n古堡地窖每 7 天凝出 1 枚古代魂玉" + (jadeDay > 0 ? "，下一枚在战役第 " + jadeDay + " 天。" : "。");
             if (this.castleHas(town, "pale_salt_cellar"))
                 _screen.Text += "\n\n盐窖仓储 +20。留在古堡地格时，每日免费修补。";
-            break;
-        case "castle_forge":
-            if (!this.castleHas(town, "pale_soul_furnace"))
-                break;
-            if (flags.getAsInt("PaleForge") != 0)
-            {
-                _screen.Text += "\n\n魂炉正在工作。停留至战役第 " + (flags.getAsInt("PaleForgeEnd") / 24).tointeger() + " 天。";
-                this.option(_screen, "撤回委托", function() { flags.set("PaleForge", 0); return "委托撤回。"; });
-                break;
-            }
-            local names = ["1 枚魂玉", "3 枚古代金币", "1 块金锭", "1 颗宝石"];
-            foreach (i, recipe in this.CastleJobs)
-            {
-                if (this.countItems(recipe.ID) < recipe.Amount)
-                    continue;
-                local job = i;
-                this.option(_screen, recipe.Name + " · " + names[job], @() "@castle_forge_" + job);
-            }
             break;
         case "castle_tombs":
             if (!this.castleHas(town, "pale_mausoleum"))
@@ -344,44 +200,78 @@ S.castlePanel <- function( _screen )
                 });
             break;
         case "castle_sacrifice":
-            if (this.castleHas(town, "pale_sacrifice_pit") && this.countItems("misc.hsc_captive") > 0)
-            {
-                this.option(_screen, "献祭一名俘虏，封存 2 点尸骸", function()
-                {
-                    if (S.get("Reserve") > S.reserveLimit() - 2 || !S.takeItems("misc.hsc_captive", 1))
-                        return "尸骸已满，或没有可献祭的俘虏。";
-                    S.changeReserve(2);
-                    return "防腐尸骸 +2。";
-                });
-                this.option(_screen, "献祭一名俘虏，导师获得 200 经验", function()
-                {
-                    if (S.chief() == null || !S.takeItems("misc.hsc_captive", 1))
-                        return "现在不能举行献祭。";
-                    S.chief().addXP(200);
-                    S.chief().updateLevel();
-                    return "导师获得 200 经验。";
-                });
-            }
-            break;
-        default:
-            if (_screen.ID.find("castle_forge_") != 0 || !this.castleHas(town, "pale_soul_furnace"))
+            if (!this.castleHas(town, "pale_sacrifice_pit"))
                 break;
-            local job = _screen.ID.slice(13).tointeger();
-            foreach (pet in this.companyCoffins())
-            {
-                if (!this.castleCanForge(job, pet, true))
-                    continue;
-                local target = pet;
-                this.option(_screen, target.m.Name, @() S.queueCastleForge(town, job, target, true));
-            }
-            foreach (bro in this.undead())
-            {
-                if (!this.castleCanForge(job, bro, false))
-                    continue;
-                local target = bro;
-                this.option(_screen, target.getName(), @() S.queueCastleForge(town, job, target, false));
-            }
+            local captives = this.slaughterableCaptives();
+            _screen.Text += "\n\n挑选一名仓库里的俘虏推入献祭坑：每名可封存 2 点防腐尸骸，或为导师换取 200 点经验。\n" + this.resourceLine();
+            if (captives.len() == 0)
+                _screen.Text += "\n\n仓库里没有可以献祭的俘虏。";
+            else
+                this.pagedUnits(_screen, captives, this.EmbalmPage, @(item) S.captiveLabel(item), function( item )
+                {
+                    S.SacrificeItemID = item.getInstanceID();
+                    return "@x_castle_sacrifice_pick";
+                });
             break;
     }
     this.option(_screen, _screen.ID == "castle" ? "回到亡灵营地" : "回到亡灵古堡", @() _screen.ID == "castle" ? "@camp" : "@castle");
 };
+
+S.SacrificeItemID <- 0;
+
+S.castleSacrificePickPanel <- function( _event, _screen )
+{
+    local town = this.castleHere();
+    if (town == null || !this.castleHas(town, "pale_sacrifice_pit"))
+    {
+        _screen.Text = "这里没有献祭坑。";
+        return "fort_pit";
+    }
+    local target = null;
+    foreach (item in this.slaughterableCaptives())
+        if (item.getInstanceID() == this.SacrificeItemID)
+        {
+            target = item;
+            break;
+        }
+    if (target == null)
+    {
+        _screen.Text = "这名俘虏已经不在仓库里了。";
+        return "fort_pit";
+    }
+    local label = this.captiveLabel(target);
+    _screen.Text = "献祭坑底的泥土泛着暗红。" + label + " 已被押到坑沿，你要怎么处置？\n\n" + this.resourceLine();
+    if (this.get("Reserve") < this.reserveLimit())
+    {
+        this.option(_screen, "献祭 " + label + " · 封存 2 点防腐尸骸", function()
+        {
+            local stash = ::World.Assets.getStash();
+            if (stash.getItems().find(target) == null || S.get("Reserve") >= S.reserveLimit())
+                return "防腐尸骸已满，或这名俘虏已不在仓库里。";
+            local before = S.get("Reserve");
+            stash.remove(target);
+            S.changeReserve(2);
+            ::World.State.updateTopbarAssets();
+            return "一声闷响落进坑底。盐袋很快合拢，" + label + " 化作了战团的储备。\n\n（防腐尸骸 +" + (S.get("Reserve") - before) + "，现有 " + S.get("Reserve") + " / " + S.reserveLimit() + " 点）";
+        });
+    }
+    else
+        _screen.Text += "\n\n防腐尸骸已满，暂时不能献祭换取尸骸。";
+    if (this.chief() != null)
+    {
+        this.option(_screen, "献祭 " + label + " · 导师获得 200 经验", function()
+        {
+            local stash = ::World.Assets.getStash();
+            local chief = S.chief();
+            if (chief == null || stash.getItems().find(target) == null)
+                return "现在不能举行献祭。";
+            stash.remove(target);
+            chief.addXP(200);
+            chief.updateLevel();
+            return "幽绿的魂火从坑底卷起，将 " + label + " 最后的生机尽数抽入法杖。\n\n（导师获得 200 经验）";
+        });
+    }
+    return "fort_pit";
+};
+
+S.addPage("x_castle_sacrifice_pick", "献祭坑", "fort_pit", @(_event, _screen) S.castleSacrificePickPanel(_event, _screen), "@castle_sacrifice");

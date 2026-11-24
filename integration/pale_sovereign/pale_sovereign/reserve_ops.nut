@@ -82,7 +82,8 @@ S.stripCount <- function( _bro )
 S.strippableTraits <- function( _bro )
 {
     return _bro.getSkills().query(::Const.SkillType.Trait).filter(@(_, trait) !trait.isHidden()
-        && trait.getID() != "trait.pale_former_comrade" && trait.getID() != "trait.pale_soul_scar");
+        && trait.getID() != "trait.pale_former_comrade" && trait.getID() != "trait.pale_soul_scar"
+        && trait.getID() != "trait.pale_gem_eyes");
 };
 
 S.injuredUndead <- function()

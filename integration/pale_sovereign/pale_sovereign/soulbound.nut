@@ -358,6 +358,7 @@ S.recruitSoulbound <- function( _index )
                 bro.getSkills().add(perk);
             }
             flags.set("PaleLegacy", rec.LegacyName);
+            flags.set("PaleLegacyScript", rec.Legacy);
         }
         catch (e)
         {
@@ -468,7 +469,7 @@ S.shacklePanel <- function( _screen )
         }
     }
     else
-        _screen.Text += "\n\n材料不足，或不在营地中。";
+        _screen.Text += "\n\n材料不足，暂时无法打造。";
     this.option(_screen, "翻阅亡者账簿", @() "@camp");
 };
 
@@ -545,8 +546,9 @@ S.refineUndead <- function( _bro )
     if (!this.canRefine() || this.refineTargets().find(_bro) == null)
         return "炼化条件已改变。";
     local stash = ::World.Assets.getStash();
-    if (!stash.hasEmptySlot())
-        return "仓库没有空位，魂玉无处安放。";
+    local need = 1 + _bro.getItems().getAllItems().len();
+    if (stash.getNumberOfEmptySlots() < need)
+        return "仓库空位不足（需要 " + need + " 格存放魂玉与卸下的装备），请先清理仓库。";
     local name = _bro.getName();
     local level = _bro.getLevel();
     stash.add(::new(this.ItemDir + "misc/pale_jade_item"));
@@ -560,8 +562,15 @@ S.refineUndead <- function( _bro )
 S.refinePanel <- function( _screen )
 {
     _screen.Text = "炼化会把一名常驻亡灵的魂火凝成古代魂玉，躯壳随之化为骨渣，无法挽回。只有 " + this.RefineLevel + " 级以上的常驻亡灵才有足够的魂火。";
-    if (!this.canRefine())
-        _screen.Text += "\n\n没有可炼化的常驻亡灵，或战团不在营地中。";
+    if (!this.isAscended())
+        _screen.Text += "\n\n（飞升前，每次炼化都会令导师虚弱 2 天：决心与疲劳上限 −15%，虚弱消退前无法再次炼化）";
+    if ("isRefineWeak" in this && this.isRefineWeak())
+    {
+        local left = ::Math.max(1, ::Math.ceil((::World.Flags.getAsFloat("Pale.RefineWeakUntil") - (::World.getTime().Days + ::World.getTime().Hours / 24.0)) * 24.0));
+        _screen.Text += "\n\n导师尚在炼化后的虚弱期中，约 " + left + " 小时后才能再次炼化。";
+    }
+    else if (!this.canRefine())
+        _screen.Text += "\n\n目前没有达到 " + this.RefineLevel + " 级、可供炼化的常驻亡灵。";
     else
     {
         foreach (i, bro in this.refineTargets())
@@ -595,7 +604,8 @@ S.refineConfirmPanel <- function( _screen )
     _screen.Text = "你确定要炼化 " + target.getName() + " 吗？\n\n"
         + background.m.Name + "　" + target.getLevel() + " 级"
         + (::PaleSovereign.isSoulbound(target) ? "　锁魂者" : "")
-        + "\n\n炼化后它将永久离开战团，无法复活或召回。身上的装备会放回仓库，你获得 1 枚古代魂玉。";
+        + "\n\n炼化后它将永久离开战团，无法复活或召回。身上的装备会放回仓库，你获得 1 枚古代魂玉。"
+        + (this.isAscended() ? "" : "\n\n注意：抽取魂火会令导师虚弱 2 天（决心与疲劳上限 −15%），虚弱结束前不能再次炼化。");
     this.option(_screen, "确认炼化 " + target.getName(), function()
     {
         S.RefineTarget = null;

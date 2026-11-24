@@ -305,8 +305,10 @@ S.tierPromote <- function( _bro, _branch )
     if (next.Tier == 2)
         flags.set("PaleMiddleBranch", _branch);
     this.resetTierArmor(_bro);
-    foreach (key in ["PaleJade", "PaleGilded", "PaleGemEyes"])
+    // 1.7.7 升阶清空魂玉统领与镀金护甲，可再次施加；宝石眼窝已改为永久特质，随特质保留且终生限一次
+    foreach (key in ["PaleJade", "PaleLeader", "PaleGilded"])
         flags.remove(key);
+    skills.removeByID("effects.pale_jade_leader");
     this.restoreTierSkills(_bro);
     if ("ensureCaptiveChampion" in this)
         this.ensureCaptiveChampion(_bro);
@@ -321,8 +323,9 @@ S.tierPromote <- function( _bro, _branch )
         ::World.Assets.addMoney(-this.TierCost.Money);
     }
     ::World.State.updateTopbarAssets();
-    return _bro.getName() + " 已升阶为【" + next.Name + "】。等级 " + oldLevel + " → " + level
-        + "，可重新分配 " + _bro.getLevelUps() + " 次属性增长与 " + _bro.getPerkPoints() + " 点特技。";
+    return "法阵里的碧火熄灭时，旧骨已重锻为新的形骸。" + _bro.getName() + " 拄着兵刃缓缓起身，眼窝里的魂火比从前更冷、也更沉。\n\n（"
+        + _bro.getName() + " 已升阶为【" + next.Name + "】。等级 " + oldLevel + " → " + level
+        + "，可重新分配 " + _bro.getLevelUps() + " 次属性增长与 " + _bro.getPerkPoints() + " 点特技）";
 };
 
 S.Mod.hook("scripts/entity/tactical/player", function(q)

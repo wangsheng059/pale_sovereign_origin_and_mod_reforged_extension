@@ -284,15 +284,15 @@ S.campPanel <- function( _event, _screen )
     }
 
     if (this.castleHere() != null)
-        this.option(_screen, "进入古堡工事", @() "@castle");
+        this.option(_screen, "踏入古堡工事", @() "@castle");
     local occupied = this.findPaleTown();
     if (occupied != null && this.conquestMode(occupied) == 2)
-        this.option(_screen, "亡者之城征召", @() "@conquest_recruit");
+        this.option(_screen, "亡者之城 · 检阅死卒", @() "@conquest_recruit");
     local story = this.campStory();
     if (story != "camp")
     {
         _screen.Options.push({
-            Text = "处理营地事务",
+            Text = "处置营中异事",
             function getResult( _event )
             {
                 return story;
@@ -326,7 +326,7 @@ S.campPanel <- function( _event, _screen )
                 for (local i = 0; i < 3; ++i)
                     S.removeMaterial("jade");
                 S.promoteGuard(pet);
-                return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：基础生命 150、决心 150、主动性 150、近战技能 80、近战防御 30，之前的成长保留；获得【号令亡魂】【冢王威压】和换位，在场时导师受到的伤害 −15%）";
+                return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：基础生命 150、决心 150、主动性 150、近战技能 80、近战防御 30，之前的成长保留；获得【号令亡魂】【冢王威压】和换位，在场时导师每回合首次受击生命与护甲伤害各 −12，并免疫爆头额外伤害与击退、抓取）";
             });
         if (this.get("BannerReward") != 0 && pet != null && pet.m.PaleID == this.get("StarterID"))
             this.option(_screen, "授予荒坟守卫第三面残旗", function()
@@ -338,7 +338,7 @@ S.campPanel <- function( _event, _screen )
             });
     }
     if (this.undead().len() > 0)
-        this.option(_screen, "常驻亡灵升阶", function() { _event.m.TierPage = 0; return "@tier_roster"; });
+        this.option(_screen, "常驻亡灵升阶 · 重铸形骸", function() { _event.m.TierPage = 0; return "@tier_roster"; });
     if (site != null && oath != this.Oath.None)
     {
         if (this.get(site.Key + "Inspected") == 0 && (site.Kind == 1 || oath == this.Oath.Scourge))
@@ -365,40 +365,16 @@ S.campPanel <- function( _event, _screen )
 // 登记地点的说明（营地账簿、征召页和读档提示共用）
 S.SiteRule <- "登记地点：打赢一仗的战场会自动登记（就是交战的那一格，地图上没有标记）；清剿过的古代遗址、亡灵墓地，以及随从、野心和事件给出的遗址线索也会登记。站在登记地点 2 格以内打开账簿，才能勘察和征召常驻亡灵，每处只能征召一次。";
 
-S.jadeTargets <- function()
+S.adjustTownRelation <- function( _town, _delta, _reason )
 {
-    return this.undead().filter(@(_, bro) !bro.getFlags().has("PaleJade"));
-};
-
-S.jadePanel <- function( _screen )
-{
-    _screen.Text = "魂玉在火光下泛着阴冷的碧光。把它碾碎、抹进哪一具躯壳，它就会比同伴多记起一分生前的力量。\n\n（选定的常驻亡灵 8 项属性各 +2、生命再 +10，每名限 1 次）";
-    local targets = this.jadeTargets();
-    targets.sort(@(_a, _b) _b.getLevel() <=> _a.getLevel());
-    foreach (i, bro in targets)
-    {
-        if (i >= 6)
-            break;
-        local target = bro;
-        this.option(_screen, target.getName() + "（" + target.getLevel() + " 级）", function()
-        {
-            if (target.getFlags().has("PaleJade") || !S.removeMaterial("jade"))
-                return null;
-            local b = target.getBaseProperties();
-            b.Hitpoints += 12;
-            b.Stamina += 2;
-            b.Bravery += 2;
-            b.Initiative += 2;
-            b.MeleeSkill += 2;
-            b.RangedSkill += 2;
-            b.MeleeDefense += 2;
-            b.RangedDefense += 2;
-            target.getFlags().add("PaleJade");
-            target.getSkills().update();
-            return target.getName() + " 空洞的眼窝里亮起一点碧光。\n\n（8 项属性各 +2，生命再 +10）";
-        });
-    }
-    this.option(_screen, "收起魂玉", @() "@camp");
+    if (_town == null || ::MSU.isNull(_town))
+        return;
+    local faction = null;
+    try { faction = _town.getFactionOfType(::Const.FactionType.Settlement); } catch (e) { faction = null; }
+    if (faction == null)
+        try { faction = ::World.FactionManager.getFaction(_town.getFaction()); } catch (e) { faction = null; }
+    if (faction != null && faction.getType() != ::Const.FactionType.Player)
+        faction.addPlayerRelation(_delta, _reason);
 };
 
 local function eventIllustrationVariant( _stem, _step )
@@ -440,15 +416,11 @@ S.renderEvent <- function( _event, _screen )
 
         case "castle":
         case "castle_forge":
-        case "castle_forge_0":
-        case "castle_forge_1":
-        case "castle_forge_2":
-        case "castle_forge_3":
         case "castle_tombs":
         case "castle_barracks":
         case "castle_sacrifice":
             title = "古堡";
-            if (_screen.ID.find("castle_forge") == 0)
+            if (_screen.ID == "castle_forge")
                 art = "fort_forge";
             else if (_screen.ID == "castle_barracks")
                 art = "fort_barracks";
@@ -508,12 +480,6 @@ S.renderEvent <- function( _event, _screen )
             this.governorPanel(_screen);
             break;
 
-        case "jade":
-            title = "魂玉点睛";
-            this.jadePanel(_screen);
-            closing = false;
-            break;
-
         case "result":
             art = _event.m.PaleArt;
             _screen.Text = _event.m.Message;
@@ -566,7 +532,6 @@ S.renderEvent <- function( _event, _screen )
             local species = this.get("SoulSpecies");
             local soul = species > 0 && species < this.Souls.len() ? this.Souls[species] : null;
             _screen.Text = "硝烟尚未散尽，" + flags.get("Pale.SoulName") + " 残破的遗骸仍躺在血泊之中，缠绕其上的黑铁锁链正发出急促而尖锐的嗡鸣。马车里的旧棺随之剧烈震颤，" + pet.m.Name + " 仿佛闻到了某种令它渴望已久的古老气息。\n\n趁这缕残魂尚未彻底消散，你握紧法杖，决定如何将其彻底榨干并注入冠军体内。（选定注魂方式后消耗 1 条缚魂锁链）";
-            local gain = this.isAscended() && this.oath() == this.Oath.Champion ? 2 : 1;
             this.option(_screen, "强化躯体 · " + S.soulBodyText(), @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
             if (soul != null && this.canDevour(pet))
                 this.option(_screen, "吞魂 · 获得【" + soul.Name + "】：" + soul.Desc, @() S.resolveSoul("soul") ? "一缕残魂沉入冠军的躯体。（获得【" + soul.Name + "】）" + S.soulJadeText() : "这次注魂未完成。");
@@ -677,7 +642,7 @@ S.renderEvent <- function( _event, _screen )
             this.option(_screen, "“先别打扰它，等它练完这套剑法。”", function()
             {
                 S.set("CrownDeferred", 1);
-                return "你示意守夜人退回篝火旁，静静看着它在月光下收招归位。\n\n（下次在古代遗址扎营时可再次触发）";
+                return "你示意守夜人退回篝火旁，静静看着它在月光下收招归位。\n\n（下次在古代遗址附近打开亡灵营地账簿时可再次触发）";
             });
             break;
 
@@ -722,8 +687,9 @@ S.renderEvent <- function( _event, _screen )
                         return "仓库没有空位。";
                     assets.addMoney(-price);
                     assets.addArmorParts(-10);
-                    S.set("SmithAfter", S.worldHours() + S.smithCooldownHours());
-                    return "铁匠拉上铺门，叮叮当当忙活了半宿。天亮时，一条沉重冰冷的黑铁锁链被油布包着塞进了你的马车。\n\n（消耗 " + price + " 金币与 10 点工具，获得 1 条缚魂锁链；墓土生铁用完了，10 天内不会再有铁匠接这种活）";
+                    local cooldownHours = S.smithCooldownHours();
+                    S.set("SmithAfter", S.worldHours() + cooldownHours);
+                    return "铁匠拉上铺门，叮叮当当忙活了半宿。天亮时，一条沉重冰冷的黑铁锁链被油布包着塞进了你的马车。\n\n（消耗 " + price + " 金币与 10 点工具，获得 1 条缚魂锁链；墓土生铁用完了，" + (cooldownHours / 24) + " 天内不会再有铁匠接这种活）";
                 });
             this.option(_screen, "“太贵了，我还不缺这东西。”", function()
             {
@@ -783,9 +749,7 @@ S.renderEvent <- function( _event, _screen )
                 });
             this.option(_screen, "“把名册和门钥匙留给他们，我们走。”", function()
             {
-                local town = S.nearTown(10000);
-                if (town != null)
-                    town.getFactionOfType(::Const.FactionType.Settlement).addPlayerRelation(3, "交还遗骸名册");
+                S.adjustTownRelation(S.nearTown(10000), 3, "交还遗骸名册");
                 S.set(site.Key + "Mortuary", 1);
                 return "你拦住了蠢蠢欲动的盗墓贼。那些乡民千恩万谢地接过名册，临走前反复念叨着这支怪异的佣兵团倒还有几分良心。\n\n（附近定居点的关系改善）";
             });
@@ -876,9 +840,7 @@ S.renderEvent <- function( _event, _screen )
             _screen.Text = "夜色浓稠如墨，车队刚拐过一处林间岔口，几杆雪亮的长枪便骤然从道旁的灌木丛里刺了出来，紧接着一盏耀眼的油灯高高举到了马车正前方。一队神色警惕的城镇巡逻兵死死拦住了去路，领头的老队长皱着眉头凑近车厢，用力吸了两口潮湿的夜风，原本还算客气的脸色瞬间阴沉得能滴出水来。\n\n“大半夜不点灯赶路，拉着一口钉满黑铁铜箍的旧棺材，车斗里还飘着死人堆里才有的粗盐与腐肉味……”他缓缓拔出半截长剑，冷冷地盯着你兜帽下的阴影，身后的长枪手也齐刷刷地压低了枪尖，“别装哑巴，掀开油布，让我们瞧瞧里面装的究竟是什么货色。”";
             this.option(_screen, "“熄灭营灯，趁夜色甩开他们。”", function()
             {
-                local town = S.nearTown(10000);
-                if (town != null)
-                    town.getFactionOfType(::Const.FactionType.Settlement).addPlayerRelation(-2, "夜里绕过了巡逻队");
+                S.adjustTownRelation(S.nearTown(10000), -2, "夜里绕过了巡逻队");
                 S.set("Lantern", 1);
                 return "你低喝一声，借着自己远胜常人的夜间视力，领着车队猛然拐进一条漆黑的林间小道。巡逻兵举着提灯在泥泞里徒劳地追了几十步，只能对着黑暗破口大骂。\n\n（无损脱身，与最近城镇的关系微降）";
             });

@@ -190,17 +190,23 @@ S.UndeadEvents.living_early_indenture <- {
         },
         {
             Text = "何必苦熬残躯？今夜便替你了断痛楚，重入队列。（4 点防腐尸骸、1 枚古代魂玉）",
-            Usable = @(_event) S.get("Reserve") >= 4 && S.countItems("misc.pale_jade") >= 1,
+            Usable = @(_event) S.get("Reserve") >= 4 && S.countItems("misc.pale_jade") >= 1
+                && ::World.Assets.getStash().getNumberOfEmptySlots() >= _event.role("veteran").getItems().getAllItems().len(),
             Apply = function( _event )
             {
                 local veteran = _event.role("veteran");
+                local stash = ::World.Assets.getStash();
+                local need = veteran.getItems().getAllItems().len();
+                if (stash.getNumberOfEmptySlots() < need)
+                    return "仓库空位不足（需要 " + need + " 格安放卸下的装备），你挥手让%veteran%先退了下去。（未消耗材料）";
                 S.uevtAsset(_event, "reserve", -4);
                 S.removeMaterial("jade");
+                _event.m.Effects.push({ id = 10, icon = "ui/items/pale/jade.png", text = "失去 [color=" + ::Const.UI.Color.NegativeEventValue + "]1[/color] 古代魂玉" });
                 local rec = S.snapshotBro(veteran);
-                veteran.getItems().transferToStash(::World.Assets.getStash());
+                veteran.getItems().transferToStash(stash);
                 ::World.getPlayerRoster().remove(veteran);
-                local undead = S.convertToUndead(rec, false);
-                _event.m.Effects.push({ id = 10, icon = "ui/icons/special.png", text = undead.getName() + " 转为常驻亡灵，" + undead.getLevel() + " 级，获得【旧日同袍】" });
+                local undead = S.convertToUndead(rec, true);
+                _event.m.Effects.push({ id = 10, icon = "ui/icons/special.png", text = undead.getName() + " 转为中阶常驻亡灵【" + undead.getBackground().getName() + "】，" + undead.getLevel() + " 级，获得【旧日同袍】" });
                 S.uevtXP(_event, S.chief(), 500);
                 return "你没有拖泥带水。冰冷的魂玉与死灵黑气很快吞没了最后一声闷哼，黎明破晓时，一具不再知晓疲惫与痛楚的熟悉身影重新站进了队列里，稳稳接回了自己用惯的旧兵刃。";
             }

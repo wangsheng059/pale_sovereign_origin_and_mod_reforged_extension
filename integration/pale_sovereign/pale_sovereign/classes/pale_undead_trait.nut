@@ -1,6 +1,6 @@
 // 1.6.8 亡灵专属特质：数据在 ::PaleSovereign.UndeadTraits（undead_recruits.nut），叶子脚本只写 PaleKey
 this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
-    m = { PaleKey = "" },
+    m = { PaleKey = "", PalePetMode = false },
     function create()
     {
         this.character_trait.create();
@@ -94,6 +94,15 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
         }
         else if (key == "fallen_saint")
             _properties.Bravery += 4;
+        else if (key == "gem_eyes")
+        {
+            if (!this.m.PalePetMode)
+            {
+                _properties.Initiative += 10;
+                _properties.RangedDefense += 5;
+            }
+            _properties.Vision += 3;
+        }
         else if (key == "former_comrade" && ::PaleSovereign.hasLivingNeighbour(this.getContainer().getActor()))
         {
             _properties.MeleeDefense += 3;

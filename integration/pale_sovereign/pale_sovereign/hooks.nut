@@ -355,9 +355,10 @@ mod.hook("scripts/ui/screens/world/modules/world_town_screen/town_shop_dialog_mo
     {
         if (_data[1] == "world-town-screen-shop-dialog-module.stash" && _data[3] != null && _data[3] != _data[1])
         {
-            local item = ::World.Assets.getStash().getItemAtIndex(_data[0]);
+            local entry = ::World.Assets.getStash().getItemAtIndex(_data[0]);
+            local item = entry != null && typeof entry == "table" && "item" in entry ? entry.item : entry;
             if (item != null && item.getID().find("weapon.pale_staff") == 0)
-                return _data;
+                return { Result = 1 };
         }
         return __original(_data);
     };

@@ -1,6 +1,6 @@
 // 1.7.0 冠军的魂玉铭刻：玉骨威压 / 苍白共鸣 / 守墓死契 / 裂魂锋芒（一个效果承载已铭刻的全部条目）
 this.pale_inscription_effect <- ::inherit("scripts/skills/skill", {
-    m = { Keys = [], ResonanceRound = -1, ResonancePending = false, Rage = 0 },
+    m = { Keys = [], ResonanceRound = -1, ResonanceTargetID = 0, Rage = 0 },
     function create()
     {
         this.m.ID = "effects.pale_inscription";
@@ -96,17 +96,25 @@ this.pale_inscription_effect <- ::inherit("scripts/skills/skill", {
             _properties.MeleeSkill += 15;
             _properties.RangedSkill += 15;
             _properties.DamageDirectAdd += 0.15;
-            this.m.ResonancePending = true;
+            this.m.ResonanceTargetID = _targetEntity.getID();
         }
         if (this.has("edge") && (this.isPreyTarget(_targetEntity) || _targetEntity.getHitpoints() * 2 <= _targetEntity.getHitpointsMax()))
             _properties.DamageDirectAdd += 0.15;
     }
 
+    function matchesResonanceTarget( _skill, _targetEntity )
+    {
+        if (!this.has("resonance") || this.m.ResonanceRound == ::Time.getRound() || _skill == null || !_skill.isAttack()
+            || _targetEntity == null || ::MSU.isNull(_targetEntity))
+            return false;
+        return this.isPreyTarget(_targetEntity) || _targetEntity.getID() == this.m.ResonanceTargetID;
+    }
+
     function onTargetHit( _skill, _targetEntity, _bodyPart, _damageInflictedHitpoints, _damageInflictedArmor )
     {
-        if (!this.m.ResonancePending)
+        if (!this.matchesResonanceTarget(_skill, _targetEntity))
             return;
-        this.m.ResonancePending = false;
+        this.m.ResonanceTargetID = 0;
         this.m.ResonanceRound = ::Time.getRound();
         local actor = this.getContainer().getActor();
         actor.setActionPoints(::Math.min(actor.getActionPointsMax(), actor.getActionPoints() + 2));
@@ -115,9 +123,9 @@ this.pale_inscription_effect <- ::inherit("scripts/skills/skill", {
 
     function onTargetMissed( _skill, _targetEntity )
     {
-        if (this.m.ResonancePending)
+        if (this.matchesResonanceTarget(_skill, _targetEntity))
         {
-            this.m.ResonancePending = false;
+            this.m.ResonanceTargetID = 0;
             this.m.ResonanceRound = ::Time.getRound();
         }
     }

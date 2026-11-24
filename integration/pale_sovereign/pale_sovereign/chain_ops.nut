@@ -225,6 +225,13 @@ local releaseItemChain = ::BGP.NecroPet.releaseItem;
         ::World.Assets.getStash().add(twin);
         return;
     }
+    local unleash = chief.getSkills().getSkillByID("actives.unleash_companion");
+    if (unleash != null)
+    {
+        unleash.m.IsUsed = false;
+        unleash.m.IsHidden = false;
+    }
+    chief.getSkills().update();
     S.Battle.TwinUsed <- true;
     S.set("ReservePetID", 0);
     S.set("TwinID", 0);
@@ -234,9 +241,9 @@ local releaseItemChain = ::BGP.NecroPet.releaseItem;
 
 // ---------------- 锁魂召返 ----------------
 S.RecallCost <- { Chain = 1, Reserve = 4 };
-S.RecallFields <- ["Name", "Title", "Background", "Kind", "Level", "XP", "Stats", "Traits", "Talents", "Flags", "Kills", "Soulbound"];
+S.RecallFields <- ["Name", "Title", "Background", "Kind", "Level", "XP", "Stats", "Traits", "Talents", "Flags", "Kills", "Soulbound", "ExtraPerks", "ChampionRacial", "LegacyScript"];
 S.RecallStatKeys <- ["Hitpoints", "Stamina", "Bravery", "Initiative", "MeleeSkill", "RangedSkill", "MeleeDefense", "RangedDefense", "ActionPoints"];
-S.RecallFlagKeys <- ["PaleUndeadKind", "PaleMiddleBranch", "PaleHeadVariant", "PaleBodyVariant", "PaleDetailVariant", "PaleLeader", "PaleLimitBreak", "PaleGraftCount", "PaleStripCount", "PaleSoulbound", "PaleLegacy"];
+S.RecallFlagKeys <- ["PaleUndeadKind", "PaleMiddleBranch", "PaleHeadVariant", "PaleBodyVariant", "PaleDetailVariant", "PaleLeader", "PaleLimitBreak", "PaleGraftCount", "PaleStripCount", "PaleSoulbound", "PaleLegacy", "PaleLegacyScript", "PaleCaptiveChampion", "PaleGilded", "PaleGemEyes", "PaleWash", "PaleFormerLiving", "PaleFormerGraverobber", "PaleLoreOrigin", "PaleLoreForm", "PaleLoreCamp", "PaleLoreVer", "PaleTitleTrait"];
 
 S.canRecall <- function( _bro )
 {
@@ -266,12 +273,38 @@ S.snapshotBro <- function( _bro )
     try { kills = _bro.getLifetimeStats().Kills; } catch (e) { kills = 0; }
     local background = "";
     try { background = this.scriptBase(::IO.scriptFilenameByHash(_bro.getBackground().ClassNameHash)); } catch (e) { background = ""; }
+    local basePerks = ::Math.min(_bro.getLevel(), ::Const.XP.MaxLevelWithPerkpoints) - 1;
+    local totalPerks = _bro.m.PerkPoints + _bro.m.PerkPointsSpent;
+    local extraPerks = ::Math.max(0, totalPerks - basePerks);
+    local legacyScript = "";
+    if (_bro.getFlags().has("PaleLegacyScript"))
+    {
+        local v = _bro.getFlags().get("PaleLegacyScript");
+        if (typeof v == "string")
+            legacyScript = v;
+    }
+    if (legacyScript == "" && this.isSoulbound(_bro))
+    {
+        local tree = null;
+        try { tree = _bro.getPerkTree(); } catch (e) { tree = null; }
+        foreach (skill in _bro.getSkills().m.Skills)
+        {
+            if (skill.isGarbage() || !skill.isType(::Const.SkillType.Perk) || !::MSU.isNull(skill.getItem()))
+                continue;
+            local id = skill.getID();
+            if (id.find("perk.pale_") == 0 || id == this.VisageID || (tree != null && tree.hasPerk(id)))
+                continue;
+            try { legacyScript = ::IO.scriptFilenameByHash(skill.ClassNameHash); break; } catch (e) {}
+        }
+    }
     return {
         Name = _bro.getName(), Title = _bro.getTitle(), Background = background,
         Kind = _bro.getFlags().has("PaleUndeadKind") ? _bro.getFlags().get("PaleUndeadKind") : "skeleton",
         Level = _bro.getLevel(), XP = _bro.getXP(), Stats = this.joinList(stats), Traits = this.joinList(traits, ";"),
         Talents = this.joinList(_bro.getTalents()), Flags = this.joinList(flags, ";"), Kills = kills,
-        Soulbound = this.isSoulbound(_bro) ? "1" : ""
+        Soulbound = this.isSoulbound(_bro) ? "1" : "", ExtraPerks = extraPerks,
+        ChampionRacial = _bro.getSkills().hasSkill("racial.champion") ? "1" : "",
+        LegacyScript = legacyScript
     };
 };
 
@@ -374,7 +407,10 @@ S.rebuildUndead <- function( _rec )
     try { bro.m.XP = typeof _rec.XP == "integer" ? _rec.XP : _rec.XP.tointeger(); } catch (e) { bro.m.XP = ::Const.LevelXP[bro.m.Level - 1]; }
     bro.m.LevelUps = 0;
     bro.m.LevelUpsSpent = 0;
-    bro.m.PerkPoints = ::Math.min(bro.m.Level, ::Const.XP.MaxLevelWithPerkpoints) - 1;
+    local extraPerks = 0;
+    if ("ExtraPerks" in _rec)
+        try { extraPerks = typeof _rec.ExtraPerks == "integer" ? _rec.ExtraPerks : (_rec.ExtraPerks == "" ? 0 : _rec.ExtraPerks.tointeger()); } catch (e) { extraPerks = 0; }
+    bro.m.PerkPoints = ::Math.min(bro.m.Level, ::Const.XP.MaxLevelWithPerkpoints) - 1 + ::Math.max(0, extraPerks);
     bro.m.PerkPointsSpent = 0;
     bro.m.Attributes = [];
     bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
@@ -385,6 +421,27 @@ S.rebuildUndead <- function( _rec )
     bro.m.PerkTree = tree;
     tree.build();
     bro.resetPerkTier();
+    if (("ChampionRacial" in _rec && (_rec.ChampionRacial == "1" || _rec.ChampionRacial == 1)) || flags.has("PaleCaptiveChampion"))
+    {
+        if (!skills.hasSkill("racial.champion"))
+            try { skills.add(::new("scripts/skills/racial/champion_racial")); } catch (e) {}
+    }
+    local legacy = "LegacyScript" in _rec && typeof _rec.LegacyScript == "string" ? _rec.LegacyScript : "";
+    if (legacy == "" && flags.has("PaleLegacyScript") && typeof flags.get("PaleLegacyScript") == "string")
+        legacy = flags.get("PaleLegacyScript");
+    if (legacy != "")
+    {
+        try
+        {
+            local perk = ::new(legacy);
+            if (!skills.hasSkill(perk.getID()))
+            {
+                perk.m.IsRefundable = false;
+                skills.add(perk);
+            }
+        }
+        catch (e) {}
+    }
     try { bro.getLifetimeStats().Kills = typeof _rec.Kills == "integer" ? _rec.Kills : _rec.Kills.tointeger(); } catch (e) {}
     bro.setName(_rec.Name);
     bro.setTitle(_rec.Title);
