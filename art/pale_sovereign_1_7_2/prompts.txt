@@ -1,0 +1,390 @@
+Pale Sovereign 1.7.2 | Built-in ImageGen prompts
+
+Style reference only: art/pale_sovereign_1_7_1/events.jpg, icons.jpg, field.jpg. Authored flag: integration/pale_sovereign/gfx/ui/banners/banner_90.png.
+
+Create ONE production illustration atlas, as tall as possible, with EXACTLY FOUR equal horizontal landscape panels stacked vertically, sharp straight boundaries at 25%, 50%, 75% canvas height and no additional dividers. Each row an independent scene, designed for a 640 by 256 game crop. Paint in the distinctive dark medieval campaign style in the provided STYLE ONLY reference contact sheet: crisp dark ink contours under tactile dry gouache and readable chiaroscuro, deliberate warm bronze and soft navy split, firmly rendered silhouettes, no smudging, sharp environmental detail, no modern objects, no letters or numbers, no flags except as explicitly requested, no gore. Each center horizontally and vertically within its own row. Four independent scenes from top to bottom:
+
+opening
+1. intro — A scarred hooded necromancer emerges into pale dawn from an ancient burial barrow carrying a glowing bone-tipped staff; a cracked coffin and frightened gravediggers nearby
+2. camp — rough mercenary camp with covered corpse cart, a lantern-lit ledger at the camp leader's tent, cloaked necromancer and a skeletal sentinel in the midground at dusk
+3. apprentice — aged exhausted necromancer seated by a campaign tent while a nervous young apprentice winds a linen dressing around his arm, cold dawn and warm fire on hands
+4. guard_lore — armored skeletal knight resting in a travel coffin, gloved skeletal hands holding an ancestral sword, battered red cloak and bronze clasp, amber oil lantern and weathered journal beside it
+
+oaths
+1. oath_champion — hooded necromancer kneels and binds a single mighty skeletal champion to a broad iron sword and an ancient coffin, pale green soul smoke backlit by embers in a barrow
+2. oath_scourge — robed necromancer on a rise lifting bone staff as three ranks of undead kneel in a desolate cemetery, moonlit ruins and cool cyan wisps
+3. evolve_champion — close view of a dark iron and bone staff being forged near a plated undead champion, brilliant sparks and violet soul seams, forge in ruins
+4. evolve_scourge — staff carved with multiple skulls changing shape above a sacrifice bowl, regiment of dead out of focus through arch, blue-green light with gold embers
+
+grave
+1. crown — bone fingers lift an antique bronze crown from a limestone reliquary, torch-lit subterranean passage, dramatic rim light and a dim teal ember
+2. empty — open coffin with dry shroud and empty wooden cavity, gravediggers disputing its emptiness, sunken stone tomb lit from the left
+3. shovels — two tired gravediggers with spades excavating an old grave mound at daybreak, black soil and weathered gravestones, rain silver light
+4. town_cemetery — edge of medieval town with decayed weathered cemetery under a chapel bell tower, a shuttered crypt and a gravedigger moving between low stone markers, dusk
+
+souls
+1. soul — dark iron chain binds a translucent soul to armored skeleton on an ancient sarcophagus, small icy blue illumination and dirty brown crypt
+2. soul_muster — mercenary necromancer invokes undead ranks beside three tall coffins in a candlelit mortuary, martial attention, texture of iron and bone
+3. soul_refine — hooded alchemist distills a scrap of spectral green essence into a small ancient jade token at a bronze still, amber bench light cuts through dark vignette
+4. soul_shackle — two engraved iron shackles connected by one taut chain on a wooden slab before a hand lighting a pale candle, somber interior
+
+campstories
+1. dice — skeletal soldier and living veterans silently throw battered bone dice on a tavern camp crate, close-up on clacking dice and hands, open fire in distance
+2. lantern — mysterious wandering lantern-keeper approaches a grave path with a glowing iron bone lantern, wet earth and cold blue scraggly forest at night
+3. parts — two ragged undead each offer salvaged limbs near a medieval embalmer's workbench, bronze hooks, leather and a case of hand tools, absolutely non-graphic
+4. porter — burly undead porters carry a salt-soaked shrouded burden along a muddy medieval supply trail, two worn soldiers supervise, blown-out overcast separates silhouettes
+
+dramatic
+1. ascend — ritual of undead exaltation, silhouetted necromancer levitates an emerald soul amid stone ritual pillars and bowing skeletons, deep church-like crypt and bright turquoise crest
+2. jade — gloved medieval necromancer reveals a translucent green jade stone in a crypt with rich warm sconce light and dark low relief carving
+3. smith — grizzled old ironsmith working with a black iron chain and bellows, flame sparks, anvils in tent and quiet undead attendant beyond
+4. whispers — hooded grave master bends toward a heavy closed oak coffin in the dark, a subtle hairline cyan soul wisp escapes the hinge on which his hand rests
+
+conquest
+1. conquest_choice — medieval war council atop newly captured battlements deciding between governing and razing, iron keys and a town map between armed officers, inner streets beyond, no flag
+2. conquest_governor — scarred medieval governor takes a set of iron town keys in a stone council chamber, bread, wax seal and tense witnesses, overcast window glow
+3. conquest_raze — conquered medieval outer town smolders at night, soldiers departing through battered city gate, scorched beams and smoke, restrained non-graphic scene with ember lights
+4. conquest_rule — residents deliver keys and provisions to a seated ruler in battered ancient stone council hall, ruined door beyond, quiet and grave, no banner
+
+fort_work
+1. fort_barracks — rows of skeletal infantry in handmade bronze armor await orders in a stone castle barracks, lit by amber iron braziers and cold sky slit
+2. fort_court — desolate stone courtyard at an undead castle with braziers, an armored skeletal host and hooded figure, high stone gate under dusk
+3. fort_forge — ancient castle soul furnace with blazing jade runes cut into its stone bellows, forge master and smith on opposite sides, heated metal orange-purple contrast
+4. fort_tombs — rows of stone sarcophagi in a vaulted castle undercroft, sparse pale bluish candles and one elderly steward reading a scroll at right
+
+fort_story
+1. fort_loss — dark castle undercroft looted after a raid, broken doors, ashes and wounded living guard leaving with one bag, gray dawn, non-graphic
+2. fort_start — gravediggers and mercenaries approach a towering ruined castle on a gray ridge in fog, fallen blocks and abandoned drawbridge in foreground
+3. fort_victory — weary skeletal legionary and living armored victor raise a hammer at a damaged gate to mark victory with an iron torch, dawn over rebuilt fortress
+4. fort_wave — besiegers charge across a muddy field toward a fortified gate seen from parapet, rain and arrows under pale sky, medieval siege scale, no banner
+
+cycles_grave
+1. ranger_lead — gravedigger on a heath at dawn shows hooded leader a carved brick beside ancient grave mound, half-drawn map and shovel, streaks of silvery blue mist
+2. ranger_lead_02 — gravedigger in a wooded sepulchral clearing reveals carved grave masonry and charcoal map by an autumn lantern, moss and ochre leaves
+3. ranger_lead_03 — on wind-cut chalk hill a weather-beaten gravekeeper points to an ancient lintel partially exposed beside shovel and rolled map, distant clouds
+4. ranger_lead_04 — on a dark stony highland slope the gravedigger offers a dislodged inscribed tomb brick under windy rain with campfire in background
+
+cycles_salvage
+1. harvest — battlefield salvage team loads a covered corpse cart at dawn, worn debris, linen-wrapped remains and coarse salt buckets, no gore
+2. harvest_02 — postbattle cleanup on a rocky battlefield at sunbreak, two gravediggers carrying a shrouded burden to a cart among helmets and snapped spears
+3. harvest_03 — wooded muddy battlefield at twilight, medic and undead salvage helper gathering intact remains wrapped in linen beside a lantern and cart
+4. harvest_04 — late autumn and early snow among crumbling old walls, soldiers gathering the last linen-wrapped remains and spades, copper lanterns glow against blue-gray winter
+
+other
+1. mortuary — crowded traveling mortuary with jarred salts, amber candles, case of tools and linen shrouds, long aisle with dim hooded silhouette
+2. fort_pit — ancient castle offering pit seen from above the stone rim, carved stair and disciplined hovering jade soul flames create depth, robed observers at edge
+3. banner — silent company ceremony where living and skeletal mercenaries raise a thin staff in front of a central reserved empty patch of clean sky above their heads, dusk hilly field, no fabric flag because authentic one is inserted later
+4. ambition_castle_taken — crowned keep captured at dawn, two warriors salute and leave a clear gap in the upper center against pale sky for a banner, cloaked necromancer on left, black pennants elsewhere forbidden, bronze lamplight
+
+Create an original DARK MEDIEVAL GAME ICON TEXTURE ATLAS, exactly 4 columns x 3 rows. STYLE ONLY reference shows finished icons approved by user; extract its sharply painted sculptural gouache foreground treatment, vivid small shaped highlights, charcoal angular outline, rich muted colors, visual punch at 32–56 px. OUTPUT has NO BACKPLATES, no circles around assets unless specified as subject, no border, no words or numbers or extra objects. 12 genuinely transparent-background motifs, one strictly centered with clear alpha gutters in each cell, row-major order from top-left to bottom-right. Each subject must be semantically distinct and use simple bold shapes, not glossy 3D, no excessive bloom. Order exactly:
+
+skills_1
+1. amb_cart — covered wooden corpse wagon and spade
+2. amb_castle — dark crenellated keep with the castle gate between cliffs, no flag
+3. amb_glimpse — standing ancient grave monolith cracked to reveal one green eye
+4. amb_guard — armored skeletal royal guard before a small city gate
+5. amb_ranks — three ordered undead legionnaires rising with shields
+6. banner — black gold-trimmed swallowtail heraldic cloth with centered crowned ivory skull, brown snapped chains and fine teal ring
+7. armor_shattering_bolt — steel crossbow bolt splitting an iron pauldron
+8. arrow_rain — fan of arrows plunging down in a tight arc through smoky blue air
+9. bone_piercing_arrow — pale arrow piercing a cracked iron buckler and marrow bone
+10. bone_spike_throw — pair of sharpened ivory javelins streak forward
+11. fixed_shot — still skeletal crossbowman aiming from a fixed low position
+12. soulfire_lock — thin engraved circular target with emerald soul flame caged by cold points
+
+skills_2
+1. bone_break — iron halberd crushes a long bone
+2. bone_break_effect — white splintered femur and small gold shock
+3. chain — dark iron chain loops over a green soul spark
+4. chain_slash — two crossing short iron blades and copper slash trace
+5. corpse_shot — linen-bound body-shaped siege projectile and scratched bronze motion trail, no flesh or gore
+6. dead_command — antique bronze crown with pale blue soul flame above it
+7. dead_command_effect — one twisting thin cobalt flame enclosed by a brass crown arc
+8. death_burst — partly bound undead rubble cracking upward in a close copper flash, non-graphic
+9. death_charge — fierce plate helmet and whipping tapered icy strokes moving left
+10. dominion — spectral turquoise hand with crown floating on top
+11. fallen — fallen stained broken spear and helm leaning in dirt
+12. first_strike — swift iron sword thrust and short striking red sparks
+
+skills_3
+1. flesh_frenzy — crescent of bared white fangs in a dark rust-red jaw
+2. grave_blade — antique jagged iron blade and single winding green wispy flame
+3. grave_blade_effect — wounded rusty blade and crimson torn ribbon, non-graphic
+4. guard_shield — fragmented ivory rib cage wrapped around a bronze shield boss
+5. heavy_stomp — iron sabaton striking a cobblestone that splinters amber
+6. honor — ancient bronze round shield bearing plain gold laurel relief
+7. lantern — metal medieval lantern with yellow light and small bony handle
+8. night_archer — hooded skull archer, red mantle and black brow
+9. prey — ivory animal skull inside a scratched scarlet aiming ring
+10. rending_pounce — sinewy undead claw and three slanted red scratch lines
+11. rot_regen — sewn linen bound dark arm with little green sprouting seam
+12. shackle — two snapped black iron manacles and a cold teal chain
+
+skills_4
+1. mark_age — antique hourglass with ivory sand and bone clipping
+2. mark_blind — closed pale eye with a diagonal purple scar
+3. mark_bound — taut chipped chains binding a turquoise light
+4. mark_dirge — small skull mouth emitting two deep-blue sound arcs
+5. mark_domain — muted violet occult boundary surrounding a tiny skull
+6. mark_flies — three grave flies above a brown husk
+7. mark_prey — golden angular reticle around a dark red eye
+8. mark_venom — little green vial with a curved fang stopper
+9. mark_wail — spectral blue-gray head with a howling mouth
+10. mark_weak — limp mottled purple hand with collapsed fingers
+11. stench_aura — ivory skull inside thin yellow-green breath
+12. stench_effect — two mustard fumes curling away from a tomb
+
+skills_5
+1. sb_barrow_chant — speaking skull with two cold gray sound crescents
+2. sb_barrow_lord — old armored barrow king with pale cyan eyes
+3. sb_blinding_hex — angular black and violet eye slit crossed by a scar
+4. sb_blood_feast — small tarnished silver cup with dark red blood drop
+5. sb_blood_thirst — two vampire fangs above a garnet droplet
+6. sb_death_ride — tarnished knight helmet with a tearing red motion streamer
+7. sb_eternal_legion — three ancient legion shields in copper red outline
+8. sb_hex_domain — baneful skull and violet circle of stylized occult smoke
+9. sb_necro_attune — two small skulls connected by cold teal soul arc
+10. sb_night_walker — wrapped leather foot and miniature ivory crescent
+11. soul_alp — nightmare spirit with cracked obsidian face and dusty periwinkle eye
+12. soul_ancient — ancient bone-stag spirit with antlers edged in bone white
+
+skills_6
+1. soul_chosen — bearded frost barbarian with shaggy brown shoulder fur
+2. soul_ghoul — gaunt ghoul with exposed ivory teeth and three brown ear folds
+3. soul_knight — armored medieval knight with visor and iron shoulder pad
+4. soul_legate — bronze ancient skeleton legate with red crested helmet
+5. soul_lindwurm — ancient serpentine green-scaled wyrm profile
+6. soul_priest — sun-bleached death priest with rectangular bronze crown
+7. soul_schrat — thorned tree spirit face with mossy bark
+8. soul_swordmaster — gray-bearded swordmaster hood and dark red cape
+9. soul_unhold — broad grey stone-colored giant with bone fangs
+10. soul_warlord — ashen undead orc warlord broad iron helmet and broken tusk
+11. soul_wolf — feral direwolf head in grizzled brown
+12. soul_bind — green spirit tether coiling around a raised skeletal hand
+
+skills_7
+1. strike — shadowed hooded necromancer raises bone staff spitting cold-blue energy
+2. summon_skeleton — skeleton ribcage and skull spring up from a cold glowing grave seam
+3. summon_zombie — gray rotted hand rising above black grave earth and a thin green streamer
+4. unyielding — scarred steel blade wedged upright between two thick stone forks
+5. vampire — arched vampire fangs and subtle red drop
+6. weaken — pale violet skeletal hand squeezing a bent iron dagger
+7. weaken_effect — limp green-gray claws dropping a broken pin
+8. wight_order — gold-gloved skeleton forearm holding a gilded instruction baton
+9. pale_camp — compact bone tent and warm camp lantern identifiable at 22px
+10. pale_tier_2 — single clearly silhouetted bronze chevron backed with a tiny skull
+11. pale_tier_3 — double pale gold chevrons and tiny skull
+12. pale_bone_fuse — spare portrait of two riveted bone plates
+
+traits_1
+1. brittle — fissured tibia wrapped with blackened iron wire
+2. broken_fingers — skeletal hand with two fractured fingers and oxidized ring
+3. cracked_ribs — three jagged pieces of a fractured ivory rib fan
+4. deathgrip — hard clenched skeletal hand holding an iron hilt
+5. dense_bone — heavy smooth weathered ivory femur end
+6. dim_soulfire — sallow skull eye socket sheltering one dim teal flicker
+7. embalmed — rolled white funeral bandage with sprig of rosemary
+8. forgotten_drill — SNAPPED notched bronze sword crossed by a short crimson slash, darkened omen, clearly negative like native bad trait
+9. frail_bone — two disintegrating bare bone fragments
+10. gnawing — detached teeth in a skeletal jaw reaching for something, tiny red droplet
+11. grudge — skeletal fist tight around dark red wax seal
+12. hollow_skull — ivory empty skull with visible dark hollow cutaway
+
+traits_2
+1. legion_discipline — three skeletal legionaries aligned under antique bronze helmets
+2. loose_skull — skull tilted partly loose above first neck bones
+3. maggot_ridden — three pallid maggots visible in a torn green-gray shroud fold, non-graphic
+4. old_drill — old iron sword and repaired buckler crossed with a slim bronze lanyard
+5. putrid — torn green sleeve on a withered mummified forearm, muted ochre edges
+6. refined_joints — finely reinforced ivory ball joint with bronze pin
+7. rusted_pins — iron pin penetrating knee joint, red rust visible
+8. salted — bony hand grasping crystals of coarse white salt
+9. sleepless — open attentive eye with rough bandage arcs
+10. soulfire — hot turquoise soul flame emerging from the temple of a dark skull
+11. stiff_corpse — stiff upright embalmed skeleton arm with constrained elbow
+12. tall_frame — tall skeletal body silhouette with conspicuously broad thorax
+
+traits_3
+1. thick_hide — gray-brown segmented leather-skin plates peeled back in section
+2. toxic_flesh — piece of torn cloth dripping chartreuse poison
+3. staff_set — bone skull staff crowned with teal fire and tiny copper pin
+4. seal_item — simple silver skull ring with inset green stone
+5. bone_follower — medieval female ghost portrait cold blue fabric and ivory eyes
+6. grave_follower — aged gravedigger portrait holding spade head and wreath
+7. blood_follower — pale velvet-clad vampiric quartermaster with red-gold flask
+8. wight_follower — decayed bearded sergeant in brass helmet
+9. embalm_follower — cloth-masked embalmer with wax candle and yellow leather aprons
+10. muster_follower — spare ancient skull and staff
+11. rust_item — spare bronze clasp
+12. iron_item — spare circle of dark iron
+
+Original medieval campaign loading-screen illustration ATLAS. STYLE SOURCE only is the provided new event contact sheet: strong shaped highlights, textured oil-gouache, clean black-umber contour, warm bronze and slate-blue shadows, deliberately readable silhouettes. Make independent equitable widescreen panel images with hard exact separators, no margins, frames, dividers with thickness, modern objects, text, letters, insignia or flags. Keep action centered in each panel, leave some quiet horizontal foreground for UI. All images clearly separable in a 16:9 crop.
+
+loads_world
+1. pale_sovereign_loading — Hooded necromancer exits a lonely barrow as damp light strikes his bone staff
+2. pale_sovereign_champion_loading — An ancient skeletal guard steps out of opened worn oak coffin holding rusty spear and shield with dominant azure eye glow
+3. pale_sovereign_scourge_loading — Earthen battlefield at pale dawn with vast groups of old dead ones rising at a distant hooded signal
+4. pale_sovereign_camp_loading — Roundtable of stained ledger, jars of salt and black chains, half-lit corpse wagon beyond a medieval shelter
+
+loads_ancient
+1. ancient_in — Bronze-clad ancient skeletal legion shield wall emerges through grand tomb gate; profile hooded necromancer foreground
+2. ancient_out — Tomb emptied after fight; abandoned bronze shields, squad and torch at fallen pilasters
+3. tomb — Suspense at half-open stone tomb on foggy night, silhouettes with spear and a faint glimpse of undead
+4. salvage — Quiet dusk battlefield; soldiers gather linen-wrapped remains beside a rickety wagon, non-graphic
+
+loads_north
+1. barbarian_in — Snowy mountain pass, fur-clad barbarian warriors line round shields in blustering snow across a mostly flat path
+2. barbarian_out — Two weary medieval fighters pull a heavy sled with dark coffin across drifting mountain snow, bruised sunset
+3. moon — A dark frozen field with wide moonlight on an undead shield line and trampled snow
+4. snowbound — Fresh snowfall covers tracks returning to distant warm camp with armored sentry and sled
+
+loads_greenskins
+1. orc_in — Assembled heavy orc soldiers above dark stone quarry, outline of broad tusks against storm light, no heraldry
+2. orc_out — Quarry after battle, tired people and covered man-sized cart amid broken beams, smoke under afternoon sun
+3. goblin_in — Forest tree platforms hide three small armed leaf-green goblins pointing bows down at armored travelers
+4. goblin_out — Weary mercenary squad gathers at a forest brook below abandoned ruined wooden tree platforms, hints of embers
+
+loads_wild
+1. beast_in — Twisted woodland with large direwolf silhouettes partially hidden behind mossy roots, necromancer and skeletal guards in the foreground
+2. beast_out — Gentle stream washes muddy beast tracks, hooded company retreats home, sun streaks across ragged bank
+3. bridge — Old stone bridge over a raging deep river, weary medieval shield line facing an unseen hostile group in dense fog
+4. repair — Close view of medieval camp duty, gloved artisan repairs skeletal limb pin with pliers, warm campfire and iron tools
+
+loads_siege
+1. siege — A column of dark medieval mercenaries and skeletal troops lines before stone castle gate, graying dust and attack ladders, no flags
+2. smoke — Assault aftermath with broken stone gate, smouldering beams and small hooded figures departing beneath smoke
+3. defend_in — Skeleton and living sentries stand atop crenellations above distant opposing siege formations, ample skyline, no flags
+4. defend_out — Two fresh sentries relieve tired watch on top of battered walls at dawn, castle inner court and rising shafts of sunlight
+
+loads_land
+1. dunes — Sandstorm before towering broken pillars in a salt desert; ragged necromancer and bronze-armored skeleton formation
+2. desert_out — Silent red-gold desert dry riverbed at sunset with small cart and tired troop walking toward low campfire behind columns
+3. embers — Dark night camp after battle, charred embers and chipped ivory shields, small warm fire amid fog with no flags
+4. pale_ascension_rite — A pair of leather-gloved hands holds up a glowing jade soul gem over a linen-shrouded skeleton and another armored warrior on either side of a stone table, graphite and gritty gouache, faint teal souls, no flag
+
+loads_title
+1. pale_sovereign — A grizzled necromancer, a skeletal guard and a humble living gravedigger stand on the threshold of an ancient tomb; ivory torch, ochre ironwork and blue twilight
+2. spare — Quiet period medieval camp equipment and smoky landscape
+
+Create a strict atlas of original dark medieval tactical RPG sprite foreground art using the provided 1.7.1 icon board as STYLE ONLY reference. Bold crisp ink contour, tactile hand-painted matte gouache, strong light-dark separation and a rich limited palette (bone ivory, deep warm earth, muted cobalt and green highlights), zero text and zero backing discs, true alpha transparency, clearly separated gutters. Every motif centered and readable at native game size.
+
+portraits_1
+1. arrow_rain_weaver — skeletal arrow storm specialist with slim green gown and battered bow
+2. barrow_knight — skeletal black-plated barrow knight with worn ancient nasal helmet
+3. barrow_skirmisher — lean ancient skeletal skirmisher with russet scarf and light shoulder pads
+4. bloated_corpse — bloated male zombie in salt-stitch tunic, wide shoulder
+5. bone_blade — fast antique skeleton duelist with laced red belt and sword
+6. carnage_fiend — elongated male undead hunting beast with lank black mane and sharp teeth
+7. corpse_colossus — huge hulking stitched undead male with mismatched body armour
+8. crypt_longbow — ancient skeletal longbowman, muted ochre leather hood
+9. death_omen — strange skeletal omens watcher with violet-blue candle-lit hood
+10. dread_corpse_lord — huge plate-armored male corpse lord with eerie jade eye light
+11. fallen_hero — old dead male knight in a tarnished dark helmet with exposed decayed nose
+12. frenzied_corpse — unnerving male undead with torn hair, red cloth and bared clenched teeth
+
+portraits_2
+1. grave_guard — antique skeletal tomb guard in bronze scale pauldron
+2. necromancer — aging male necromancer in smoked brown hood with bone staff tip silhouette and short gray beard
+3. nether_bombardier — skeletal siege arbalist with metal bowl helm and dark turquoise neck wrap
+4. sb_barrow — armored skeletal barrow king with pale blue beard-like spectral wisps
+5. sb_blood — pale gaunt male blood-cult warrior with matte crimson cloth
+6. sb_hex — lean withered male skull warlock with slight violet glow under dark hood
+7. sb_knight — tall undead knight with corroded bronze decorated helm and gray cloak
+8. sb_legion — bronze ancient legionary skeleton with rust-red scarlet crest
+9. skeleton — neutral ancient skeleton head and a little rib cage, three quarter front
+10. skeleton_archer — skeleton archery recruit with tattered plum scarf and narrow bone jaw
+11. skeleton_king — skeletal lord with worn bronze crown and slight icy blue illumination
+12. tomb_arbalest — skull crossbowman with antique brown padded cloth and sturdy yellowish shoulder plate
+
+portraits_3
+1. summon_skeleton_0 — ancient skeletal auxiliarius with olive linen and pale bare skull
+2. summon_skeleton_1 — ancient skeleton legionary in scuffed bronze and burgundy cloth
+3. summon_skeleton_2 — ancient skeleton royal guard wearing gilded cracked helm and dark red strip
+4. summon_zombie_0 — scraggly adult male common zombie with sallow skin and torn olive-brown linen
+5. summon_zombie_1 — adult male armored zombie in plain bent chainmail and cloth scars
+6. summon_zombie_2 — stern adult male fallen knight zombie with salt-grey beard and old chest plate
+7. tomb_blademaster — skeletal master swordsman under burgundy worn cloak, angle low
+8. tomb_halberdier — ancient skeletal halberdier with warm bronze tall headdress and dark linen
+9. zombie — sallow ancient adult male common zombie with pale sunken cheeks and grizzled hair
+10. spare1 — a tiny dull iron burial pin
+11. spare2 — a tiny bone bead
+12. spare3 — a tiny ragged shirt pin
+
+items_1
+1. bone_lantern — old iron lantern with amber light and bone handle
+2. bound_archer — small wax-sealed jade-green summoning urn, a tiny worn bow charm
+3. bound_skeleton — small wax-sealed dark jade burial urn, carved small skeletal face
+4. bound_zombie — squat aged olive ceramic jar with a weathered cloth wrapped around it
+5. chain_item — few clumped irregular blackened iron heavy chain links, individually readable
+6. gilded_bones — gilded brown-ochre antique skeleton ribcage on its own, clean large silhouette
+7. gilded_skull — gilded bronze skull, three-quarter front with dull dark eye pits
+8. gold_ingot — pitted yellow gold ingot in oblique perspective, weighted thick outline
+9. jade — a compact translucent ancient blue-green jade shard, deep rough facets
+10. shackle — dark oxidized double manacles and short chain
+11. signet — oval bronze signet with tiny embossed crowned skull and jade-green seam
+12. spare — tiny bone hook
+
+items_staff
+1. staff — whole long thin dark bone necromancer staff terminated by a small human skull, small blue glowing filament and bronze binding near top
+2. staff_champion — whole long dark iron champion staff, raised skull in a two-pronged brass crown with purple embers at top
+3. staff_scourge — whole long occult scourge staff with ascending teal green soul tendrils in upper quarter from a small pair of skulls and curly metallic bindings
+
+Create one production-grade game VFX sprite atlas for medieval undead tactics. STYLE ONLY reference is previous test contact sheet: matte richly painted hand-inked outlines, unmistakable crisp contours, high monochrome visibility and bright restrained accents. Keep hard-edged bright cores, shaded outer structure and true alpha gaps. No text, dividers, circles or transparent checkerboard, no background or highlights outside cutout. Small square-ish independent glyphs, with at least 20% transparent gutters. ROW MAJOR order.
+
+fx_legacy_a
+1. soulfire — compact cyan branching soul ignition with pale forward edge
+2. curse — dry branching triangular violet sigil and shadowy fragments
+3. chain — heavy diagonal iron links swing with a single bright bronze motion accent
+4. resurrect — upward moss-green pale glowing wisps and bone fragments
+5. missile — tightly wrapped cloth and bone projectile diagonal nose facing upper right, black-brown cloth stroke and muted teal trail
+6. stomp — low oval ochre dust wave with sharp and separated pointed debris
+7. claws — three angry warm-red claw streaks crisp negative space
+8. launch — short smoky projectile launch spatter and a bone jutting up
+9. landing — hard impact crown with pale bone fragments and earth bits, no tag
+10. raise — angular low bright green necromantic aperture in tomb soil
+11. possess — curled dark turquoise spirit hand within tight angled wisps
+12. burst — compact orange-green radial corpse explosion splash with simple chunky bone crumbs, game effect without gore
+
+fx_legacy_b
+1. stitch — black twine thread and bone-upward needle with bloodless bronze fragments
+2. infuse — compact narrow skyward teal energy spiral with bright bone-white leading edge
+3. command — small old brass spectral crown with elliptical pale blue pressure shock
+4. guard — short ivory-blue shield arc breaking into individually drawn beveled shards
+5. whiff — subtle steel-gray short empty arrow deflection trail with tapered edges
+6. coffin — swinging dark iron coffin opening silhouette with pale mint gleam
+7. arrow_rain — six distinct ivory steel arrows dropping in a triangular dark-to-gold fan
+8. summon_zombie_1 — sickly green grave mist rakes up from one clod of earth and human hand shadow
+9. summon_zombie_2 — foamy olive smoke and two sharp grave soil streamers sideways
+10. summon_zombie_3 — jagged green salt burst between short grave soil crumbs
+11. summon_skeleton_1 — pale ice-blue bright arc rises between ivory bone chips
+12. summon_skeleton_2 — rib-shaped ivory pale cyan upward burst
+
+fx_legacy_c
+1. summon_skeleton_3 — compact fast spectral pale teal angular spiral with clean bone splinters
+2. mark_fracture — bold snapped ivory bone with bright triangular crack
+3. mark_wound — short sharp descending blood-red gash on dark bronze shard, non-graphic
+4. mark_stench — small curling ochre vapor like a pair of torn ribbons
+5. spare1 — tiny hot copper ash spangle
+6. spare2 — cold mint spangle
+7. spare3 — blue sharp spangle
+8. spare4 — tiny pale shadow silhouette
+
+Produce true-alpha bitmap cutout production atlas from game art in the style reference. ORIGINAL detailed dry gouache painting with rich bronze lighting and umber edge ink, definite silhouette crisp highlights, no detached drop shadows, no text or frame, no cropped objects. Each cell independently and fully contains one silhouette at the same view angle.
+
+buildings
+1. dead_barracks — a timber-and-stone medieval open-front barracks single building, rows of dormant skeletal legion mannequins and iron racks visible inside
+2. mausoleum — small stone mausoleum facade, broad gray stone pillars, low carved warm bronze tympanum and luminous deep central entrance
+3. sacrifice_pit — low circular stone ritual pit cut in old turf with descending steps and vertical narrow medieval iron braziers, no flags, ground isolated
+4. salt_cellar — low half-underground hill cellar with arched masonry opening, timber door ajar and salt casks softly lit inside, rectangular compact mound
+5. soul_anvil — single low wood and stone smithy, open front revealing an embellished anvil and glowing forge
+6. soul_furnace — tall chunky ancient stone furnace tower low surrounding annex and a visible bright teal fire mouth at the bottom
+
+camp_seated_a
+1. banshee — pale ghostly adult woman seated cross-legged on a low jagged rock, full figure and hem visible, cold gray-blue draped textiles and pale hair, eyes upward, quiet gesturing hand
+2. blood_steward — gaunt vampiric medieval quartermaster seated on chair and holding a small cup, full-body including boots, fine worn red leather below a dark cloak
+3. embalmer — hooded middle-aged man seated on unadorned stone, a well-worn leather apron and small funeral implements in his hands, full body, feet visible
+
+camp_seated_b
+1. gravekeeper — weatherbeaten bearded male gravedigger seated on wooden footstool holding a shovel upright, full person and full boots inside cutout, brown wool clothing
+2. wight_captain — undead armored captain seated on stone bench, ancient bronze plumed helmet, ochre leather and worn red cloak, full figure including engraved boots, restless hands clutch an iron sword across knees
+3. spare — old compact armored seat cutout

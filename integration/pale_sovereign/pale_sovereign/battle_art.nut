@@ -7,6 +7,12 @@ S.CorpseProjectile <- ::Const.ProjectileSprite.len();
 ::Const.ProjectileType.PaleCorpse <- S.CorpseProjectile;
 ::Const.ProjectileType.COUNT = ::Math.max(::Const.ProjectileType.COUNT, S.CorpseProjectile + 1);
 
+local function highResolutionBrush( _name )
+{
+    local brush = "pale_hd_" + _name.slice(5);
+    return ::doesBrushExist(brush) ? brush : null;
+}
+
 S.playBattleArt <- function( _key, _tile, _height = 32, _scale = 1.0, _delay = 0 )
 {
     if (this.Battle == null || _tile == null || !::Tactical.isActive() || !_tile.IsVisibleForPlayer
@@ -21,7 +27,14 @@ S.playBattleArt <- function( _key, _tile, _height = 32, _scale = 1.0, _delay = 0
         }, null);
         return;
     }
-    ::Tactical.spawnSpriteEffect("pale_fx_" + _key, ::createColor("#ffffff"), _tile, 0, _height,
+    local brush = "pale_fx_" + _key;
+    local detailed = highResolutionBrush(brush);
+    if (detailed != null)
+    {
+        brush = detailed;
+        _scale *= 0.5;
+    }
+    ::Tactical.spawnSpriteEffect(brush, ::createColor("#ffffff"), _tile, 0, _height,
         _scale * 0.70, _scale, 40, 150, 230);
 };
 
@@ -48,15 +61,22 @@ S.makeFieldParticles <- function( _tile, _key, _source )
     if (_source.len() == 0)
         return [];
     local fx = _source[0];
+    local brush = "pale_fx_" + _key;
+    local detailed = highResolutionBrush(brush);
     local stages = [];
     foreach (i, data in fx.Stages)
     {
         local stage = clone data;
+        if (detailed != null)
+        {
+            stage.ScaleMin *= 0.5;
+            stage.ScaleMax *= 0.5;
+        }
         stage.ColorMin = ::createColor(i == fx.Stages.len() - 1 && i > 0 ? "ffffff00" : "ffffff7a");
         stage.ColorMax = ::createColor(i == fx.Stages.len() - 1 && i > 0 ? "ffffff00" : "ffffffa6");
         stages.push(stage);
     }
-    return [{ Entity = true, Brushes = ["pale_fx_" + _key], Tile = _tile, Delay = fx.Delay,
+    return [{ Entity = true, Brushes = [detailed == null ? brush : detailed], Tile = _tile, Delay = fx.Delay,
         Quantity = fx.Quantity, Lifetime = fx.LifeTimeQuantity, Rate = fx.SpawnRate, Stages = stages }];
 };
 
@@ -106,7 +126,11 @@ local function attachMark( _skill )
     _skill.m.PaleArtAttached = true;
     if (!actor.hasSprite(layer))
     {
-        actor.addSprite(layer).setBrush(layer);
+        local detailed = highResolutionBrush(layer);
+        local sprite = actor.addSprite(layer);
+        sprite.setBrush(detailed == null ? layer : detailed);
+        if (detailed != null)
+            sprite.Scale = 0.5;
         arrangeMarks(actor);
         S.playBattleArt("mark_" + key, actor.getTile(), 54, 0.80);
     }
