@@ -184,12 +184,17 @@ S.onVictory <- function( _loot )
     local soulFound = false;
     local mark = this.Battle.Mark;
     local stats = { Seen = 0, Faction = 0, Kind = 0, Shot = 0 };
+    // 1.6.33 常驻亡灵事件用：上一场胜仗的时间，以及敌方里有没有人类、兽人或亡灵
+    this.set("LastVictoryHour", this.worldHours());
+    local humanoid = this.Battle.HumanKills > 0;
     foreach (tile in this.battleCorpseTiles())
     {
         local corpse = ::BGP.Necro.getCorpse(tile);
         if (corpse == null || typeof corpse != "table" || ::BGP.Necro.isGuardCorpse(corpse))
             continue;
         ++stats.Seen;
+        if (!humanoid && ("PaleNative" in corpse && corpse.PaleNative || ("Type" in corpse && typeof corpse.Type == "string" && corpse.Type.find("orc") != null)))
+            humanoid = true;
         local reason = this.harvestReject(corpse);
         if (reason == null)
             corpses[tile.ID] <- true;
@@ -198,6 +203,7 @@ S.onVictory <- function( _loot )
         if (mark != null && "PaleSoul" in corpse && corpse.PaleSoul == mark.Target && corpse.IsHeadAttached)
             soulFound = true;
     }
+    this.set("LastVictoryHumanoid", humanoid ? 1 : 0);
     if (!this.castleDefenseLoot(strategic, this.Battle.DefenseDead) && this.oath() != this.Oath.None)
     {
         // 复活技能拉起来的遗骸照样算一具（复活时记下，见 hooks.nut）

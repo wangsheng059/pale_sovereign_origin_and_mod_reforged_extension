@@ -83,6 +83,8 @@ S.worldEvent <- function()
     if (::World.State.isPaused() || camp)
         return;
     local day = ::World.getTime().IsDaytime;
+    if (!this.storyReady())
+        return;
     if (this.oath() == this.Oath.Champion && this.canSmith() && this.nearTown(1, true) != null)
         this.openEvent("smith");
     else if (!day && this.oath() == this.Oath.Champion && this.canCrown() && this.get("CrownDeferred") == 0)
@@ -91,6 +93,14 @@ S.worldEvent <- function()
         this.openEvent("whispers");
     else if (!day && this.canLantern())
         this.openEvent("lantern");
+};
+
+// 1.6.33 营地事件每 5 天最多一次（法杖蜕变不受限）
+S.StoryGapHours <- 120;
+S.StoryPages <- ["shovels", "crown", "empty", "smith", "whispers", "mortuary", "parts", "porter", "lantern", "dice", "apprentice"];
+S.storyReady <- function()
+{
+    return this.worldHours() >= this.get("StoryAfter");
 };
 
 S.canAscend <- function()
@@ -135,6 +145,8 @@ S.campStory <- function()
         return "shovels";
     if (this.canEvolve())
         return "evolve";
+    if (!this.storyReady())
+        return "camp";
 
     local site = this.localSite(0, true);
     if (oath == this.Oath.Champion)
@@ -413,6 +425,8 @@ S.renderEvent <- function( _event, _screen )
     local title = "亡灵主宰";
     local art = _screen.ID;
     local closing = true;
+    if (this.StoryPages.find(_screen.ID) != null)
+        this.set("StoryAfter", this.worldHours() + this.StoryGapHours);
     switch (_screen.ID)
     {
         case "camp":

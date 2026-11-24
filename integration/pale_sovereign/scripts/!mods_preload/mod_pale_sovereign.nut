@@ -22,7 +22,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.32", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.33", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.9");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
@@ -30,7 +30,7 @@
 {
     if (!::BGP.HasAC)
         return;
-    foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "undead_lore", "guard_lore", "tier_data", "tier_ranged_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "tier_ranged_combat", "lich", "soulbound", "battle_art", "embalm_craft"])
+    foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "undead_lore", "guard_lore", "tier_data", "tier_ranged_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "tier_ranged_combat", "lich", "undead_events", "soulbound", "battle_art", "embalm_craft"])
         ::include("pale_sovereign/" + file);
     ::include("pale_sovereign/formation_ai");
     if ("Stronghold" in ::getroottable())
@@ -44,6 +44,22 @@
     if ("HumanSlaveCapture" in ::getroottable())
         ::include("pale_sovereign/captives");
 });
+
+// 1.6.33 棺椁说明里写明亡灵主宰战役中活人兄弟可用（宠物库在 AfterHooks 阶段才登记）
+::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_AC"], function()
+{
+    if (!("BGP" in ::getroottable()) || !("NecroPet" in ::BGP) || !("Companions" in ::Const))
+        return;
+    local before = "只有亡灵法师能装备。";
+    local after = "只有亡灵法师能装备；亡灵主宰战役中活人兄弟也能装备。";
+    foreach (type, _ in ::BGP.NecroPet.OwnTypes)
+    {
+        local def = ::Const.Companions.Library[type];
+        local at = def.Description.find(before);
+        if (at != null)
+            def.Description = def.Description.slice(0, at) + after + def.Description.slice(at + before.len());
+    }
+}, ::Hooks.QueueBucket.AfterHooks);
 
 ::PaleSovereign.Mod.queue([">mod_local_rules", ">mod_autopilot_new"], function()
 {

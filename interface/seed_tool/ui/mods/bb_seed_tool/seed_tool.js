@@ -1225,6 +1225,19 @@
         var launcher = document.createElement("button");
         launcher.id = "bbseed-launcher";
         document.body.appendChild(launcher);
+        // Hide the launcher on the world map and in battle; keep it while the panel is open or seeds are being collected.
+        setInterval(function () {
+            var inGame = false;
+            ["WorldScreen", "TacticalScreen"].forEach(function (name) {
+                try {
+                    var screen = Screens[name];
+                    if (screen && screen.mContainer && screen.mContainer.is(":visible")) inGame = true;
+                } catch (e) {}
+            });
+            var panel = document.getElementById("bbseed-overlay");
+            var busy = runTimer !== null || startInFlight || (panel && !panel.classList.contains("bbseed-hidden"));
+            launcher.style.display = inGame && !busy ? "none" : "";
+        }, 500);
 
         var overlay = document.createElement("div");
         overlay.id = "bbseed-overlay";

@@ -70,6 +70,17 @@ local oldMarkMinion = ::BGP.Necro.markMinion;
     }
 };
 
+// 1.6.33 我方阵营的亡灵：常驻亡灵、冠军、复活和召唤出的亡灵
+S.isFriendlyUndead <- function( _actor )
+{
+    if (_actor == null || ::MSU.isNull(_actor))
+        return false;
+    local faction = _actor.getFaction();
+    if (faction != ::Const.Faction.Player && faction != ::Const.Faction.PlayerAnimals)
+        return false;
+    return this.isPaleUndeadActor(_actor);
+};
+
 // 冢王威压标记的猎物：可以同时有多个，不挤掉导师标记的那一个
 S.addPrey <- function( _target )
 {

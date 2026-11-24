@@ -4,7 +4,7 @@ S.FollowerData <- {
     embalmer = {
         Name = "防腐师", Archetype = "Steward", Image = "ui/campfire/pale_embalmer",
         Description = "他身上的盐味和松脂味怎么也洗不掉。再破烂的尸体到了他手里，也能腌得整整齐齐，在车厢里码得严丝合缝。",
-        Effects = ["每 3 具合格遗骸封存 2 点尸骸", "工具容量 +50、弹药容量 +100、医疗用品容量 +100，修理效率 +50%，常驻亡灵每日修补量提高至 50%", "常驻亡灵升阶后从 3 级起步（7 级升阶为 3 级），升阶消耗的防腐尸骸 −2"]
+        Effects = ["每 3 具合格遗骸封存 2 点尸骸", "工具容量 +50、弹药容量 +100、医疗用品容量 +100，修理效率 +50%，常驻亡灵每日修补量提高至 70%", "常驻亡灵升阶后从 3 级起步（7 级升阶为 3 级），升阶消耗的防腐尸骸 −2"]
     },
     gravekeeper = {
         Name = "掘墓人首领", Archetype = "Ranger", Image = "ui/campfire/pale_gravekeeper",

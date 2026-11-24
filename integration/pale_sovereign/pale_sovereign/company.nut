@@ -131,7 +131,8 @@ S.repairUndead <- function( _free = false )
     local injured = this.undead().filter(@(_, bro) bro.getHitpoints() < bro.getHitpointsMax());
     if (injured.len() == 0 || (!_free && !this.changeReserve(-1)))
         return;
-    local ratio = ::Math.maxf(this.ambitionDone("ranks_of_dead") ? 0.35 : 0.20, this.followerRank("embalmer") >= 2 ? 0.50 : 0.0);
+    // 1.6.33 修补量 20% → 40%，死者的队列 35% → 55%，防腐师 2 级 50% → 70%
+    local ratio = ::Math.maxf(this.ambitionDone("ranks_of_dead") ? 0.55 : 0.40, this.followerRank("embalmer") >= 2 ? 0.70 : 0.0);
     foreach (bro in injured)
     {
         local bonus = bro.getSkills().hasSkill("trait.pale_embalmed") ? 0.10 : 0.0;

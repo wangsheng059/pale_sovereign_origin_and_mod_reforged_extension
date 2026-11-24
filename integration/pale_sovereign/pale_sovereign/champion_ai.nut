@@ -18,9 +18,7 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
         return 0.0;
 
     local priority = 0.0;
-    local prey = this.Battle == null ? null : this.Battle.Prey;
-    if (prey != null && !::MSU.isNull(prey) && prey.getID() == _target.getID()
-        && _target.getSkills().hasSkill("effects.pale_prey"))
+    if (this.Battle != null && _target.getSkills().hasSkill("effects.pale_prey"))
         priority = 0.65;
 
     if (_target.getCurrentProperties().IsStunned || _target.getSkills().hasSkill("effects.sleeping") || _target.isNonCombatant())
@@ -46,11 +44,17 @@ S.championAttackScore <- function( _score, _actor, _target, _skill )
 {
     if (_score <= 0 || _skill == null || !_skill.isAttack() || _target.isAlliedWith(_actor) || !_target.getTile().IsVisibleForEntity)
         return _score;
-    if (_actor.getFaction() != ::Const.Faction.PlayerAnimals || _actor.isPlayerControlled()) return _score;
+    if (_actor.isPlayerControlled()) return _score;
+    // 1.6.33 常驻亡灵交给自动战斗时（阵营是 Player）也优先攻击猎物
+    if (_actor.getFaction() != ::Const.Faction.PlayerAnimals)
+    {
+        if (this.Battle == null || !this.isFriendlyUndead(_actor) || !_target.getSkills().hasSkill("effects.pale_prey")) return _score;
+        return _score * (1.0 + 0.65 * ::Math.maxf(0.0, ::Math.minf(1.0, (_skill.getHitchance(_target) - 25) / 25.0)));
+    }
     local champion = this.isChampionAI(_actor);
     if (!champion && !this.isRaisedFighter(_actor))
     {
-        if (this.Battle == null || this.Battle.Prey == null || !_actor.getFlags().has("undead")
+        if (this.Battle == null || !this.isFriendlyUndead(_actor)
             || !_target.getSkills().hasSkill("effects.pale_prey")) return _score;
         return _score * (1.0 + 0.65 * ::Math.maxf(0.0, ::Math.minf(1.0, (_skill.getHitchance(_target) - 25) / 25.0)));
     }

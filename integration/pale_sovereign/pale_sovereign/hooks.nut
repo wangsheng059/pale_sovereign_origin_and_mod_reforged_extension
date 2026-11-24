@@ -41,8 +41,12 @@ local oldCanRaiseAll = ::BGP.Necro.canRaiseAll;
 local oldEquip = ::BGP.NecroPet.canEquip;
 ::BGP.NecroPet.canEquip = function( _actor, _item )
 {
-    return (S.isChief(_actor) && ::BGP.NecroPet.isOwnItem(_item)) || oldEquip(_actor, _item);
+    // 1.6.33 亡灵主宰战役里活人兄弟也能装备棺椁（常驻亡灵仍不行）
+    if (S.isActive() && ::BGP.NecroPet.isOwnItem(_item) && (S.isChief(_actor) || !S.isUndead(_actor)))
+        return true;
+    return oldEquip(_actor, _item);
 };
+
 
 local oldScale = ::BGP.NecroPet.applyScaling;
 ::BGP.NecroPet.applyScaling = function( _entity )
@@ -637,7 +641,8 @@ mod.hook("scripts/skills/skill_container", function(q)
             || !_target.getSkills().hasSkill("effects.pale_prey"))
             return properties;
         local actor = this.getActor();
-        if (S.isChief(actor) || S.isChampionActor(actor))
+        // 1.6.33 所有友方亡灵（冠军、常驻亡灵、复活与召唤的亡灵）和导师都吃猎物加成
+        if (S.isChief(actor) || S.isChampionActor(actor) || S.isFriendlyUndead(actor))
         {
             properties.MeleeSkill += 10;
             properties.RangedSkill += 10;

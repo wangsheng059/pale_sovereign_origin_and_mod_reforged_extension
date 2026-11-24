@@ -248,7 +248,7 @@ S.rewardAmbition <- function( _ambition, _key )
         case "ranks_of_dead":
             this.changeReserve(4);
             ::World.Assets.addArmorParts(10);
-            this.amReward(_ambition, "修补恢复量提高至 35%，征召消耗降为 2 点尸骸。补充 4 点尸骸、10 点工具");
+            this.amReward(_ambition, "修补恢复量提高至 55%，征召消耗降为 2 点尸骸。补充 4 点尸骸、10 点工具");
             break;
         case "forbidden_glimpse":
             this.pendingItem("accessory/pale_signet");
