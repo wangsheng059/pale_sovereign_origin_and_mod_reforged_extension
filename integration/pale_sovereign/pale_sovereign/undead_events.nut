@@ -138,8 +138,8 @@ S.uevtMood <- function( _event, _bro, _good, _reason )
         return;
     if (_good)
         _bro.improveMood(1.0, _reason);
-    else
-        _bro.worsenMood(1.0, _reason);
+    else if (!this.undeadMood(_bro, 1.0, _reason))
+        return;
     _event.m.Effects.push({ id = 10, icon = ::Const.MoodStateIcon[_bro.getMoodState()],
         text = _bro.getName() + ::Const.MoodStateEvent[_bro.getMoodState()] });
 };

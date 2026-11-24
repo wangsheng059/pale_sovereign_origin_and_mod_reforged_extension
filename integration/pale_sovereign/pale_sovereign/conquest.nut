@@ -299,7 +299,12 @@ S.conquestDay = function()
         if (S.conquestMode(town) > 0)
             foreach (attached in town.getActiveAttachedLocations())
                 if (attached.getTypeID() == "attached_location.pale_cemetery")
+                {
                     S.changeReserve(3);
+                    // 1.7.0 天灾路线：墓园每天 5% 产出 1 枚古代魂玉
+                    if (S.oath() == S.Oath.Scourge && ::Math.rand(1, 100) <= 5)
+                        S.pendingItem("misc/pale_jade_item");
+                }
 };
 
 // 1.6.12：每座统治或屠城的城镇防腐尸骸上限 +30

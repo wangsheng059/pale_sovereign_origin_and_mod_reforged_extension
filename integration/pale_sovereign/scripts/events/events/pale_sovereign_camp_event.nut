@@ -5,7 +5,11 @@ this.pale_sovereign_camp_event <- ::inherit("scripts/events/event", {
         this.m.ID = "event.pale_sovereign_camp";
         this.m.Title = "亡灵主宰";
         this.m.Cooldown = 0;
-        foreach (page in ["camp", "oath", "ranger_lead", "soul", "shovels", "evolve", "banner", "crown", "empty", "smith", "whispers", "mortuary", "parts", "porter", "lantern", "dice", "apprentice", "harvest", "result", "jade", "ascend", "tier_roster", "tier_branch", "tier_confirm", "castle", "castle_forge", "castle_forge_0", "castle_forge_1", "castle_forge_2", "castle_forge_3", "castle_tombs", "castle_barracks", "castle_sacrifice", "conquest_recruit", "conquest_governor", "soulbound", "shackle", "refine", "refine_confirm", "recruit", "limb_roster", "limb_pick", "graft_roster", "castle_salt", "castle_rite_0", "castle_rite_1", "castle_rite_2", "castle_rite_3", "castle_rite_4", "castle_rite_5"])
+        local pages = ["camp", "oath", "ranger_lead", "soul", "shovels", "evolve", "banner", "crown", "empty", "smith", "whispers", "mortuary", "parts", "porter", "lantern", "dice", "apprentice", "harvest", "result", "jade", "ascend", "tier_roster", "tier_branch", "tier_confirm", "castle", "castle_forge", "castle_forge_0", "castle_forge_1", "castle_forge_2", "castle_forge_3", "castle_tombs", "castle_barracks", "castle_sacrifice", "conquest_recruit", "conquest_governor", "soulbound", "shackle", "refine", "refine_confirm", "recruit", "limb_roster", "limb_pick", "graft_roster", "castle_salt", "castle_rite_0", "castle_rite_1", "castle_rite_2", "castle_rite_3", "castle_rite_4", "castle_rite_5"];
+        // 1.7.0 其他模块登记的账簿页面
+        if ("ExtraPageIDs" in ::PaleSovereign)
+            pages.extend(::PaleSovereign.ExtraPageIDs);
+        foreach (page in pages)
         {
             this.m.Screens.push({
                 ID = page, Text = "", Image = "", List = [], Characters = [], Options = [],

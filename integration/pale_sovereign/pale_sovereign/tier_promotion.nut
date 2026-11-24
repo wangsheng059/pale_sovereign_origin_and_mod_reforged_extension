@@ -85,8 +85,16 @@ S.grantVisage <- function( _actor, _tree )
     try { perk.m.IsRefundable = false; } catch (e) {}
 };
 
+// 1.7.0 活人转化为中阶亡灵时免费升阶（不检查等级与材料、不扣材料）
+S.FreeTier <- false;
+
 S.tierCanPromote <- function( _bro, _branch )
 {
+    if (this.FreeTier)
+    {
+        local baseBg = this.getUndeadBackground(_bro);
+        return _bro != null && this.isUndead(_bro) && baseBg != null && _branch in this.TierBranches && this.tierChoicesFor(baseBg).find(_branch) != null;
+    }
     if (!this.isActive() || _bro == null || !_bro.isAlive()
         || !this.isUndead(_bro) || _bro.getFlags().has("PaleSoulbound") || _bro.getLevel() < this.TierCost.Level
         || this.undead().find(_bro) == null || !(_branch in this.TierBranches))
@@ -306,9 +314,12 @@ S.tierPromote <- function( _bro, _branch )
     skills.update();
     _bro.setHitpointsPct(::Math.maxf(oldHealth, 1.0 / _bro.getHitpointsMax()));
 
-    this.removeMaterial("jade");
-    this.changeReserve(-this.tierReserveCost());
-    ::World.Assets.addMoney(-this.TierCost.Money);
+    if (!this.FreeTier)
+    {
+        this.removeMaterial("jade");
+        this.changeReserve(-this.tierReserveCost());
+        ::World.Assets.addMoney(-this.TierCost.Money);
+    }
     ::World.State.updateTopbarAssets();
     return _bro.getName() + " 已升阶为【" + next.Name + "】。等级 " + oldLevel + " → " + level
         + "，可重新分配 " + _bro.getLevelUps() + " 次属性增长与 " + _bro.getPerkPoints() + " 点特技。";

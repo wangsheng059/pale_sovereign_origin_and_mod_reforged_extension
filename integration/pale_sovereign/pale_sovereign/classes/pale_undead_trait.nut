@@ -11,7 +11,7 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
         this.m.Name = def.Name;
         this.m.Description = def.Description;
         this.m.Excluded = clone def.Excluded;
-        this.m.Icon = "ui/traits/pale_" + this.m.PaleKey + ".png";
+        this.m.Icon = "ui/traits/pale_" + ("Icon" in def ? def.Icon : this.m.PaleKey) + ".png";
     }
 
     function getTooltip()
@@ -86,6 +86,18 @@ this.pale_undead_trait <- ::inherit("scripts/skills/traits/character_trait", {
         {
             _properties.Initiative -= 10;
             _properties.Vision -= 1;
+        }
+        else if (key == "death_indenture")
+        {
+            _properties.Bravery += 4;
+            _properties.DailyWageMult *= 0.5;
+        }
+        else if (key == "fallen_saint")
+            _properties.Bravery += 4;
+        else if (key == "former_comrade" && ::PaleSovereign.hasLivingNeighbour(this.getContainer().getActor()))
+        {
+            _properties.MeleeDefense += 3;
+            _properties.Bravery += 5;
         }
         else if (key == "forgotten_drill")
         {

@@ -264,7 +264,7 @@ S.rewardAmbition <- function( _ambition, _key )
             {
                 this.changeReserve(8);
                 this.applyRosterLimits();
-                this.amReward(_ambition, "每场最多部署 16 人，补充 8 点防腐尸骸");
+                this.amReward(_ambition, "每场最多部署 14 人（飞升后 16 人），补充 8 点防腐尸骸");
             }
             break;
         case "castle_taken":

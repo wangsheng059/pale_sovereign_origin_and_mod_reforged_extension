@@ -5,7 +5,7 @@ this.pale_chain_item <- ::inherit("scripts/items/item", {
         this.item.create();
         this.m.ID = "misc.pale_chain";
         this.m.Name = "缚魂锁链";
-        this.m.Description = "以黑铁与墓土锻打而成的沉重锁链，链环间隐约回荡着不甘安息的低鸣。立下亡灵冠军誓约后，可在战场上标记重伤的强敌；唯有战胜并完成注魂时才会消耗。两条路线都可在营地把它与一件贵重品锻成缚魂镣铐。立下亡灵天灾誓约后，可用“锁魂复生”唤起亡灵强敌的尸体并在战后收编。";
+        this.m.Description = "以黑铁与墓土锻打而成的沉重锁链，链环间隐约回荡着不甘安息的低鸣。\n\n· 冠军路线：在战场上标记重伤的强敌（被标记者无法溃逃、近战防御 −10、对导师伤害 −20%），胜利后注魂时消耗；营地可用 1 条剥离一个吞魂特质，2 条锚定双生魂链。\n· 天灾路线：用“锁魂复生”唤起亡灵强敌的尸体，战后收编为锁魂者。\n· 两条路线：锻造缚魂镣铐；胜仗后 1 条锁链 + 4 点防腐尸骸召返阵亡的中阶以上常驻亡灵或锁魂者；也可代替魂玉完成阵亡回收。";
         this.m.Icon = "pale/chain_item.png";
         this.m.ItemType = ::Const.Items.ItemType.Misc;
         this.m.Value = 400;

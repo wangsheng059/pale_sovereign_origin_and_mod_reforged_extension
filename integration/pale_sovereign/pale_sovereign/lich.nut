@@ -94,3 +94,22 @@ S.addPrey <- function( _target )
     }
     effect.m.Turns = 2;
 };
+
+// 1.7.0 保命与减伤效果全部保留，但我方单位每次受击的减伤合计最多 50%（受到的伤害至少保留 50%）
+S.DamageFloor <- 0.5;
+S.Mod.hook("scripts/skills/skill_container", function(q)
+{
+    q.buildPropertiesForBeingHit = @(__original) function( _attacker, _skill, _hitinfo )
+    {
+        local properties = __original(_attacker, _skill, _hitinfo);
+        if (S.Battle == null || properties == null)
+            return properties;
+        local faction = this.getActor().getFaction();
+        if (faction != ::Const.Faction.Player && faction != ::Const.Faction.PlayerAnimals)
+            return properties;
+        local regular = ::Math.maxf(0.01, properties.DamageReceivedRegularMult);
+        if (properties.DamageReceivedTotalMult * regular < S.DamageFloor)
+            properties.DamageReceivedTotalMult = S.DamageFloor / regular;
+        return properties;
+    };
+});

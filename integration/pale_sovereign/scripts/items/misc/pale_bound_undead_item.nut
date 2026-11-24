@@ -42,7 +42,7 @@ this.pale_bound_undead_item <- ::inherit("scripts/items/item", {
             { id = 2, type = "description", text = this.getDescription() },
             { id = 66, type = "text", text = this.getValueString() },
             { id = 3, type = "image", image = this.getIcon() },
-            { id = 65, type = "text", icon = "ui/icons/special.png", text = "右键使用：收编为常驻亡灵（需要名册空位；亡灵冠军最多 3 名常驻亡灵）" }
+            { id = 65, type = "text", icon = "ui/icons/special.png", text = "右键使用：收编为常驻亡灵（需要名册空位）" }
         ];
         return ret;
     }

@@ -10,7 +10,7 @@ S.isActive <- function()
     return (kind == "table" || kind == "instance") && origin.getID() == this.ID;
 };
 
-// 名册 18 人、部署 10 人；立下亡灵天灾誓约后名册 20 人、部署 13 人
+// 1.7.0 两条路线名册都是 24 人；部署：未立誓 / 冠军 9 人，天灾 13 人，完成「禁忌的初窥」14 人，飞升 16 人
 S.applyRosterLimits <- function()
 {
     if (!("Assets" in ::World) || ::World.Assets == null)
@@ -18,7 +18,9 @@ S.applyRosterLimits <- function()
     local scourge = false;
     try { scourge = this.oath() == this.Oath.Scourge; } catch (e) { scourge = false; }
     ::World.Assets.m.BrothersMax = scourge ? this.ScourgeRosterLimit : this.RosterLimit;
-    ::World.Assets.m.BrothersMaxInCombat = scourge ? (this.ambitionDone("forbidden_glimpse") ? 16 : this.ScourgeCombatLimit) : this.CombatLimit;
+    local ascended = false;
+    try { ascended = this.get("Ascended") == 1; } catch (e) { ascended = false; }
+    ::World.Assets.m.BrothersMaxInCombat = !scourge ? this.CombatLimit : ascended ? 16 : this.ambitionDone("forbidden_glimpse") ? 14 : this.ScourgeCombatLimit;
 };
 
 S.get <- function( _key )
@@ -81,8 +83,8 @@ S.undead <- function()
 
 S.permanentUndeadLimit <- function()
 {
-    // 1.6.8 立誓前不再限制常驻亡灵（立下冠军誓约后上限 3，已有的保留）
-    return this.oath() == this.Oath.Champion ? this.ChampionUndeadLimit : null;
+    // 1.7.0 两条路线都不限制常驻亡灵数量，只受名册上限约束
+    return null;
 };
 
 S.reserveLimit <- function()
@@ -99,6 +101,9 @@ S.changeReserve <- function( _delta )
     this.set("Reserve", ::Math.min(this.reserveLimit(), before + _delta));
     return true;
 };
+
+// 1.7.0 其他模块追加的每日处理（world_state 每天第一次结算时调用）
+S.DailyHooks <- [];
 
 S.followerRank <- @(_key) 0;
 S.castleReserveBonus <- @() 0;

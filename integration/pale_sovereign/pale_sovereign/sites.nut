@@ -20,7 +20,17 @@ S.recordLegend <- function( _location )
 {
     local fileName = this.scriptBase(::IO.scriptFilenameByHash(_location.ClassNameHash));
     if (fileName in this.LegendSites)
-        this.set("Legend." + this.LegendSites[fileName], 1);
+        this.markLegend(this.LegendSites[fileName]);
+};
+
+// 1.7.0 每通关一处传奇地点（首次）固定得 2 枚古代魂玉
+S.markLegend <- function( _key )
+{
+    if (this.get("Legend." + _key) != 0)
+        return;
+    this.set("Legend." + _key, 1);
+    if (this.oath() != this.Oath.None)
+        this.pendingItem("misc/pale_jade_item", 2);
 };
 
 S.siteKey <- function( _tile )

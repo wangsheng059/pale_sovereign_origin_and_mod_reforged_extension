@@ -4,6 +4,10 @@ local S = ::PaleSovereign;
 S.LimbCost <- 4;
 S.GraftCost <- 6;
 S.GraftLimit <- 2;
+// 1.7.0 解剖师 / 炼金术士在队时各 −1 点（最低 2 点），见 living_bond.nut
+S.limbCost <- @() ::Math.max(2, this.LimbCost - this.anatomistDiscount());
+S.graftCost <- @() ::Math.max(2, this.GraftCost - this.anatomistDiscount());
+S.anatomistDiscount <- @() 0;
 S.EmbalmPageSize <- 4;
 S.EmbalmPage <- 0;
 S.EmbalmUnit <- 0;
@@ -149,10 +153,10 @@ S.limbRosterPanel <- function( _screen )
 {
     local units = this.limbTargets();
     _screen.Text = "防腐师把几具保存最好的尸骸摊在油布上，挑出完整的指骨、肋骨与筋肉，等着替换常驻亡灵身上那些早已朽坏的部分。"
-        + "\n\n（选一名常驻亡灵，消耗 " + this.LimbCost + " 点防腐尸骸，永久移除它的 1 个负面特质。防腐尸骸 " + this.get("Reserve") + " / " + this.reserveLimit() + "）";
+        + "\n\n（选一名常驻亡灵，消耗 " + this.limbCost() + " 点防腐尸骸，永久移除它的 1 个负面特质。防腐尸骸 " + this.get("Reserve") + " / " + this.reserveLimit() + "）";
     if (units.len() == 0)
         _screen.Text += "\n\n目前没有带负面特质的常驻亡灵。";
-    else if (this.get("Reserve") < this.LimbCost)
+    else if (this.get("Reserve") < this.limbCost())
         _screen.Text += "\n\n防腐尸骸不足。";
     else
         this.pagedUnits(_screen, units, this.EmbalmPage,
@@ -170,14 +174,14 @@ S.limbPickPanel <- function( _screen )
         this.option(_screen, "返回选择亡灵", @() "@limb_roster");
         return;
     }
-    _screen.Text = bro.getName() + " 静静躺在油布上，任由防腐师拆开它的躯壳。要替换掉哪一处朽坏？\n\n（消耗 " + this.LimbCost + " 点防腐尸骸，防腐尸骸 " + this.get("Reserve") + " 点）";
+    _screen.Text = bro.getName() + " 静静躺在油布上，任由防腐师拆开它的躯壳。要替换掉哪一处朽坏？\n\n（消耗 " + this.limbCost() + " 点防腐尸骸，防腐尸骸 " + this.get("Reserve") + " 点）";
     foreach (trait in this.negativeTraitsOf(bro))
     {
         local id = trait.getID();
         local name = trait.getName();
         this.option(_screen, "替换【" + name + "】", function()
         {
-            if (!bro.getSkills().hasSkill(id) || !S.changeReserve(-S.LimbCost))
+            if (!bro.getSkills().hasSkill(id) || !S.changeReserve(-S.limbCost()))
                 return "防腐尸骸不足，或这个特质已经不在了。";
             local skills = bro.getSkills();
             skills.removeByID(id);
@@ -188,7 +192,7 @@ S.limbPickPanel <- function( _screen )
             skills.update();
             ::World.State.updateTopbarAssets();
             return "防腐师剜掉朽坏的部分，把从尸骸上取下的骨肉嵌了进去，用浸过松脂的麻线一圈圈缝牢。魂火在新换的部位上停留了片刻，便接纳了它。\n\n（"
-                + bro.getName() + " 永久失去【" + name + "】。消耗 " + S.LimbCost + " 点防腐尸骸，剩余 " + S.get("Reserve") + " 点）";
+                + bro.getName() + " 永久失去【" + name + "】。消耗 " + S.limbCost() + " 点防腐尸骸，剩余 " + S.get("Reserve") + " 点）";
         });
     }
     this.option(_screen, "返回选择亡灵", @() "@limb_roster");
@@ -198,10 +202,10 @@ S.graftRosterPanel <- function( _screen )
 {
     local units = this.graftTargets();
     _screen.Text = "最好的料子从不拿去填坑。防腐师从库存里翻出几具骨相端正、筋肉完整的尸骸，打算拆下来，拼进一名常驻亡灵的躯壳。"
-        + "\n\n（选一名常驻亡灵，消耗 " + this.GraftCost + " 点防腐尸骸，随机获得 1 个它还没有、且与现有特质不冲突的正面亡灵特质。每名常驻亡灵限 " + this.GraftLimit + " 次。防腐尸骸 " + this.get("Reserve") + " / " + this.reserveLimit() + "）";
+        + "\n\n（选一名常驻亡灵，消耗 " + this.graftCost() + " 点防腐尸骸，随机获得 1 个它还没有、且与现有特质不冲突的正面亡灵特质。每名常驻亡灵限 " + this.GraftLimit + " 次。防腐尸骸 " + this.get("Reserve") + " / " + this.reserveLimit() + "）";
     if (units.len() == 0)
         _screen.Text += "\n\n目前没有还能拼装的常驻亡灵。";
-    else if (this.get("Reserve") < this.GraftCost)
+    else if (this.get("Reserve") < this.graftCost())
         _screen.Text += "\n\n防腐尸骸不足。";
     else
         this.pagedUnits(_screen, units, this.EmbalmPage,
@@ -209,7 +213,7 @@ S.graftRosterPanel <- function( _screen )
             function( bro )
             {
                 local picks = S.graftCandidates(bro);
-                if (picks.len() == 0 || S.graftCount(bro) >= S.GraftLimit || !S.changeReserve(-S.GraftCost))
+                if (picks.len() == 0 || S.graftCount(bro) >= S.GraftLimit || !S.changeReserve(-S.graftCost()))
                     return "防腐尸骸不足，或它已经无法再拼装。";
                 local trait = picks[::Math.rand(0, picks.len() - 1)];
                 bro.getSkills().add(trait);
@@ -217,7 +221,7 @@ S.graftRosterPanel <- function( _screen )
                 bro.getSkills().update();
                 ::World.State.updateTopbarAssets();
                 return "拆下的骨节与筋肉被一件件嵌进它的躯壳，防腐师用铜丝和松脂把接缝封死。魂火沿着新拼上的部位烧了一圈，像是在辨认，又像是在吞咽。\n\n（"
-                    + bro.getName() + " 获得【" + trait.getName() + "】。已拼装 " + S.graftCount(bro) + " / " + S.GraftLimit + " 次。消耗 " + S.GraftCost + " 点防腐尸骸，剩余 " + S.get("Reserve") + " 点）";
+                    + bro.getName() + " 获得【" + trait.getName() + "】。已拼装 " + S.graftCount(bro) + " / " + S.GraftLimit + " 次。消耗 " + S.graftCost() + " 点防腐尸骸，剩余 " + S.get("Reserve") + " 点）";
             });
     this.option(_screen, "合上油布", @() "@camp");
 };
@@ -227,8 +231,8 @@ S.campPanel = function( _event, _screen )
 {
     if (this.undead().len() > 0)
     {
-        this.option(_screen, "肢体替换 · " + this.LimbCost + " 点防腐尸骸移除 1 个负面特质", function() { S.EmbalmPage = 0; return "@limb_roster"; });
-        this.option(_screen, "优质拼装 · " + this.GraftCost + " 点防腐尸骸注入 1 个正面特质", function() { S.EmbalmPage = 0; return "@graft_roster"; });
+        this.option(_screen, "肢体替换 · " + this.limbCost() + " 点防腐尸骸移除 1 个负面特质", function() { S.EmbalmPage = 0; return "@limb_roster"; });
+        this.option(_screen, "优质拼装 · " + this.graftCost() + " 点防腐尸骸注入 1 个正面特质", function() { S.EmbalmPage = 0; return "@graft_roster"; });
     }
     return campPanelEmbalm.call(this, _event, _screen);
 };

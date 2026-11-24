@@ -1,6 +1,6 @@
 // 1.6.33 常驻亡灵大地图随机事件的共用类：正文、选项、权重与结果都在 pale_sovereign/undead_events.nut 的 S.UndeadEvents
 this.pale_undead_event <- ::inherit("scripts/events/event", {
-    m = { PaleKey = "", Target = null, Living = null, Town = null, Candidates = [], Message = "", Effects = [] },
+    m = { PaleKey = "", Target = null, Living = null, Town = null, Candidates = [], Message = "", Effects = [], Pools = null, Roles = null },
 
     function create()
     {
@@ -52,9 +52,17 @@ this.pale_undead_event <- ::inherit("scripts/events/event", {
     function paleCharacters()
     {
         local ret = [];
-        foreach (bro in [this.m.Target, this.m.Living])
-            if (bro != null && !::MSU.isNull(bro))
+        local seen = {};
+        local list = [this.m.Target, this.m.Living];
+        if (this.m.Roles != null)
+            foreach (role, bro in this.m.Roles)
+                list.push(bro);
+        foreach (bro in list)
+            if (bro != null && !::MSU.isNull(bro) && !(bro.getID() in seen) && ret.len() < 2)
+            {
+                seen[bro.getID()] <- true;
                 ret.push(bro.getImagePath());
+            }
         return ret;
     }
 
@@ -63,6 +71,7 @@ this.pale_undead_event <- ::inherit("scripts/events/event", {
         local S = ::PaleSovereign;
         this.m.Score = 0;
         this.m.Candidates = [];
+        this.m.Pools = {};
         if (!("UndeadEvents" in S) || !S.isActive() || S.chief() == null)
             return;
         try
@@ -93,10 +102,37 @@ this.pale_undead_event <- ::inherit("scripts/events/event", {
         if ("Living" in def && def.Living)
             this.m.Living = S.uevtLiving(def.LivingPrefer);
         this.m.Town = S.nearTown(30);
+        // 1.7.0 多角色事件：Score 时填好 m.Pools（角色 → 候选），这里为每个角色挑一个不重复的人
+        this.m.Roles = {};
+        if (this.m.Pools != null && "RoleOrder" in def)
+        {
+            local used = {};
+            foreach (role in def.RoleOrder)
+            {
+                if (!(role in this.m.Pools))
+                    continue;
+                local pool = this.m.Pools[role].filter(@(_, bro) !(bro.getID() in used));
+                if (pool.len() == 0)
+                    continue;
+                local bro = ::MSU.Array.rand(pool);
+                used[bro.getID()] <- true;
+                this.m.Roles[role] <- bro;
+            }
+            if ("MainRole" in def && def.MainRole in this.m.Roles)
+                this.m.Target = this.m.Roles[def.MainRole];
+        }
+    }
+
+    function role( _key )
+    {
+        return this.m.Roles != null && _key in this.m.Roles ? this.m.Roles[_key] : null;
     }
 
     function onPrepareVariables( _vars )
     {
+        if (this.m.Roles != null)
+            foreach (role, bro in this.m.Roles)
+                _vars.push([role, bro.getName()]);
         local name = this.m.Target == null ? "" : this.m.Target.getName();
         _vars.push(["zombie", name]);
         _vars.push(["skeleton", name]);
@@ -111,5 +147,7 @@ this.pale_undead_event <- ::inherit("scripts/events/event", {
         this.m.Town = null;
         this.m.Candidates = [];
         this.m.Effects = [];
+        this.m.Pools = null;
+        this.m.Roles = null;
     }
 });

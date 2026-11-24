@@ -76,6 +76,12 @@ this.pale_necromancer_background <- ::inherit("scripts/skills/backgrounds/bgp_ne
                 foreach (stat in ["HitpointsMult", "StaminaMult", "BraveryMult", "InitiativeMult", "MeleeSkillMult", "RangedSkillMult", "MeleeDefenseMult", "RangedDefenseMult"])
                     _properties[stat] *= 0.85;
             }
+            // 1.7.0 炼化后的虚弱：决心与疲劳上限 −15%，持续 2 天
+            if (::World.Flags.getAsFloat("Pale.RefineWeakUntil") > now)
+            {
+                _properties.BraveryMult *= 0.85;
+                _properties.StaminaMult *= 0.85;
+            }
             if (::World.Flags.getAsFloat("Pale.WhispersUntil") > now)
             {
                 foreach (stat in ["HitpointsMult", "StaminaMult", "BraveryMult", "InitiativeMult", "MeleeSkillMult", "RangedSkillMult", "MeleeDefenseMult", "RangedDefenseMult"])

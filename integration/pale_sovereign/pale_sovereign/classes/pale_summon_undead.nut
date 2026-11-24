@@ -58,8 +58,11 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         if (this.m.EliteExtraText != "")
             ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = this.m.EliteExtraText });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
+        local s = ::PaleSovereign;
+        if (s.isActive() && s.isChief(this.getContainer().getActor()))
+            ret.push({ id = 16, type = "text", icon = "ui/icons/special.png", text = "耗骸续召：用完后可再消耗 " + s.ExtraSummonCost + " 点防腐尸骸追加施放，每场共 " + s.extraSummonCap() + " 次（两种召唤共用），续召的仆从头、身各 +25 护甲" });
         if (this.m.Used)
-            ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = "本场已经使用过" });
+            ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = s.canExtraSummon(this.getContainer().getActor()) ? "本场已经使用过，可耗骸续召" : "本场已经使用过" });
         return ret;
     }
 
@@ -74,7 +77,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
 
     function isUsable()
     {
-        return !this.isHidden() && !this.m.Used && this.skill.isUsable();
+        return !this.isHidden() && (!this.m.Used || ::PaleSovereign.canExtraSummon(this.getContainer().getActor())) && this.skill.isUsable();
     }
 
     function onCombatStarted()
@@ -115,10 +118,15 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         if (!this.isUsable() || !_targetTile.IsEmpty)
             return false;
         local rank = this.getRank();
+        local extraCast = this.m.Used;
+        if (extraCast && !s.payExtraSummon(_user))
+            return false;
         local e = ::Tactical.spawnEntity([this.m.Script, this.m.MasteryScript, this.m.EliteScript][rank], _targetTile.Coords.X, _targetTile.Coords.Y);
         if (e == null)
             return false;
         this.m.Used = true;
+        if (extraCast)
+            e.getFlags().set("PaleExtraSummon", true);
         try { e.setFaction(::Const.Faction.PlayerAnimals); } catch (err) {}
         try { e.assignRandomEquipment(); } catch (err) {}
         local gear = [this.m.Gear, this.m.MasteryGear, this.m.EliteGear][rank];
@@ -170,6 +178,9 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
                     ::logError("[PaleSovereign] 召唤额外技能 " + script + ": " + err);
                 }
             }
+        if (extraCast)
+            s.addSummonPlating(e, 25);
+        s.onPaleSummoned(_user, e);
         e.getSkills().update();
         local art = this.m.ArtStem.slice("pale_".len()) + "_" + ::Math.rand(1, 3);
         try { s.playBattleArt(art, _targetTile, 28); } catch (err) {}

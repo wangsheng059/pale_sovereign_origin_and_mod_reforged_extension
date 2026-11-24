@@ -3,11 +3,11 @@
     Chief = "background.pale_necromancer",
     ChiefScript = "scripts/skills/backgrounds/pale_necromancer_background",
     ChiefName = "亡灵法师导师",
-    RosterLimit = 18,
-    CombatLimit = 10,
-    ScourgeRosterLimit = 20,
+    RosterLimit = 24,
+    CombatLimit = 9,
+    ScourgeRosterLimit = 24,
     ScourgeCombatLimit = 13,
-    ChampionUndeadLimit = 3,
+    ChampionUndeadLimit = null,
     ReserveLimit = 40,
     Oath = { None = 0, Champion = 1, Scourge = 2 },
     OathNames = ["尚未立誓", "亡灵冠军", "亡灵天灾"],
@@ -22,7 +22,7 @@
     SkillDir = "scripts/skills/"
 };
 
-::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.6.33", "亡灵主宰");
+::PaleSovereign.Mod <- ::Hooks.register("mod_pale_sovereign", "1.7.0", "亡灵主宰");
 ::PaleSovereign.Mod.require("mod_local_rules >= 1.6.9");
 ::Hooks.registerJS("ui/mods/pale_sovereign.js");
 ::Hooks.registerCSS("ui/mods/pale_sovereign.css");
@@ -30,11 +30,11 @@
 {
     if (!::BGP.HasAC)
         return;
-    foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "undead_lore", "guard_lore", "tier_data", "tier_ranged_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "tier_ranged_combat", "lich", "undead_events", "soulbound", "battle_art", "embalm_craft"])
+    foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "undead_lore", "guard_lore", "tier_data", "tier_ranged_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "tier_ranged_combat", "lich", "undead_events", "soulbound", "battle_art", "embalm_craft", "ledger_pages", "reserve_ops", "jade_ops", "chain_ops", "living_bond", "living_events"])
         ::include("pale_sovereign/" + file);
     ::include("pale_sovereign/formation_ai");
     if ("Stronghold" in ::getroottable())
-        foreach (file in ["stronghold", "castle_services", "castle_armor", "castle_siege", "castle_rites"])
+        foreach (file in ["stronghold", "castle_services", "castle_armor", "castle_siege", "castle_rites", "castle_forge"])
             ::include("pale_sovereign/" + file);
     if ("Conquest" in ::getroottable())
         foreach (file in ["conquest", "conquest_governor"])

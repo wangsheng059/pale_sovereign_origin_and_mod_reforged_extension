@@ -1,6 +1,8 @@
 local S = ::PaleSovereign;
 
 S.CurrentEvent <- "event.pale_sovereign_camp";
+// 1.7.0 荒坟守卫晋升尸妖王需要与导师并肩打赢 10 场
+S.GuardWinsNeeded <- 10;
 S.NextWorldCheck <- 0;
 
 S.openEvent <- function( _page )
@@ -89,15 +91,26 @@ S.worldEvent <- function()
         this.openEvent("smith");
     else if (!day && this.oath() == this.Oath.Champion && this.canCrown() && this.get("CrownDeferred") == 0)
         this.openEvent("crown");
-    else if (!day && this.oath() == this.Oath.Champion && this.canWhisper(this.mainPet()))
-        this.openEvent("whispers");
-    else if (!day && this.canLantern())
-        this.openEvent("lantern");
 };
 
 // 1.6.33 营地事件每 5 天最多一次（法杖蜕变不受限）
 S.StoryGapHours <- 120;
-S.StoryPages <- ["shovels", "crown", "empty", "smith", "whispers", "mortuary", "parts", "porter", "lantern", "dice", "apprentice"];
+S.StoryPages <- ["shovels", "crown", "empty", "smith", "mortuary"];
+
+// 1.7.0 改到大地图（原版随机事件池）触发的营地事件：返回权重，0 表示不触发
+S.WorldStories <- {
+    dice = function()
+    {
+        local pet = S.mainPet();
+        return S.get("Dice") == 0 && S.get("Victories") >= 2 && S.diceBrother() != null
+            && ((pet != null && pet.m.PaleID == S.get("StarterID")) || S.hasSkeleton()) ? 8 : 0;
+    },
+    porter = @() S.oath() == S.Oath.Scourge && S.get("Porter") == 0 && S.get("Reserve") >= 8 && S.porters().len() >= 2 ? 8 : 0,
+    parts = @() S.oath() == S.Oath.Scourge && S.get("Parts") == 0 && S.get("Reserve") >= 15 && S.undead().len() >= 2 ? 8 : 0,
+    apprentice = @() S.get("Apprentice") == 0 && ::World.getTime().Days >= 35 && S.chief().getHitpointsPct() < 0.95 ? 10 : 0,
+    lantern = @() !::World.getTime().IsDaytime && S.canLantern() ? 10 : 0,
+    whispers = @() !::World.getTime().IsDaytime && S.oath() == S.Oath.Champion && S.canWhisper(S.mainPet()) ? 10 : 0
+};
 S.storyReady <- function()
 {
     return this.worldHours() >= this.get("StoryAfter");
@@ -126,7 +139,7 @@ S.canCrown <- function()
     local pet = this.mainPet();
     return pet != null && this.get("Crown") == 0 && this.terrainForCrown()
         && (pet.m.PaleID == this.get("StarterID")
-            ? this.get("GuardWins") >= 5 && this.petGet(pet, "Promoted") != 0
+            ? this.get("GuardWins") >= S.GuardWinsNeeded && this.petGet(pet, "Promoted") != 0
             : this.petGet(pet, "Elite") != 0);
 };
 
@@ -157,26 +170,13 @@ S.campStory <- function()
             return "crown";
         if (this.canSmith())
             return "smith";
-        if (!::World.getTime().IsDaytime && this.canWhisper(pet))
-            return "whispers";
     }
     if (oath == this.Oath.Scourge)
     {
         local battle = this.localSite(2, true);
         if (battle != null && this.get("Reserve") <= 8 && this.get(battle.Key + "Mortuary") == 0 && this.get("MortuaryFinish") == 0)
             return "mortuary";
-        if (this.get("Parts") == 0 && this.get("Reserve") >= 15 && this.undead().len() >= 2)
-            return "parts";
-        if (this.get("Porter") == 0 && this.get("Reserve") >= 8 && this.porters().len() >= 2)
-            return "porter";
     }
-    if (this.get("Dice") == 0 && this.get("Victories") >= 2 && this.diceBrother() != null
-        && ((pet != null && pet.m.PaleID == this.get("StarterID")) || this.hasSkeleton()))
-    {
-        return "dice";
-    }
-    if (this.get("Apprentice") == 0 && ::World.getTime().Days >= 35 && chief.getHitpointsPct() < 0.95)
-        return "apprentice";
     return "camp";
 };
 
@@ -280,7 +280,7 @@ S.campPanel <- function( _event, _screen )
     {
         _screen.Text += "\n出战　" + (pet == null ? "空棺" : pet.m.Name + "（吞魂 " + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）")
             + "\n候补　" + (reserve == null ? "无" : reserve.m.Name)
-            + "\n荒坟守卫并肩胜仗　" + this.get("GuardWins") + " / 5";
+            + "\n荒坟守卫并肩胜仗　" + this.get("GuardWins") + " / " + S.GuardWinsNeeded;
     }
 
     if (this.castleHere() != null)
@@ -318,7 +318,7 @@ S.campPanel <- function( _event, _screen )
                 });
             }
         }
-        if (pet != null && pet.m.PaleID == this.get("StarterID") && this.get("GuardWins") >= 5 && this.petGet(pet, "Promoted") == 0 && jade >= 3)
+        if (pet != null && pet.m.PaleID == this.get("StarterID") && this.get("GuardWins") >= S.GuardWinsNeeded && this.petGet(pet, "Promoted") == 0 && jade >= 3)
             this.option(_screen, "用 3 枚古代魂玉将荒坟守卫晋升为尸妖王", function()
             {
                 if (S.countItems("misc.pale_jade") < 3)
@@ -327,14 +327,6 @@ S.campPanel <- function( _event, _screen )
                     S.removeMaterial("jade");
                 S.promoteGuard(pet);
                 return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：基础生命 150、决心 150、主动性 150、近战技能 80、近战防御 30，之前的成长保留；获得【号令亡魂】【冢王威压】和换位，在场时导师受到的伤害 −15%）";
-            });
-        if (pet != null && jade > 0)
-            this.option(_screen, "魂玉淬骨 · 1 枚古代魂玉，" + pet.m.Name + " 随机 4 项属性各 +2", function()
-            {
-                if (!S.removeMaterial("jade"))
-                    return null;
-                local names = S.temperPet(pet);
-                return "魂玉在你掌心碎成冰冷的碧粉，被一点点抹进冠军的骨缝。枯骨发出细密的爆响，比先前更沉、更硬。\n\n（" + names + "各 +2，累计淬骨 " + S.petGet(pet, "JadeTemper") + " 次）";
             });
         if (this.get("BannerReward") != 0 && pet != null && pet.m.PaleID == this.get("StarterID"))
             this.option(_screen, "授予荒坟守卫第三面残旗", function()
@@ -347,8 +339,6 @@ S.campPanel <- function( _event, _screen )
     }
     if (this.undead().len() > 0)
         this.option(_screen, "常驻亡灵升阶", function() { _event.m.TierPage = 0; return "@tier_roster"; });
-    if (oath == this.Oath.Scourge && jade > 0 && this.jadeTargets().len() > 0)
-        this.option(_screen, "魂玉点睛 · 用 1 枚古代魂玉强化一名常驻亡灵", @() "@jade");
     if (site != null && oath != this.Oath.None)
     {
         if (this.get(site.Key + "Inspected") == 0 && (site.Kind == 1 || oath == this.Oath.Scourge))
@@ -537,7 +527,7 @@ S.renderEvent <- function( _event, _screen )
                 title = "冠军之誓";
                 art = "oath_champion";
                 _screen.Text = "你在篝火旁坐到了后半夜。法杖横放在膝上，杖头的魂火一明一灭，像在等你开口。马车里那口旧棺比平日更安静，安静得近乎恭顺。\n\n你终于念出了那句誓词。不是向任何神祇，而是向棺中那具不肯腐朽的枯骨：从今往后，你不再驱使成群的死者，只锻造一尊冠军。你会用锁链去捕捉强者濒死时的残魂，把它们一缕缕抹进它的骨缝，直到它强得足以替你挡下世间所有的刀剑。誓言落定的一刻，另一条路在你心里无声地塌了下去，再也回不去了。"
-                    + "\n\n（立下【亡灵冠军】誓约，另一条路线的独有特技永久封闭，死灵精通仍可学习。缚魂锁链可在战场标记濒死强敌，胜利后为冠军注魂、吞魂或承誓；冠军路线最多 3 名常驻亡灵；古代魂玉可为冠军淬骨、晋升荒坟守卫；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为骸骨权杖。）";
+                    + "\n\n（立下【亡灵冠军】誓约，另一条路线的独有特技永久封闭，死灵精通仍可学习。缚魂锁链可在战场标记濒死强敌，胜利后为冠军注魂、吞魂或承誓；常驻亡灵数量只受名册限制，冠军路线每场最多部署 9 人；古代魂玉可为冠军铭刻、灵阶突破、晋升荒坟守卫；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为骸骨权杖。）";
                 this.option(_screen, "“它会是我唯一的剑。”", @() null);
             }
             else
@@ -545,7 +535,7 @@ S.renderEvent <- function( _event, _screen )
                 title = "天灾之誓";
                 art = "oath_scourge";
                 _screen.Text = "你把法杖插进营地边的冻土，对着荒野里看不见尽头的黑暗低声立誓。没有冠军，没有王座，也不需要谁来替你挡刀——你要的是数量，是潮水，是让每一片战场都在你身后重新站起来的死者。\n\n誓词出口时，四周的风忽然停了。盗墓贼放下铲子，不安地望向远处的坟岗；马车里的盐封裹尸布轻轻鼓动，像是底下有什么东西翻了个身。你知道，从这一夜起，你走过的每一处战场都会成为你的兵源，而另一条路已经永远关上了门。"
-                    + "\n\n（立下【亡灵天灾】誓约，另一条路线的独有特技永久封闭，死灵精通仍可学习。名册上限 " + ::World.Assets.getBrothersMax() + " 人、每场部署 " + ::World.Assets.getBrothersMaxInCombat() + " 人；全队可投掷防腐尸骸作尸弹；常驻亡灵数量只受名册限制；古代魂玉可为常驻亡灵点睛，营地可炼化 6 级以上常驻亡灵换取魂玉；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为千魂法杖。）";
+                    + "\n\n（立下【亡灵天灾】誓约，另一条路线的独有特技永久封闭，死灵精通仍可学习。名册上限 " + ::World.Assets.getBrothersMax() + " 人、每场部署 " + ::World.Assets.getBrothersMaxInCombat() + " 人；全队可投掷防腐尸骸作尸弹；常驻亡灵数量只受名册限制；古代魂玉可册封魂玉统领、为锁魂者破限，营地可炼化 6 级以上常驻亡灵换取魂玉；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为千魂法杖。）";
                 this.option(_screen, "“让死者涨潮。”", @() null);
             }
             break;
@@ -577,14 +567,14 @@ S.renderEvent <- function( _event, _screen )
             local soul = species > 0 && species < this.Souls.len() ? this.Souls[species] : null;
             _screen.Text = "硝烟尚未散尽，" + flags.get("Pale.SoulName") + " 残破的遗骸仍躺在血泊之中，缠绕其上的黑铁锁链正发出急促而尖锐的嗡鸣。马车里的旧棺随之剧烈震颤，" + pet.m.Name + " 仿佛闻到了某种令它渴望已久的古老气息。\n\n趁这缕残魂尚未彻底消散，你握紧法杖，决定如何将其彻底榨干并注入冠军体内。（选定注魂方式后消耗 1 条缚魂锁链）";
             local gain = this.isAscended() && this.oath() == this.Oath.Champion ? 2 : 1;
-            this.option(_screen, "强化躯体 · 随机 4 项属性各 +" + gain, @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
+            this.option(_screen, "强化躯体 · " + S.soulBodyText(), @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
             if (soul != null && this.canDevour(pet))
-                this.option(_screen, "吞魂 · 获得【" + soul.Name + "】：" + soul.Desc, @() S.resolveSoul("soul") ? "一缕残魂沉入冠军的躯体。（获得【" + soul.Name + "】）" : "这次注魂未完成。");
+                this.option(_screen, "吞魂 · 获得【" + soul.Name + "】：" + soul.Desc, @() S.resolveSoul("soul") ? "一缕残魂沉入冠军的躯体。（获得【" + soul.Name + "】）" + S.soulJadeText() : "这次注魂未完成。");
             else if (soul != null && this.petGet(pet, "Species." + species) != 0)
                 _screen.Text += "\n\n该冠军已拥有【" + soul.Name + "】。";
             else
                 _screen.Text += "\n\n该冠军的吞魂次数已满（" + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）。";
-            this.option(_screen, "承誓 · 继承冠军加成及具名武器", @() S.resolveSoul("inherit") ? "冠军接过亡者的誓言与武艺。" : "这次注魂未完成。");
+            this.option(_screen, "承誓 · 继承冠军加成及具名武器", @() S.resolveSoul("inherit") ? "冠军接过亡者的誓言与武艺。" + S.soulJadeText() : "这次注魂未完成。");
             this.option(_screen, "放走残魂，保留锁链", function() { S.set("PendingSoul", 0); return null; });
             break;
 
@@ -723,17 +713,8 @@ S.renderEvent <- function( _event, _screen )
                         return "仓库没有空位。";
                     assets.addMoney(-price);
                     assets.addArmorParts(-10);
-                    S.set("SmithAfter", S.worldHours() + 240);
+                    S.set("SmithAfter", S.worldHours() + S.smithCooldownHours());
                     return "铁匠拉上铺门，叮叮当当忙活了半宿。天亮时，一条沉重冰冷的黑铁锁链被油布包着塞进了你的马车。\n\n（消耗 " + price + " 金币与 10 点工具，获得 1 条缚魂锁链；墓土生铁用完了，10 天内不会再有铁匠接这种活）";
-                });
-            if (this.countItems("misc.pale_jade") > 0)
-                this.option(_screen, "“这块古代魂玉归你，给我打两条锁链。”", function()
-                {
-                    if (!S.addMaterials("chain", 2))
-                        return "仓库需要两个空位。";
-                    S.removeMaterial("jade");
-                    S.set("SmithAfter", S.worldHours() + 240);
-                    return "铁匠接过魂玉对着油灯照了照，嘴角咧开一个贪婪的弧度，二话不说便从炉底拖出了两条早已备好的上等锁链。\n\n（消耗 1 枚古代魂玉，获得 2 条缚魂锁链）";
                 });
             this.option(_screen, "“太贵了，我还不缺这东西。”", function()
             {
@@ -824,7 +805,7 @@ S.renderEvent <- function( _event, _screen )
                 foreach (bro in S.undead())
                     bro.setHitpointsPct(1.0);
                 foreach (bro in S.humans())
-                    bro.worsenMood(0.75, "受不了缝合台的气味");
+                    S.undeadMood(bro, 0.75, "受不了缝合台的气味");
                 S.set("StenchUntil", S.worldHours() + 48);
                 S.set("Parts", 1);
                 return "你动作麻利地替所有受损的亡灵缝合了裂口，省下了珍贵的储备，代价是整座营地接下来两天都弥漫着令人作呕的酸臭味。\n\n（不消耗储备，常驻亡灵的生命全部补满；活人兄弟 2 天内心情下降）";
@@ -970,13 +951,14 @@ S.renderEvent <- function( _event, _screen )
             this.option(_screen, "“尘世的清算尚未结束，我还不能离开。”", function()
             {
                 S.set("Ascended", 1);
+                S.applyRosterLimits();
                 chief.setTitle("苍白主宰");
                 chief.getBaseProperties().Bravery += 10;
                 chief.getSkills().update();
                 local route = S.oath() == S.Oath.Champion
-                    ? "冠军吞魂上限 +1，缚魂锁链可标记生命不高于 50% 的目标，“强化躯体”改为随机 4 项属性各 +2"
+                    ? "冠军吞魂上限 +1、魂玉铭刻上限 +1，缚魂锁链可标记生命不高于 50% 的目标，“强化躯体”改为固定 3 项属性各 +4"
                     : S.oath() == S.Oath.Scourge
-                        ? "所有常驻亡灵与复活单位 +20 生命、+10% 伤害，防腐尸骸上限提至 " + S.reserveLimit()
+                        ? "所有常驻亡灵与复活单位 +20 生命、+10% 伤害，防腐尸骸上限提至 " + S.reserveLimit() + "，每场最多部署 16 人；魂玉统领上限 4 名，术法淬玉可同时 2 种，炼化不再虚弱"
                         : "尚未立誓，路线加成在立誓后生效";
                 return "你没有念出那句彻底割裂尘世的真名。相反，在法阵的光芒攀升至顶峰的刹那，你猛然收紧五指，将那股足以让寻常凡人瞬间化作飞灰的磅礴神性洪流，硬生生压回了这具残破却熟悉的躯壳之中。狂暴的幽蓝魂火顺着你的血脉疯狂奔涌，骨骼在令人牙酸的脆响中重铸，衰老与疲惫被彻底逐出体外，原本跳动的心脏在胸腔里归于死一般的沉寂，取而代之的是一团永不熄灭的苍白冷焰。法阵渐渐暗淡，群星重新浮现，而你依然稳稳立在这片沾满泥泞与血污的大地之上。你亲手推开了触手可及的神座，只因尘世的清算尚未结束，那些高傲的领主、伪善的圣职与隐匿在暗处的强敌，还配不上你仓促离场。自今夜起，你不再是凡人，而是行走于人间的【苍白主宰】。\n\n（导师获得称号【苍白主宰】，永久 +10 决心、每回合额外恢复 3 点疲劳；" + route + "）";
             });

@@ -284,14 +284,18 @@ mod.hook("scripts/states/world/asset_manager", function(q)
         {
             S.castleDaily();
             S.conquestDay();
+            foreach (hook in S.DailyHooks)
+            {
+                try { hook.call(S); } catch (e) { ::logError("[PaleSovereign] daily hook: " + e); }
+            }
         }
 
         if (this.m.LastDayPaid != dayBefore && S.get("StenchUntil") > S.worldHours())
             foreach (bro in S.humans())
-                bro.worsenMood(0.35, "受不了缝合台的气味");
+                S.undeadMood(bro, 0.35, "受不了缝合台的气味");
 
         local now = ::World.getTime().Days + ::World.getTime().Hours / 24.0;
-        foreach (key in ["RitualUntil", "WhispersUntil"])
+        foreach (key in ["RitualUntil", "WhispersUntil", "RefineWeakUntil"])
         {
             local ends = ::World.Flags.getAsFloat("Pale." + key);
             if (ends > 0 && now >= ends)
@@ -513,7 +517,7 @@ mod.hook("scripts/entity/tactical/actor", function(q)
             if (battle.Death.Champion)
                 ++battle.Champions;
             if (fileName == "trickster_god")
-                S.set("Legend.Hunt", 1);
+                S.markLegend("Hunt");
         }
         try
         {

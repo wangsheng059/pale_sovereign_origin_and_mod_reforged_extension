@@ -175,8 +175,14 @@ S.onVictory <- function( _loot )
         ::World.Assets.addArmorParts(8);
         ::Tactical.EventLog.log("从巡逻队的遗物里搜刮出 8 点工具。");
     }
-    if (this.Battle.Champions > 0 && this.oath() != this.Oath.None && ::Math.rand(1, 100) <= 50 && this.addMaterials("jade", 1))
-        ::Tactical.EventLog.log("冠军的遗骸里滚出一枚冰冷的古代魂玉。");
+    // 1.7.0 击杀敌方冠军（带冠军标记）：每击杀一名 80% 得 1 枚魂玉，两条路线通用
+    local jadeDrops = 0;
+    if (this.oath() != this.Oath.None)
+        for (local i = 0; i < this.Battle.Champions; ++i)
+            if (::Math.rand(1, 100) <= 80 && this.addMaterials("jade", 1))
+                ++jadeDrops;
+    if (jadeDrops > 0)
+        ::Tactical.EventLog.log("冠军的遗骸里滚出 " + jadeDrops + " 枚冰冷的古代魂玉。");
 
     // 1.6.15：逐格扫描整张地图（不再依赖 Tactical.Entities.m.Corpses 和击杀瞬间的记录），
     // 合格与否按尸体自身的阵营和生前种类在结算时判断
@@ -187,6 +193,7 @@ S.onVictory <- function( _loot )
     // 1.6.33 常驻亡灵事件用：上一场胜仗的时间，以及敌方里有没有人类、兽人或亡灵
     this.set("LastVictoryHour", this.worldHours());
     local humanoid = this.Battle.HumanKills > 0;
+    local eliteUndead = false;
     foreach (tile in this.battleCorpseTiles())
     {
         local corpse = ::BGP.Necro.getCorpse(tile);
@@ -197,7 +204,11 @@ S.onVictory <- function( _loot )
             humanoid = true;
         local reason = this.harvestReject(corpse);
         if (reason == null)
+        {
             corpses[tile.ID] <- true;
+            if (!eliteUndead && this.isEliteUndeadCorpse(corpse))
+                eliteUndead = true;
+        }
         else
             ++stats[reason];
         if (mark != null && "PaleSoul" in corpse && corpse.PaleSoul == mark.Target && corpse.IsHeadAttached)
@@ -209,10 +220,18 @@ S.onVictory <- function( _loot )
         // 复活技能拉起来的遗骸照样算一具（复活时记下，见 hooks.nut）
         local total = corpses.len() + this.Battle.RaisedHarvest;
         local before = this.get("Reserve");
-        local embalmer = this.followerRank("embalmer") > 0;
-        this.changeReserve(embalmer ? (total * 2 / 3).tointeger() : (total / 2).tointeger());
+        // 1.7.0 天灾路线每 2 具 1 点（防腐师每 3 具 2 点）；冠军路线每 5 具 2 点（防腐师每 2 具 1 点）；向下取整
+        local rate = this.harvestRate();
+        local harvestYield = (total * rate[0] / rate[1]).tointeger();
+        if (harvestYield > 0 || total > 0)
+            harvestYield += this.graverobberHarvestBonus();
+        this.changeReserve(harvestYield);
         local gathered = this.get("Reserve") - before;
-        this.Battle.Uncollected = ::Math.max(0, corpses.len() - (embalmer ? ::Math.ceil(gathered * 1.5) : gathered * 2));
+        local used = ::Math.ceil(::Math.min(gathered, (total * rate[0] / rate[1]).tointeger()) * rate[1].tofloat() / rate[0]);
+        this.Battle.Uncollected = ::Math.max(0, corpses.len() - used);
+        // 1.7.0 天灾路线：采集到精锐亡灵的尸体时 50% 得 1 枚魂玉（每场最多 1 枚）
+        if (eliteUndead && this.oath() == this.Oath.Scourge && ::Math.rand(1, 100) <= 50 && this.addMaterials("jade", 1))
+            ::Tactical.EventLog.log("精锐亡灵的骸骨里藏着一枚古代魂玉。");
         this.set("LastHarvest", gathered);
         this.set("LastCorpseCount", total);
         this.set("HarvestArtStep", (this.get("HarvestArtStep") + 1) % 4);
@@ -240,6 +259,32 @@ S.onVictory <- function( _loot )
         this.saveSoul(mark);
     this.followerVictory();
     this.followerLoot(_loot);
+    foreach (hook in this.VictoryHooks)
+    {
+        try { hook.call(this); } catch (e) { ::logError("[PaleSovereign] victory hook: " + e); }
+    }
+};
+
+// 1.7.0 其他模块在胜利结算末尾追加的处理
+S.VictoryHooks <- [];
+
+S.harvestRate <- function()
+{
+    local embalmer = this.followerRank("embalmer") > 0;
+    if (this.oath() == this.Oath.Scourge)
+        return embalmer ? [2, 3] : [1, 2];
+    return embalmer ? [1, 2] : [2, 5];
+};
+
+// 后勤：盗墓贼 / 掘墓人每名 +1 点，最多 +2（见 living_bond.nut）
+S.graverobberHarvestBonus <- @() 0;
+
+S.isEliteUndeadCorpse <- function( _corpse )
+{
+    local info = ::BGP.Necro.getInfo(_corpse);
+    if (info == null || !("Script" in info) || info.Script == null)
+        return false;
+    return this.isTameEliteScript(info.Script) || this.soulClassOfScript(info.Script) != null;
 };
 
 local undeadSpriteVariants = [

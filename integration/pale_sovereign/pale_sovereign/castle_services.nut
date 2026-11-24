@@ -241,7 +241,7 @@ S.castleAnvil <- function( _town )
     }
     assets.addMoney(-200);
     assets.addArmorParts(-10);
-    flags.set("PaleAnvilAfter", this.worldHours() + 240);
+    flags.set("PaleAnvilAfter", this.worldHours() + this.smithCooldownHours());
     return "消耗 200 克朗、10 工具和 1 块铜锭，打出一条缚魂锁链。";
 };
 
