@@ -1,11 +1,11 @@
-// 1.7.7 尸妖王在场时，导师每回合首次受击伤害 −12（最低 1），并免疫爆头额外伤害与击退抓取
+// 1.7.7 尸妖王在场时，导师每回合首次受击伤害 −20（最低 1），并免疫爆头额外伤害与击退抓取
 this.pale_lich_ward_effect <- ::inherit("scripts/skills/skill", {
     m = { Lich = null, UsedRound = -1, Pending = false },
     function create()
     {
         this.m.ID = "effects.pale_lich_ward";
         this.m.Name = "冢王护持";
-        this.m.Description = "尸妖王仍立在战场上，冰冷的魂火绕在导师身侧。只要它还在场，导师每回合首次受到敌方攻击时生命与护甲伤害各 −12（最低保留 1 点），并免疫爆头额外伤害与击退、抓取。";
+        this.m.Description = "尸妖王仍立在战场上，冰冷的魂火绕在导师身侧。只要它还在场，导师每回合首次受到敌方攻击时生命与护甲伤害各 −20（最低保留 1 点），并免疫爆头额外伤害与击退、抓取。";
         this.m.Icon = "skills/pale_lich_ward_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;

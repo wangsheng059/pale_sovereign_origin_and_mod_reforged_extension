@@ -1,7 +1,7 @@
 local S = ::PaleSovereign;
 
-// 1.7.7 尸妖王：放出时获得号令亡魂、冢王威压、换位；在场时导师每回合首次受击伤害 −12 并免疫爆头额外伤害与击退抓取
-S.LichWardFlat <- 12;
+// 1.7.7 尸妖王：放出时获得号令亡魂、冢王威压、换位；在场时导师每回合首次受击伤害 −20 并免疫爆头额外伤害与击退抓取
+S.LichWardFlat <- 20;
 
 S.applyLichSkills <- function( _entity, _chief )
 {
