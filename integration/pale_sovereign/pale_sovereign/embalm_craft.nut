@@ -14,17 +14,17 @@ S.EmbalmUnit <- 0;
 
 // 临时秘仪：Single / All 为指定 1 名 / 全体常驻亡灵的花费，Battles 为参战场数
 S.Rites <- [
-    { Key = "armor", Name = "厚骨覆甲", Single = 3, All = 6, Battles = 3,
+    { Key = "armor", Icon = "skills/pale_rite_armor.png", Name = "厚骨覆甲", Single = 3, All = 6, Battles = 3,
         Effect = "每场战斗开局头部与身体各获得 +40 临时护甲（先于装备承受伤害，战后消失）；战斗全程受到攻击的穿甲比例减少 15 个百分点（如 30% → 15%），免疫爆头额外伤害" },
-    { Key = "infuse", Name = "死气灌注", Single = 4, All = 8, Battles = 3,
+    { Key = "infuse", Icon = "skills/pale_rite_infuse.png", Name = "死气灌注", Single = 4, All = 8, Battles = 3,
         Effect = "开局获得 3 层【充盈死气】。近战或远程攻击命中敌人时消耗 1 层，额外造成 8 + 导师决心 × 10% 点无视护甲伤害，目标疲劳 +10 并进行一次低难度士气检定" },
-    { Key = "poison", Name = "恶臭涂抹", Single = 3, All = 6, Battles = 3,
+    { Key = "poison", Icon = "skills/pale_rite_poison.png", Name = "恶臭涂抹", Single = 3, All = 6, Battles = 3,
         Effect = "近战或远程命中活人敌人时附加 2 回合【尸毒】：行动点 −2，每回合疲劳恢复 −5" },
-    { Key = "imprint", Name = "残忆拓印", Single = 2, All = 4, Battles = 3,
+    { Key = "imprint", Icon = "skills/pale_rite_imprint.png", Name = "残忆拓印", Single = 2, All = 4, Battles = 3,
         Effect = "战斗经验 +40%；1–6 级的常驻亡灵再 +20%（共 +60%）" },
-    { Key = "fumigate", Name = "尸脂熏蒸", Single = 3, All = 6, Battles = 3,
+    { Key = "fumigate", Icon = "skills/pale_rite_fumigate.png", Name = "尸脂熏蒸", Single = 3, All = 6, Battles = 3,
         Effect = "远程防御 +15；免疫火焰（燃烧地面、燃烧瓶等燃烧伤害）与酸液（酸液瓶、林德蠕龙酸液）；自己回合开始和结束时，在相邻敌人脚下铺开持续 2 回合的【苍白冷焰】（只灼伤活人敌人，在其中结束回合受到 15–30 点火焰伤害）" },
-    { Key = "tendon", Name = "韧筋接驳", Single = 2, All = 4, Battles = 3,
+    { Key = "tendon", Icon = "skills/pale_rite_tendon.png", Name = "韧筋接驳", Single = 2, All = 4, Battles = 3,
         Effect = "获得探路者的移动消耗；已有探路者时每格行动点再 −1（最低 1）、疲劳再减半；免疫击退与抓取；挣脱投网、藤蔓等的行动点消耗减半" }
 ];
 
@@ -246,7 +246,7 @@ S.renderEvent = function( _event, _screen )
     if (this.EmbalmScreens.find(_screen.ID) == null)
         return renderEmbalm.call(this, _event, _screen);
     local title = "防腐工坊";
-    local art = "mortuary";
+    local art = "reserve_workshop";
     if (_screen.ID == "limb_roster" || _screen.ID == "limb_pick")
     {
         title = "肢体替换";
@@ -263,7 +263,7 @@ S.renderEvent = function( _event, _screen )
     else
     {
         title = "古堡";
-        art = "fort_tombs";
+        art = "reserve_salt";
         if ("castlePanel" in S)
             this.castlePanel(_screen);
         else
@@ -322,9 +322,7 @@ S.onApplyColdfire <- function( _tile, _entity )
 {
     if (!::PaleSovereign.coldfireCanBurn(_entity) || _entity.getCurrentProperties().IsImmuneToFire)
         return;
-    ::Tactical.spawnIconEffect("status_effect_116", _tile, ::Const.Tactical.Settings.SkillIconOffsetX, ::Const.Tactical.Settings.SkillIconOffsetY,
-        ::Const.Tactical.Settings.SkillIconScale, ::Const.Tactical.Settings.SkillIconFadeInDuration, ::Const.Tactical.Settings.SkillIconStayDuration,
-        ::Const.Tactical.Settings.SkillIconFadeOutDuration, ::Const.Tactical.Settings.SkillIconMovement);
+    ::PaleSovereign.playBattleArt("coldfire", _tile, 8, 1.0);
     local damage = ::Math.rand(15, 30);
     local hit = clone ::Const.Tactical.HitInfo;
     hit.DamageRegular = damage * _entity.getCurrentProperties().DamageReceivedFireMult;
@@ -367,10 +365,7 @@ S.spawnColdfire <- function( _tile )
             return ::PaleSovereign.coldfireCanBurn(_a);
         }
     };
-    local particles = [];
-    foreach (fx in ::Const.Tactical.FireParticles)
-        particles.push({ Entity = true, Brushes = fx.Brushes, Tile = _tile, Delay = fx.Delay, Quantity = fx.Quantity,
-            Lifetime = fx.LifeTimeQuantity, Rate = fx.SpawnRate, Stages = fx.Stages });
+    local particles = this.makeFieldParticles(_tile, "coldfire", ::Const.Tactical.FireParticles);
     ::Tactical.State.spawnEffectOnTile(_tile, "pale_coldfire", coldfire, particles);
 };
 

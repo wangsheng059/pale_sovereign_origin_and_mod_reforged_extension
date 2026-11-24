@@ -7,7 +7,7 @@ this.pale_marrow_paste_item <- ::inherit("scripts/items/item", {
         this.m.ID = "misc.pale_marrow_paste";
         this.m.Name = "急救骨髓膏";
         this.m.Description = "防腐尸骸熬出的骨髓与粗盐、松脂调成的黑膏，抹在亡灵的裂口上，能让断骨与烂肉重新咬合。";
-        this.m.Icon = "consumables/bandages_01.png";
+        this.m.Icon = "consumables/pale_marrow_paste.png";
         this.m.SlotType = ::Const.ItemSlot.Bag;
         this.m.ItemType = ::Const.Items.ItemType.Misc;
         this.m.IsAllowedInBag = true;

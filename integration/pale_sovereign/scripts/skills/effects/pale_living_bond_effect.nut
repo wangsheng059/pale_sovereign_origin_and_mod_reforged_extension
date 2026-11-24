@@ -9,11 +9,30 @@ this.pale_living_bond_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_living_bond";
         this.m.Name = "生死同袍";
+        this.m.Icon = "skills/pale_living_bond_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;
         this.m.IsStacking = false;
         this.m.IsHidden = true;
+    }
+
+    function onTargetHit( _skill, _targetEntity, _bodyPart, _damageInflictedHitpoints, _damageInflictedArmor )
+    {
+        local S = ::PaleSovereign;
+        local actor = this.getContainer().getActor();
+        if (S.Battle == null || !S.isUndead(actor) || _skill == null || !_skill.isAttack() || _skill.isRanged())
+            return;
+        if (this.hasConfidentNeighbour(actor))
+            S.playActorArt("living_bond", actor, 24, 0.86);
+    }
+
+    function hasConfidentNeighbour( _actor )
+    {
+        foreach (other in ::PaleSovereign.neighbours(_actor))
+            if (!other.getFlags().has("undead") && other.getMoraleState() == ::Const.MoraleState.Confident)
+                return true;
+        return false;
     }
 
     function residentsOnField()
@@ -83,11 +102,7 @@ this.pale_living_bond_effect <- ::inherit("scripts/skills/skill", {
         local actor = this.getContainer().getActor();
         if (S.Battle == null || !S.isUndead(actor) || _skill == null || !_skill.isAttack() || _skill.isRanged())
             return;
-        foreach (other in S.neighbours(actor))
-            if (!other.getFlags().has("undead") && other.getMoraleState() == ::Const.MoraleState.Confident)
-            {
-                _properties.MeleeSkill += 5;
-                return;
-            }
+        if (this.hasConfidentNeighbour(actor))
+            _properties.MeleeSkill += 5;
     }
 });

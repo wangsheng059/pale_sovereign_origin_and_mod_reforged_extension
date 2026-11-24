@@ -541,11 +541,8 @@ S.spawnJadeMiasma <- function( _tile )
             return ::PaleSovereign.coldfireCanBurn(_a);
         }
     };
-    local particles = [];
     local source = "MiasmaParticles" in ::Const.Tactical ? ::Const.Tactical.MiasmaParticles : ::Const.Tactical.FireParticles;
-    foreach (fx in source)
-        particles.push({ Entity = true, Brushes = fx.Brushes, Tile = _tile, Delay = fx.Delay, Quantity = fx.Quantity,
-            Lifetime = fx.LifeTimeQuantity, Rate = fx.SpawnRate, Stages = fx.Stages });
+    local particles = this.makeFieldParticles(_tile, "miasma_ground", source);
     ::Tactical.State.spawnEffectOnTile(_tile, "pale_jade_miasma", miasma, particles);
 };
 

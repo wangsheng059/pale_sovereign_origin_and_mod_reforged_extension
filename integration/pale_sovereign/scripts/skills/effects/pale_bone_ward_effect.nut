@@ -6,7 +6,7 @@ this.pale_bone_ward_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_bone_ward";
         this.m.Name = "玉骨盾";
         this.m.Description = "千魂法杖的回响在新唤起的骨肉外凝成一层碧色的骨盾。伤害 +15%，头、身各多 30 点护甲。";
-        this.m.Icon = "skills/pale_guard_shield.png";
+        this.m.Icon = "skills/pale_bone_ward_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

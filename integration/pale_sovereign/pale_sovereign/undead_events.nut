@@ -229,7 +229,7 @@ S.isArcher <- function( _bro )
 S.UndeadEvents <- {};
 
 S.UndeadEvents.zombie_rain_bloat <- {
-    Title = "雨季的发胀", Image = "mortuary", Cooldown = 5,
+    Title = "雨季的发胀", Image = "undead_rain_bloat", Cooldown = 5,
     Text = "连续几日的阴湿水汽像针一样扎进了骨缝里。行军停歇时，一股甜腻得令人反胃的酸腐味顺着风飘进营地，几名活人弟兄捂着口鼻骂骂咧咧地退到了上风口。你拎着骨杖走过去，只见%zombie%正僵立在泥泞里，原本靠粗盐和松脂绷紧的皮囊如今吸饱了湿气，肿得像一头在河底泡了半个月的死猪。\n\n它皮下的暗绿汁液正顺着旧缝线往外渗，肩窝和肘弯鼓起一个个透亮的水泡，随着僵硬的动作微微发颤。一群绿头苍蝇绕着它的下巴打转，一只肥硕的蛆虫甚至从它眼角慢吞吞地爬了出来。%zombie%对此毫无察觉，听见你的脚步声，便咔哒一声转过头，浑浊的眼珠直勾勾地等着号令。\n\n几名活人已经开始在树丛边干呕。再放任这身腐肉泡下去，不等上战场，它的胳膊怕是自己就得烂断在泥潭里。你掂了掂手里的工具袋，盘算着该拿这具发胀的尸体怎么办。",
     Score = function( _event )
     {
@@ -292,7 +292,7 @@ S.UndeadEvents.zombie_rain_bloat <- {
 };
 
 S.UndeadEvents.zombie_endless_hunger <- {
-    Title = "无底的空腹", Image = "porter", Cooldown = 10, Living = true, LivingPrefer = false,
+    Title = "无底的空腹", Image = "undead_endless_hunger", Cooldown = 10, Living = true, LivingPrefer = false,
     Text = "后半夜的营火刚塌成一堆暗红的炭灰，值夜的%living%便提着火把冲进帐篷，脸色白得像刚咽气。他压低声音说粮车那边有动静，既不像耗子，也不像偷粮的野狗。你抓起骨杖跟着过去，刚绕过驴车，便听见一阵令人牙酸的湿滑咀嚼声。\n\n火光一晃，%zombie%正跪在掀翻的麻袋堆里，双手死死抓着半条风干肉和发硬的黑面包，不管不顾地往嘴里猛塞。它早就没了胃袋，嚼得稀烂的肉渣和面团顺着咽喉滑进胸腔，又从腹部一道没缝严实的旧裂口扑簌簌掉回泥地里。可它浑然不觉，低下头又用发青的手指把沾泥的碎块捏起来，继续往嘴里填。\n\n死灵术能攥住尸体的筋骨，却未必抹得净临死前的执念——它生前多半是活活饿毙在路沟里的。%living%握紧腰间的短剑，低声问要不要给它来上一记狠的，免得明早大家只能啃泥巴。",
     Score = function( _event )
     {
@@ -342,7 +342,7 @@ S.UndeadEvents.zombie_endless_hunger <- {
 };
 
 S.UndeadEvents.zombie_familiar_face <- {
-    Title = "泥垢下的熟面孔", Image = "lantern", Cooldown = 10, Living = true, LivingPrefer = true,
+    Title = "泥垢下的熟面孔", Image = "undead_familiar_face", Cooldown = 10, Living = true, LivingPrefer = true,
     Text = "队伍顺着泥路绕过%townname%外的驿站时，阵雨恰好停了。水珠顺着头盔檐往下滴，把%zombie%左脸上糊了半个月的灰泥冲掉了一大片，露出一道豁开的断眉，以及左手无名指上死死卡进肿肉里的一枚旧铜戒。\n\n走在队列中段的%living%突然像踩了捕兽夹一样定在原地，手里的长矛差点滑脱。他盯着那具行尸的侧脸看了足足十息，喉结艰难地滚了两下，才挤出一声发颤的呼喊——那是几年前在边界巡逻时失踪的老同乡。%zombie%听见声音，机械地偏过僵硬的脖颈，浑浊的眼珠直愣愣地望过来，既无认出的欣喜，也无半点怨恨，只像一截听见风声的朽木。\n\n路边挑水的农夫正狐疑地朝这边张望，队列里的气氛骤然绷紧。%living%嘴唇发白，指节捏得咯吱作响，僵在原地挪不开步子。你冷冷扫过这具皮囊，决定趁麻烦闹大前先了断此事。",
     Score = function( _event )
     {
@@ -392,7 +392,7 @@ S.UndeadEvents.zombie_familiar_face <- {
 };
 
 S.UndeadEvents.zombie_spear_brace <- {
-    Title = "卡在肩胛里的断矛", Image = "parts", Cooldown = 10,
+    Title = "卡在肩胛里的断矛", Image = "undead_spear_brace", Cooldown = 10,
     Text = "趁着夜色还未合拢，你在营地里逐一清点上一仗的亡灵损耗，很快便在%zombie%身上停住了脚步。半截生锈的敌军矛头斜斜楔在它的左肩胛骨里，断口处还沾着几缕扯断的锁子甲环，看深度差点把整个肩窝撬散架。\n\n换作活人，这会儿早该疼得满地打滚、失血送命了。可%zombie%毫不在意，刚才收拾战利品时，它抡起左臂搬动重盾的架势反倒比往常更稳更沉。你凑近拨开翻卷的皮肉一瞧，才明白缘由：那截硬铁阴差阳错地顶住了松垮的筋腱，正好替它烂掉半截的骨节充当了支点，每次发力都借上了铁器的死劲。\n\n只是铁锈混着黑血，久了难免把周围的残肉彻底磨烂。旁边的活人弟兄直咂舌，说死人打起仗来连废铁都能当骨头使。你拿捏着镊子和铁锤，盘算着是顺势改造，还是老老实实清创。",
     Score = function( _event )
     {
@@ -447,7 +447,7 @@ S.UndeadEvents.zombie_spear_brace <- {
 };
 
 S.UndeadEvents.skeleton_midnight_drill <- {
-    Title = "午夜的空队列", Image = "banner", Cooldown = 3,
+    Title = "午夜的空队列", Image = "undead_midnight_drill", Cooldown = 3,
     Text = "子夜无风，林子外头连猫头鹰都不叫一声，营地边缘却突然传出一阵整齐得令人头皮发麻的脚步声。你披衣走出帐篷，只见月色冷冷洒在草地上，以%skeleton%为首的几具常驻骷髅不知何时自行起了身，正扛着兵器排成一道笔直的半月阵。\n\n没人下令，也没人击鼓，可它们迈步、顿足、横盾、出刺的节拍却分毫不差，骨节敲击甲片的咔哒声像一架上了发条的旧钟表。那套步法沉稳古拙，绝非如今各路领主惯用的野路子，分明是早被黄土埋进史书里的古帝国军团操典。它们空洞的眼窝里幽火明灭，死死盯着黑漆漆的荒野，仿佛正面对着一支看不见的千军万马。\n\n几个起夜的活人弟兄吓得缩在车辕后头不敢出声，生怕这群白骨突然调转矛头。你靠在骨杖上细细打量这幕跨越百年的幽灵操演，思忖着该如何借题发挥。",
     Score = function( _event )
     {
@@ -514,7 +514,7 @@ S.UndeadEvents.skeleton_midnight_drill <- {
 };
 
 S.UndeadEvents.skeleton_loose_pins <- {
-    Title = "松脱的骨钉", Image = "parts", Cooldown = 5,
+    Title = "松脱的骨钉", Image = "undead_loose_pins", Cooldown = 5,
     Text = "这一路行军，队列里总混着一阵刺耳的“咔哒”声，听起来比没上油的破驴车还要烦人。你勒住步子循声排查，最后把目光定格在%skeleton%身上。它每往前迈一步，左膝盖便不自然地向外撇开半寸，连带着下颌骨也一磕一磕地跟着打颤。\n\n你挥手令它站定，掀开它那件带着铜绿的旧护甲仔细端详，不由得皱起眉头。当年替它拼接骨节的细铁丝和木销早就锈蚀糟烂，肩胛与肘弯处的骨钉更是松脱了大半，全靠几缕稀薄的死灵黑气勉强吊着不散架。眼下只是走平路就晃成这样，若真在战场上硬吃一记战锤重击，怕是整条胳膊都得连着兵器一块儿甩飞出去。\n\n骷髅自己当然不会喊累，它只是安静地立在原地，空荡荡的眼眶倒映着灰蒙蒙的天色。你掂量着所剩不多的工具和尸车里的存货，盘算着怎么替它修补这副老骨头。",
     Score = function( _event )
     {
@@ -571,7 +571,7 @@ S.UndeadEvents.skeleton_loose_pins <- {
 };
 
 S.UndeadEvents.skeleton_ferryman_coin <- {
-    Title = "舌下的冥河渡资", Image = "dice", Cooldown = 15,
+    Title = "舌下的冥河渡资", Image = "undead_ferryman_coin", Cooldown = 15,
     Text = "营地休整时，%skeleton%像往常一样蹲在火堆外围的暗影里，用一块磨石慢慢刮掉兵器刃口的血锈。它微微低头的刹那，发黄的下颌骨突然发出一声闷响，“当啷”一声，一枚发黑的圆片从它空荡荡的牙关里滑落出来，滚到了泥地里。\n\n你走近弯腰拾起，抹去上面结块的黑垢，指腹顿时触到了古帝国皇帝清晰的侧像——那是一枚货真价实的古代金币。按古俗，战死的兵卒下葬时总要在舌下含一枚渡资，好付给冥河边的摆渡人；这枚金币不知怎的一直卡在它颚骨深处，直到今日才松动跌落。%skeleton%停下了手里的磨石，缓缓俯身盯着你掌心的金币，眼眶里的苍白魂火罕见地剧烈摇曳起来，滋滋作响。\n\n它显然早已忘了生前的名姓，却还死死记着某种买路的规矩。看着这枚在古堡魂炉和打造镣铐时都能派上大用场的古币，你一时起了不同的心思。",
     Score = function( _event )
     {
@@ -624,7 +624,7 @@ S.UndeadEvents.skeleton_ferryman_coin <- {
 };
 
 S.UndeadEvents.skeleton_picky_scavenger <- {
-    Title = "挑剔的拾骨者", Image = "harvest", Cooldown = 20,
+    Title = "挑剔的拾骨者", Image = "undead_picky_scavenger", Cooldown = 20,
     Text = "厮杀刚歇，战场上到处都是横七竖八的残尸与断刃。别的亡灵都听从号令守在尸车旁等候清点，唯有%skeleton%独自脱了队，正蹲在一堆敌尸中间挑挑拣拣，活像集市上挑剔猪腿的厨子。\n\n你走过去喝止，却见它正用力掰下一具强壮敌尸的小腿骨，抖落上面的碎肉和泥浆，然后小心翼翼地贴在自己布满细密裂纹的尺骨与肋骨旁反复比划。它左看看右瞧瞧，空洞的颅骨微微偏斜，竟流露出几分说不清道不明的嫌弃，似乎极度不满自己如今这副在地下埋了不知几百年的老旧骨架。随后它又顺手摸了摸旁边几块厚实的骨殖，迟迟不肯撒手。\n\n一旁帮忙收拾尸骸的弟兄看得直发愣，低声嘀咕说头一回见骷髅还嫌自己骨头不够结实的。你扫了眼那截成色极佳的硬骨，又看看%skeleton%跃跃欲试的架势，开口作出了决断。",
     Score = function( _event )
     {

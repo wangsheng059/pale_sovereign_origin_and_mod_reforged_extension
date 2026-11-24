@@ -1,4 +1,4 @@
-// 1.7.0 急救骨髓膏的使用技能（图标与音效沿用原版的“包扎队友”）
+// 1.7.0 急救骨髓膏的使用技能（音效沿用“包扎队友”）
 this.pale_marrow_paste_skill <- ::inherit("scripts/skills/actives/bandage_ally_skill", {
     m = { HealPct = 0.25 },
     function create()
@@ -6,6 +6,9 @@ this.pale_marrow_paste_skill <- ::inherit("scripts/skills/actives/bandage_ally_s
         this.bandage_ally_skill.create();
         this.m.ID = "actives.pale_marrow_paste";
         this.m.Name = "敷骨髓膏";
+        this.m.Icon = "skills/pale_marrow_paste.png";
+        this.m.IconDisabled = "skills/pale_marrow_paste_sw.png";
+        this.m.Overlay = "";
         this.m.Description = "把急救骨髓膏抹进相邻常驻亡灵或冠军的裂口，恢复它的躯体。";
         this.m.ActionPointCost = 4;
         this.m.FatigueCost = 10;
@@ -64,6 +67,7 @@ this.pale_marrow_paste_skill <- ::inherit("scripts/skills/actives/bandage_ally_s
         }
         target.getSkills().update();
         target.setDirty(true);
+        ::PaleSovereign.playActorArt("marrow", target, 24, 0.95);
         if (!_user.isHiddenToPlayer())
             ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + " 给 " + ::Const.UI.getColorizedEntityName(target) + " 敷上骨髓膏，恢复 " + heal + " 点生命");
         local item = this.m.Item;

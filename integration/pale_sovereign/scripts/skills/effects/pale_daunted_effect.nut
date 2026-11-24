@@ -6,8 +6,8 @@ this.pale_daunted_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_daunted";
         this.m.Name = "震慑";
         this.m.Description = "冠军骨缝里的魂玉压得此人喘不过气，挥出的兵器软弱无力。造成的伤害 −50%。";
-        this.m.Icon = "skills/pale_mark_prey.png";
-        this.m.IconDisabled = "skills/pale_mark_prey_sw.png";
+        this.m.Icon = "skills/pale_daunted_status.png";
+        this.m.IconDisabled = "skills/pale_daunted_status_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

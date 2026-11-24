@@ -6,9 +6,7 @@ this.pale_corpse_poison_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_corpse_poison";
         this.m.Name = "尸毒";
         this.m.Description = "伤口里渗进了腌过多年的尸油，四肢沉重，呼吸里全是甜腥的腐味。";
-        this.m.Icon = "skills/status_effect_54.png";
-        this.m.IconMini = "status_effect_54_mini";
-        this.m.Overlay = "status_effect_54";
+        this.m.Icon = "skills/pale_corpse_poison_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsActive = false;
         this.m.IsStacking = false;

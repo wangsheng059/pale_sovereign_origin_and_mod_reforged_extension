@@ -6,7 +6,7 @@ this.pale_grave_pact_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_grave_pact";
         this.m.Name = "守墓死契";
         this.m.Description = "冠军以骨为盾，替导师分担了一部分死亡。冠军在 2 格内时，导师受到的生命伤害有 35% 由冠军承受。";
-        this.m.Icon = "skills/pale_guard_shield.png";
+        this.m.Icon = "skills/pale_grave_pact_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;
@@ -53,6 +53,8 @@ this.pale_grave_pact_effect <- ::inherit("scripts/skills/skill", {
         local share = ::Math.max(1, ::Math.floor(_damageHitpoints * 0.35 / 0.65));
         e.setHitpoints(::Math.max(1, e.getHitpoints() - share));
         e.setDirty(true);
+        ::PaleSovereign.playActorArt("bone_ward", this.getContainer().getActor());
+        ::PaleSovereign.playActorArt("bone_ward", e);
         local inscription = e.getSkills().getSkillByID("effects.pale_inscription");
         if (inscription != null)
             inscription.addRage();

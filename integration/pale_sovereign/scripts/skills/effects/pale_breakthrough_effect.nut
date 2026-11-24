@@ -5,7 +5,7 @@ this.pale_breakthrough_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_breakthrough";
         this.m.Name = "玉髓重铸";
-        this.m.Icon = "skills/pale_dead_command_effect.png";
+        this.m.Icon = "skills/pale_breakthrough_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

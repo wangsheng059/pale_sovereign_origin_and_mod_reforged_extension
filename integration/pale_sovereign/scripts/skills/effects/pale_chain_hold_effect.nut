@@ -6,8 +6,8 @@ this.pale_chain_hold_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_chain_hold";
         this.m.Name = "锁链牵制";
         this.m.Description = "黑铁锁链缠住了此人的残魂。无法溃逃，近战防御 −10，对亡灵法师导师造成的伤害 −20%。";
-        this.m.Icon = "skills/pale_mark_prey.png";
-        this.m.IconDisabled = "skills/pale_mark_prey_sw.png";
+        this.m.Icon = "skills/pale_chain_hold_status.png";
+        this.m.IconDisabled = "skills/pale_chain_hold_status_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

@@ -6,7 +6,7 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_embalm_rite";
         this.m.Name = "防腐秘仪";
         this.m.Description = "盐窖里的防腐师用尸骸为这具躯壳做了额外的处理，效果会持续到本场战斗结束。";
-        this.m.Icon = "ui/traits/pale_embalmed.png";
+        this.m.Icon = "skills/pale_embalm_rite_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsActive = false;
         this.m.IsStacking = false;
@@ -33,7 +33,7 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
                 text += "（剩余 " + this.m.Infusion + " 层，当前每层 " + this.getInfusionDamage() + " 点）";
             local left = S.riteCharges(this.getContainer().getActor(), rite.Key);
             text += left > 0 ? "，本场之后还剩 " + left + " 场" : "，本场为最后一场";
-            ret.push({ id = id++, type = "text", icon = "ui/icons/special.png", text = text });
+            ret.push({ id = id++, type = "text", icon = rite.Icon, text = text });
         }
         return ret;
     }
@@ -189,6 +189,7 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
                 if (!actor.isHiddenToPlayer() || !_targetEntity.isHiddenToPlayer())
                     ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(actor) + " 灌注的死气涌入 " + ::Const.UI.getColorizedEntityName(_targetEntity)
                         + " 体内（额外 " + damage + " 点无视护甲伤害，剩余 " + this.m.Infusion + " 层）");
+                ::PaleSovereign.playActorArt("rite_infuse", _targetEntity, 20, 0.94);
                 ::PaleSovereign.directDamage(actor, this, _targetEntity, damage);
                 if (_targetEntity.isAlive() && !_targetEntity.isDying())
                 {

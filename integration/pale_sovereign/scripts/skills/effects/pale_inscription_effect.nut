@@ -5,7 +5,7 @@ this.pale_inscription_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_inscription";
         this.m.Name = "魂玉铭刻";
-        this.m.Icon = "skills/pale_dead_command_effect.png";
+        this.m.Icon = "skills/pale_inscription_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

@@ -6,7 +6,7 @@ this.pale_lich_ward_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_lich_ward";
         this.m.Name = "冢王护持";
         this.m.Description = "尸妖王仍立在战场上，替导师挡下了一部分死亡。只要它还在场，导师受到的所有伤害 −15%。";
-        this.m.Icon = "skills/pale_guard_shield.png";
+        this.m.Icon = "skills/pale_lich_ward_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;
@@ -39,6 +39,10 @@ this.pale_lich_ward_effect <- ::inherit("scripts/skills/skill", {
     function onBeforeDamageReceived( _attacker, _skill, _hitInfo, _properties )
     {
         if (this.isLichPresent())
+        {
             _properties.DamageReceivedTotalMult *= ::PaleSovereign.LichWardMult;
+            if (_skill != null && _skill.isAttack())
+                ::PaleSovereign.playActorArt("lich_ward", this.getContainer().getActor());
+        }
     }
 });

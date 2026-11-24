@@ -6,7 +6,7 @@ this.pale_jade_miasma_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_jade_miasma";
         this.m.Name = "苍白尸瘴";
         this.m.Description = "吸进去的尸瘴让人头晕目眩，举盾都慢了半拍。近战防御 −5。";
-        this.m.Icon = "skills/pale_corpse_shot.png";
+        this.m.Icon = "skills/pale_jade_miasma_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

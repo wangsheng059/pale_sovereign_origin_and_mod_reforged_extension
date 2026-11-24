@@ -221,10 +221,10 @@ S.stripPickPanel <- function( _event, _screen )
     }
 };
 
-S.addPage("x_reserve", "尸骸工坊", "mortuary", @(_event, _screen) S.reserveWorkshopPanel(_event, _screen));
-S.addPage("x_mend", "战地急修", "mortuary", @(_event, _screen) S.mendPanel(_event, _screen), "@x_reserve");
-S.addPage("x_strip", "拆解重组", "parts", @(_event, _screen) S.stripPanel(_event, _screen), "@x_reserve");
-S.addPage("x_strip_pick", "拆解重组", "parts", @(_event, _screen) S.stripPickPanel(_event, _screen), "@x_strip");
+S.addPage("x_reserve", "尸骸工坊", "reserve_workshop", @(_event, _screen) S.reserveWorkshopPanel(_event, _screen));
+S.addPage("x_mend", "战地急修", "reserve_workshop", @(_event, _screen) S.mendPanel(_event, _screen), "@x_reserve");
+S.addPage("x_strip", "拆解重组", "reserve_workshop", @(_event, _screen) S.stripPanel(_event, _screen), "@x_reserve");
+S.addPage("x_strip_pick", "拆解重组", "reserve_workshop", @(_event, _screen) S.stripPickPanel(_event, _screen), "@x_strip");
 
 local campPanelReserve = S.campPanel;
 S.campPanel = function( _event, _screen )

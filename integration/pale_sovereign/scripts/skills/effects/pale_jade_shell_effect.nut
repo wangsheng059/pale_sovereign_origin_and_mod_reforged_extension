@@ -6,7 +6,7 @@ this.pale_jade_shell_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_jade_shell";
         this.m.Name = "不朽玉壳";
         this.m.Description = "骨架外结着一层冷玉般的薄壳。每场战斗第一次受到致命伤害时免于死亡，生命锁定为 20%，清除眩晕、定身与流血，并在 1 回合内受到的伤害 −50%。";
-        this.m.Icon = "skills/pale_guard_shield.png";
+        this.m.Icon = "skills/pale_jade_shell_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

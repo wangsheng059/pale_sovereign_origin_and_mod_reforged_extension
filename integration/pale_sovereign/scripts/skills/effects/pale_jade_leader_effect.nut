@@ -5,7 +5,7 @@ this.pale_jade_leader_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_jade_leader";
         this.m.Name = "魂玉统领";
-        this.m.Icon = "skills/pale_dead_command_effect.png";
+        this.m.Icon = "skills/pale_jade_leader_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

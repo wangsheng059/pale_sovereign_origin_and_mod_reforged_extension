@@ -6,7 +6,7 @@ this.pale_leader_echo_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_leader_echo";
         this.m.Name = "执念共鸣";
         this.m.Description = "身旁统领的魂火引着它一起燃烧。造成的伤害 +8%。";
-        this.m.Icon = "skills/pale_dead_command_effect.png";
+        this.m.Icon = "skills/pale_leader_echo_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

@@ -259,10 +259,10 @@ S.limitPanel <- function( _event, _screen )
     }
 };
 
-S.addPage("x_jade_champion", "魂玉铭刻与灵阶突破", "jade", @(_event, _screen) S.jadeChampionPanel(_event, _screen));
-S.addPage("x_leader", "魂玉统领", "jade", @(_event, _screen) S.leaderPanel(_event, _screen));
-S.addPage("x_leader_aura", "魂玉统领", "jade", @(_event, _screen) S.leaderAuraPanel(_event, _screen), "@x_leader");
-S.addPage("x_limit", "锁魂者破限", "soul_muster", @(_event, _screen) S.limitPanel(_event, _screen));
+S.addPage("x_jade_champion", "魂玉铭刻与灵阶突破", "jade_inscriptions", @(_event, _screen) S.jadeChampionPanel(_event, _screen));
+S.addPage("x_leader", "魂玉统领", "jade_leader", @(_event, _screen) S.leaderPanel(_event, _screen));
+S.addPage("x_leader_aura", "魂玉统领", "jade_leader", @(_event, _screen) S.leaderAuraPanel(_event, _screen), "@x_leader");
+S.addPage("x_limit", "锁魂者破限", "jade_limit", @(_event, _screen) S.limitPanel(_event, _screen));
 
 local campPanelJade = S.campPanel;
 S.campPanel = function( _event, _screen )
@@ -465,6 +465,7 @@ S.onPaleKill <- function( _killer, _victim )
         return;
     _killer.setHitpoints(::Math.min(_killer.getHitpointsMax(), _killer.getHitpoints() + 12));
     leader.setHitpoints(::Math.min(leader.getHitpointsMax(), leader.getHitpoints() + 8));
+    this.playActorArt("leader_echo", _killer, 26, 0.95);
     _killer.setDirty(true);
     leader.setDirty(true);
 };
@@ -509,6 +510,7 @@ S.preventPaleDeath <- function( _actor )
     if (undying != null && !undying.m.Spent && chief != null && chief.isAlive() && chief.isPlacedOnMap())
     {
         undying.m.Spent = true;
+        this.playActorArt("jade_undying", _actor, 25, 1.10);
         local shackle = skills.getSkillByID("effects.pale_shackle");
         local merged = shackle != null && !shackle.m.Spent;
         if (merged)

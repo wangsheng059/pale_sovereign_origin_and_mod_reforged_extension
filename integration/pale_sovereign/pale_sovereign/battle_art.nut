@@ -25,6 +25,41 @@ S.playBattleArt <- function( _key, _tile, _height = 32, _scale = 1.0, _delay = 0
         _scale * 0.70, _scale, 40, 150, 230);
 };
 
+S.playActorArt <- function( _key, _actor, _height = 32, _scale = 1.0 )
+{
+    if (this.Battle == null || _actor == null || ::MSU.isNull(_actor) || !::Tactical.isActive()
+        || !_actor.isPlacedOnMap() || _actor.isHiddenToPlayer())
+        return;
+    local tile = _actor.getTile();
+    if (!tile.IsVisibleForPlayer)
+        return;
+    if (!("PaleArtPulses" in _actor.m))
+        _actor.m.PaleArtPulses <- {};
+    local pulses = _actor.m.PaleArtPulses;
+    local now = ::Time.getVirtualTimeF();
+    if (_key in pulses && now - pulses[_key] < 0.55)
+        return;
+    pulses[_key] <- now;
+    this.playBattleArt(_key, tile, _height, _scale);
+};
+
+S.makeFieldParticles <- function( _tile, _key, _source )
+{
+    if (_source.len() == 0)
+        return [];
+    local fx = _source[0];
+    local stages = [];
+    foreach (i, data in fx.Stages)
+    {
+        local stage = clone data;
+        stage.ColorMin = ::createColor(i == fx.Stages.len() - 1 && i > 0 ? "ffffff00" : "ffffff7a");
+        stage.ColorMax = ::createColor(i == fx.Stages.len() - 1 && i > 0 ? "ffffff00" : "ffffffa6");
+        stages.push(stage);
+    }
+    return [{ Entity = true, Brushes = ["pale_fx_" + _key], Tile = _tile, Delay = fx.Delay,
+        Quantity = fx.Quantity, Lifetime = fx.LifeTimeQuantity, Rate = fx.SpawnRate, Stages = stages }];
+};
+
 local marks = {
     ["effects.pale_weaken"] = "weak", ["effects.pale_blind"] = "blind",
     ["effects.pale_bone_break_status"] = "fracture", ["effects.pale_grave_blade_status"] = "wound",
@@ -32,9 +67,15 @@ local marks = {
     ["effects.pale_chant"] = "dirge", ["effects.pale_banshee"] = "wail",
     ["effects.pale_prey"] = "prey", ["effects.pale_bound_soul"] = "bound",
     ["effects.bgp_curse_of_ages"] = "age", ["effects.bgp_fly_swarm"] = "flies",
-    ["effects.bgp_undead_poison"] = "venom"
+    ["effects.bgp_undead_poison"] = "venom",
+    ["effects.pale_corpse_poison"] = "corpse_poison", ["effects.pale_chain_hold"] = "chain_hold",
+    ["effects.pale_doom_mark"] = "doom_mark", ["effects.pale_daunted"] = "daunted",
+    ["effects.pale_barrow_dread"] = "barrow_dread", ["effects.pale_jade_miasma"] = "jade_miasma",
+    ["effects.pale_jade_guard"] = "jade_guard", ["effects.pale_bone_ward"] = "bone_ward",
+    ["effects.pale_shot_mark"] = "shot_mark"
 };
-local markOrder = ["bound", "prey", "weak", "blind", "age", "fracture", "wound", "stench", "domain", "dirge", "wail", "flies", "venom"];
+local markOrder = ["bound", "prey", "weak", "blind", "age", "fracture", "wound", "stench", "domain", "dirge", "wail", "flies", "venom",
+    "corpse_poison", "chain_hold", "doom_mark", "daunted", "barrow_dread", "jade_miasma", "jade_guard", "bone_ward", "shot_mark"];
 
 local function arrangeMarks( _actor )
 {
@@ -92,7 +133,9 @@ local function detachMark( _skill )
 
 foreach (name in ["pale_weaken_effect", "pale_blind_effect", "pale_hex_domain_effect", "pale_chant_effect",
     "pale_banshee_effect", "pale_prey_effect", "pale_tier_status", "pale_bound_soul_effect",
-    "bgp_curse_of_ages_effect", "bgp_fly_swarm_effect", "bgp_undead_poison_effect"])
+    "bgp_curse_of_ages_effect", "bgp_fly_swarm_effect", "bgp_undead_poison_effect",
+    "pale_corpse_poison_effect", "pale_chain_hold_effect", "pale_doom_mark_effect", "pale_daunted_effect",
+    "pale_barrow_dread_effect", "pale_jade_miasma_effect", "pale_jade_guard_effect", "pale_bone_ward_effect", "pale_shot_mark_effect"])
 {
     S.Mod.hook("scripts/skills/effects/" + name, function(q) {
         q.create = @(__original) function() {

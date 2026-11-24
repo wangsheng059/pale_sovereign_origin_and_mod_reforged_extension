@@ -6,8 +6,8 @@ this.pale_doom_mark_effect <- ::inherit("scripts/skills/skill", {
         this.m.ID = "effects.pale_doom_mark";
         this.m.Name = "死兆";
         this.m.Description = "魂玉统领的魂火盯上了这个被削弱的目标。受到亡灵的伤害 +15%，受到尸爆的伤害 +25%。";
-        this.m.Icon = "skills/pale_mark_prey.png";
-        this.m.IconDisabled = "skills/pale_mark_prey_sw.png";
+        this.m.Icon = "skills/pale_doom_mark_status.png";
+        this.m.IconDisabled = "skills/pale_doom_mark_status_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

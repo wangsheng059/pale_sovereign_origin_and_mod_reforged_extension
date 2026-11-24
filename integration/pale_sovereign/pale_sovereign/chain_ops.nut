@@ -472,9 +472,9 @@ S.beginBattle = function( _night )
     this.set("RecallNotice", 0);
 };
 
-S.addPage("x_strip_soul", "剥离吞魂", "soul", @(_event, _screen) S.stripSoulPanel(_event, _screen));
-S.addPage("x_twin", "双生魂链", "soul_shackle", @(_event, _screen) S.twinPanel(_event, _screen));
-S.addPage("x_recall", "锁魂召返", "soul_muster", @(_event, _screen) S.recallPanel(_event, _screen));
+S.addPage("x_strip_soul", "剥离吞魂", "chain_strip_soul", @(_event, _screen) S.stripSoulPanel(_event, _screen));
+S.addPage("x_twin", "双生魂链", "chain_twin", @(_event, _screen) S.twinPanel(_event, _screen));
+S.addPage("x_recall", "锁魂召返", "chain_recall", @(_event, _screen) S.recallPanel(_event, _screen));
 
 local campPanelChain = S.campPanel;
 S.campPanel = function( _event, _screen )
