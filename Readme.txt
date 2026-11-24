@@ -16,7 +16,7 @@
 
   Readme.txt                              本说明
   bb-launcher-gog.exe                     启动器，放到游戏根目录
-  awesome-battle-brothers\bb-launcher-gog.exe   启动器实际运行的游戏本体，整个文件夹放到游戏根目录
+  awesome-battle-brothers\bb-launcher-gog.exe   启动器实际运行的程序（内置 1.5.2.2 的游戏程序），整个文件夹放到游戏根目录
   data\                                   18 个模组 ZIP，原样放进游戏的 data 文件夹
 
   data 里的 18 个 ZIP：
@@ -40,7 +40,7 @@
 
 4. 注意事项
 
-- 一定要用 bb-launcher-gog.exe 启动，不要直接运行 win32\BattleBrothers.exe。直接运行时游戏版本对不上，部分模组会报错，部分汉化会乱码。用启动器时，游戏和日志里显示的版本是 1.5.2.2，这是正常的。
+- 一定要用 bb-launcher-gog.exe 启动，不要直接运行 win32\BattleBrothers.exe。直接运行时游戏版本对不上，部分模组会报错，部分汉化会乱码。用启动器时，游戏和日志里显示的版本是 1.5.2.2，这是正常的：启动器内置的是 1.5.2.2 的游戏程序，读取的游戏内容仍是你安装的 1.5.2.3。
 - 启动出错时，打开“文档\Battle Brothers\log.html”，把里面的红字报错发给我。
 - 进游戏后 WASD 不能移动视角：多半是输入法停在中文模式，按 Shift 切成英文即可。
 - 关掉游戏后，后台有时还留着 bb-launcher-gog 进程，占着 data 里的文件。要换模组时先在任务管理器里结束它。
@@ -176,11 +176,8 @@
 
 启动器
 
-- bb-launcher-gog.exe 是第三方补丁启动器 v1.2.1，内置 1.5.2.2 的游戏本体。根目录和 awesome-battle-brothers 文件夹里的两个文件内容相同。
-
-不随包的设置
-
-- 我把捕奴 mod 的“招募属性浮动”从 20 调成了 15。这项存在我自己的 MSU 设置文件里，不在包里。想要同样效果，在 MSU 设置里自己改。
+- bb-launcher-gog.exe 是第三方补丁启动器 v1.2.1，内置 1.5.2.2 的游戏程序，实际读取的游戏内容是 1.5.2.3。根目录和 awesome-battle-brothers 文件夹里的两个文件内容相同。
+- 捕奴 mod 的“招募属性浮动”默认 15（每项初始属性 ±15），可在 MSU 设置里调整。
 
 
 本包是社区模组、汉化和我自己的修改的合集。感谢重铸团队和各模组作者。
