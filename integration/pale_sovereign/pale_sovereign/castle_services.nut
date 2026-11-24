@@ -193,6 +193,16 @@ S.castleDaily = function()
 
     foreach (town in this.castles())
     {
+        // 1.7.4 每座亡灵古堡每 7 天产出 1 枚古代魂玉（两条路线通用），仓库满时暂存，有空位再发
+        local castleFlags = town.getFlags();
+        local today = ::World.getTime().Days;
+        if (castleFlags.getAsInt("PaleJadeDay") == 0)
+            castleFlags.set("PaleJadeDay", today + 7);
+        else if (today >= castleFlags.getAsInt("PaleJadeDay"))
+        {
+            castleFlags.set("PaleJadeDay", today + 7);
+            this.pendingItem("misc/pale_jade_item");
+        }
         if (!this.castleHas(town, "pale_mausoleum"))
             continue;
         foreach (pet in this.castleTombs(town))
@@ -276,6 +286,8 @@ S.castlePanel <- function( _screen )
             if (this.castleHas(town, "pale_soul_anvil"))
                 this.option(_screen, "缚魂铁砧 · 200 金、10 工具、1 块铜锭", @() S.castleAnvil(town));
             _screen.Text += "\n\n每座古堡使防腐尸骸上限 +30（当前上限 " + this.reserveLimit() + "）。";
+            local jadeDay = town.getFlags().getAsInt("PaleJadeDay");
+            _screen.Text += "\n\n古堡地窖每 7 天凝出 1 枚古代魂玉" + (jadeDay > 0 ? "，下一枚在战役第 " + jadeDay + " 天。" : "。");
             if (this.castleHas(town, "pale_salt_cellar"))
                 _screen.Text += "\n\n盐窖仓储 +20。留在古堡地格时，每日免费修补。";
             break;

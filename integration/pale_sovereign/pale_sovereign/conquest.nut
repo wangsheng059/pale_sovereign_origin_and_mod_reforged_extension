@@ -301,8 +301,8 @@ S.conquestDay = function()
                 if (attached.getTypeID() == "attached_location.pale_cemetery")
                 {
                     S.changeReserve(3);
-                    // 1.7.0 天灾路线：墓园每天 5% 产出 1 枚古代魂玉
-                    if (S.oath() == S.Oath.Scourge && ::Math.rand(1, 100) <= 5)
+                    // 1.7.4 天灾路线：墓园每天 15% 产出 1 枚古代魂玉（1.7.0 为 5%）
+                    if (S.oath() == S.Oath.Scourge && ::Math.rand(1, 100) <= 15)
                         S.pendingItem("misc/pale_jade_item");
                 }
 };

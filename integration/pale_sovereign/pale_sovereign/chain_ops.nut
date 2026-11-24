@@ -508,3 +508,50 @@ S.worldEvent = function()
     }
     return worldEventChain.call(this);
 };
+
+// ---------------- 1.7.4 敌阵精英提示 ----------------
+// 冠军路线每轮开始时，给可被缚魂锁链标记的敌人挂「可缚之魂」提示状态，并在战斗记录里说明一次（中途增援也会提示）
+S.inheritPreview <- function( _actor )
+{
+    local parts = [];
+    if (_actor.getSkills().hasSkill("racial.champion"))
+        parts.push("冠军加成");
+    local weapon = _actor.getItems().getItemAtSlot(::Const.ItemSlot.Mainhand);
+    if (weapon != null && weapon.isItemType(::Const.Items.ItemType.Named))
+        parts.push("具名武器【" + weapon.getName() + "】");
+    local text = "";
+    foreach (i, part in parts)
+        text += (i == 0 ? "" : "、") + part;
+    return text;
+};
+
+S.hintSoulElite <- function( _actor )
+{
+    if (this.Battle == null || !this.isActive() || this.oath() != this.Oath.Champion || !_actor.isPlacedOnMap()
+        || _actor.getSkills().hasSkill("effects.pale_soul_elite") || _actor.getSkills().hasSkill("effects.pale_bound_soul"))
+        return;
+    local chief = this.chief();
+    if (chief == null || _actor.isAlliedWith(chief) || this.soulSpecies(::IO.scriptFilenameByHash(_actor.ClassNameHash)) == 0)
+        return;
+    _actor.getSkills().add(::new(this.SkillDir + "effects/pale_soul_elite_effect"));
+    ::Tactical.EventLog.log("[color=#bcad8c]可缚之魂：[/color]" + ::Const.UI.getColorizedEntityName(_actor)
+        + "的灵魂可以被缚魂锁链锚定。等它的生命降到 " + this.markThreshold() + "% 以下，让导师使用「缚魂锁链」。");
+};
+
+S.Mod.hook("scripts/entity/tactical/actor", function(q)
+{
+    q.onRoundStart = @(__original) function()
+    {
+        __original();
+        try { S.hintSoulElite(this); } catch (e) { ::logError("[PaleSovereign] soul elite hint: " + e); }
+    };
+});
+
+local markSoulHint = S.markSoul;
+S.markSoul = function( _target )
+{
+    local ok = markSoulHint.call(this, _target);
+    if (ok)
+        _target.getSkills().removeByID("effects.pale_soul_elite");
+    return ok;
+};
