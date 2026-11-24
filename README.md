@@ -1,5 +1,7 @@
 # Pale Sovereign Origin and Reforged Extension
 
+[中文说明](README.zh-CN.md)
+
 A Battle Brothers mod collection built around the Pale Sovereign origin and extensions for Reforged. The origin follows a necromancer rebuilding a company with permanent undead, branching progression, original events, skills, artwork, and campaign mechanics.
 
 This repository contains the source and build tooling for four local bundles:
