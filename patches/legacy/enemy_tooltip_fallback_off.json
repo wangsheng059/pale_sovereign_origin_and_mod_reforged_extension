@@ -1,8 +1,0 @@
-{
-  "source": "mod_Legacy_遗产(兄弟退休可传授经验留下物品)_2.13.zip",
-  "member": "scripts/!mods_preload/mod_legacy.nut",
-  "before": "5ebd8685672b3d98208014aad16cd322c27eb037190639bb234b50fe2c5cacbb",
-  "after": "ed8ec2024c4ca7b785d4b77a6fcba97263915595ecce59d2d07e7a8786f73ba1",
-  "old": "::Legacy.getEnemyTooltipMode <- function() {\n    try {\n        if (::Legacy.Mod == null) return \"Hide everything\";\n        local s = ::Legacy.Mod.ModSettings.getSetting(\"Legacy_EnemyTooltip\");\n        if (s == null) return \"Hide everything\";\n        return s.getValue();\n    } catch (e) {\n        return \"Hide everything\";\n    }\n};",
-  "new": "::Legacy.getEnemyTooltipMode <- function() {\n    try {\n        if (::Legacy.Mod == null) return \"Off\";\n        local s = ::Legacy.Mod.ModSettings.getSetting(\"Legacy_EnemyTooltip\");\n        if (s == null) return \"Off\";\n        return s.getValue();\n    } catch (e) {\n        return \"Off\";\n    }\n};"
-}
