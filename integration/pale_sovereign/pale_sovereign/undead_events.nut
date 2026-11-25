@@ -94,7 +94,7 @@ S.uevtGiveTrait <- function( _event, _bro, _key )
     if (skills.hasSkill(trait.getID()))
         return false;
     foreach (other in skills.query(::Const.SkillType.Trait))
-        if (other.isExcluded(trait.getID()) || trait.isExcluded(other.getID()))
+        if (this.traitExcludes(other, trait.getID()) || this.traitExcludes(trait, other.getID()))
             return false;
     skills.add(trait);
     skills.update();

@@ -207,6 +207,27 @@ S.purgeNegativeUndeadTraits <- function( _bro )
 };
 
 // 随机加 1–2 个特质（40% 两个），互斥的不会同时出现
+S.traitExcludes <- function( _trait, _otherID )
+{
+    if (_trait == null || _otherID == null)
+        return false;
+    try
+    {
+        return _trait.isExcluded(_otherID);
+    }
+    catch (e)
+    {
+        try
+        {
+            return "Excluded" in _trait.m && _trait.m.Excluded != null && _trait.m.Excluded.find(_otherID) != null;
+        }
+        catch (e2)
+        {
+            return false;
+        }
+    }
+};
+
 S.addUndeadTraits <- function( _bro, _skeleton, _count = null, _purify = true )
 {
     local pool = clone this.UndeadTraitPool.Both;
@@ -224,7 +245,7 @@ S.addUndeadTraits <- function( _bro, _skeleton, _count = null, _purify = true )
             continue;
         local fits = true;
         foreach (other in added)
-            if (other.isExcluded(trait.getID()) || trait.isExcluded(other.getID()))
+            if (this.traitExcludes(other, trait.getID()) || this.traitExcludes(trait, other.getID()))
                 fits = false;
         if (!fits)
             continue;

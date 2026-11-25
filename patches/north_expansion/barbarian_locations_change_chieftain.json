@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "NorthExpansionMod/entity_hooks/barbarian_locations_hook.nut",
+  "before": "8e3008f04593756208dfc62588b273550d2687c5350ab195fb504cf875c3a98d",
+  "after": "0f220bc9995b6870b8fef2d57b3e2dd6f06efe8e9369835e88c0fea9c0265ae9",
+  "old": "\t\tthis.changeChieftain <- function (){\r\n\t\t\tcharacter = this.getChieftain();\r\n\t\t\tcharacter.m.Name = ::NorthMod.Utils.barbarianNameOnly();\r\n\t\t\tcharacter.setTitle(::NorthMod.Utils.barbarianTitle());\r\n\t\t\tcharacter.assignRandomEquipment();\r\n\t\t}",
+  "new": "\t\tthis.changeChieftain <- function (){\r\n\t\t\tlocal character = this.getChieftain();\r\n\t\t\tif (character == null)\r\n\t\t\t{\r\n\t\t\t\treturn;\r\n\t\t\t}\r\n\t\t\tcharacter.m.Name = ::NorthMod.Utils.barbarianNameOnly();\r\n\t\t\tcharacter.setTitle(::NorthMod.Utils.barbarianTitle());\r\n\t\t\tcharacter.assignRandomEquipment();\r\n\t\t}"
+}

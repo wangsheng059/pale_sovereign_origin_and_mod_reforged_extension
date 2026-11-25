@@ -51,15 +51,17 @@ local oldEquip = ::BGP.NecroPet.canEquip;
 local oldScale = ::BGP.NecroPet.applyScaling;
 ::BGP.NecroPet.applyScaling = function( _entity )
 {
-    // 旧存档的尸妖王先补属性，再由原逻辑写进实体
-    if (S.isActive() && S.isCoffin(_entity.m.Item))
-        S.upgradeLich(_entity.m.Item);
-    oldScale(_entity);
-    if (!S.isActive() || !S.isCoffin(_entity.m.Item))
-        return;
     local item = _entity.m.Item;
+    if (typeof item == "instance" && !::MSU.isNull(item))
+        item = item.get();
+    // 旧存档的尸妖王先补属性，再由原逻辑写进实体
+    if (S.isActive() && S.isCoffin(item))
+        S.upgradeLich(item);
+    oldScale(_entity);
+    if (!S.isActive() || !S.isCoffin(item))
+        return;
     local chief = S.chief();
-    if (chief == null || S.mainPet() != item)
+    if (chief == null || !::MSU.isEqual(S.mainPet(), item))
         return;
     S.petID(item);
     if (S.isTameEliteScript(::BGP.NecroPet.TypeDefs[item.getType()].Pet))

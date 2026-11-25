@@ -1316,6 +1316,24 @@
     "patches/quicker/camp_time_buttons_js.json",
     "patches/quicker/hide_vanilla_veryfast.json",
     "patches/hsc/captive_face_icon.json",
-    "patches/hsc/captive_double_click.json"
+    "patches/hsc/captive_double_click.json",
+    "patches/north_expansion/drive_away_barbarians_duel.json",
+    "patches/north_expansion/nem_drive_away_barbarians_duel.json",
+    "patches/north_expansion/nem_drive_away_barbarians_combat.json",
+    "patches/north_expansion/barbarian_duel_event.json",
+    "patches/north_expansion/barbarian_duel_event_screens.json",
+    "patches/north_expansion/barbarian_duel_event_after.json",
+    "patches/north_expansion/barbarian_duel_event_vars.json",
+    "patches/north_expansion/barbarian_locations_has_attached.json",
+    "patches/north_expansion/barbarian_locations_get_culture.json",
+    "patches/north_expansion/barbarian_locations_change_chieftain.json",
+    "patches/north_expansion/barbarian_locations_fade_out.json",
+    "patches/north_expansion/barbarian_faction_on_update.json",
+    "patches/pandora/uber_necro_raise_dead.json",
+    "patches/pandora/uber_necro_raise_dead_spawn.json",
+    "patches/pandora/ethereal_null_skill.json",
+    "patches/pandora/ghastly_touch_wither.json",
+    "patches/pandora/necro_ammy_spawn_safety.json",
+    "patches/pandora/player_death_null_killer.json"
   ]
 }

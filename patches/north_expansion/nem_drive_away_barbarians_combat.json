@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/contracts/contracts/nem_drive_away_barbarians_contract.nut",
+  "before": "96cec103b01246c424e668bc745a9b937a804c00417fc64cec111371c4ac8b5d",
+  "after": "1c6dc06c10c092791c8f6c3feb8bbf17517e66b828ca920f765ac2bdeb3a4cd3",
+  "old": "\t\t\t\t\t\t\t_event.registerToShowAfterCombat(\"TheDuel2\",\"TheDuel3\");\r\n\t\t\t\t\t\t\tproperties.TemporaryEnemies = [\r\n\t\t\t\t\t\t\t\tthis.World.FactionManager.getFactionOfType(this.Const.FactionType.Barbarians).getID()\r\n\t\t\t\t\t\t\t];\r\n\t\t\t\t\t\t\tthis.World.State.startScriptedCombat(properties, false, true, false);",
+  "new": "\t\t\t\t\t\t\tproperties.TemporaryEnemies = [\r\n\t\t\t\t\t\t\t\tthis.World.FactionManager.getFactionOfType(this.Const.FactionType.Barbarians).getID()\r\n\t\t\t\t\t\t\t];\r\n\t\t\t\t\t\t\tthis.World.Contracts.startScriptedCombat(properties, false, true, false);"
+}

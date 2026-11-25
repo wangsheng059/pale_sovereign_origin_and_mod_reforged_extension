@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/ph_champs/ph_champ_ghastly_touch.nut",
+  "before": "3be515fffbf406fe35c4f193c6cd92ece25059cf538442325dd6a01c6aa12480",
+  "after": "0632cdeb83942cb4726deccf99d4a4df6e9e93a59d3fc77b5432f19cb1a2fcc9",
+  "old": "\t\t\tlocal target = _targetTile.getEntity();\n\t\t\tif (!target.isAlive() || target.isDying())",
+  "new": "\t\t\tlocal target = _targetTile.getEntity();\n\t\t\tif (target != null && target.isAlive() && !target.isDying())"
+}

@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "NorthExpansionMod/entity_hooks/barbarian_locations_hook.nut",
+  "before": "35f147cae2d5f616ada18153b2c1c0cba06e61f67aeae88d17744ffb3d583ce0",
+  "after": "5dbb353145666f51b87b6f8209b6bece4a2ea7fb934cb49b840de86ef8494352",
+  "old": "\t\tthis.hasAttachedLocation <- function(attachedLocation) {\r\n\t\t\tfalse;\r\n\t\t}",
+  "new": "\t\tthis.hasAttachedLocation <- function(attachedLocation) {\r\n\t\t\treturn false;\r\n\t\t}"
+}

@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "NorthExpansionMod/entity_hooks/barbarian_locations_hook.nut",
+  "before": "0f220bc9995b6870b8fef2d57b3e2dd6f06efe8e9369835e88c0fea9c0265ae9",
+  "after": "341915731e9b13936255f3c3f8e56bf8b9ddb4bbf194033537d0d4b79a52f47c",
+  "old": "\t\t::mods_override(this, \"fadeOutAndDie\", function() {\r\n\t\t\tlocal faction = this.World.FactionManager.getFaction(this.getFaction());\r\n\t\t\tif (faction == null) {\r\n\t\t\t\treturn;\r\n\t\t\t}\r\n\t\t\t\r\n\t\t\tif(faction != null && this.World.Flags.get(\"NorthExpansionBarbarianRoster\")) {\r\n\t\t\t\t\r\n\t\t\t\tlocal roster = this.World.getRoster(faction.getID());\r\n\t\t\t\tlocal chieftain = this.Tactical.getEntityByID(this.getFlags().get(\"NorthExpansionChieftain\"))\t;\t\r\n\t\t\t\troster.remove(chieftain);\r\n\t\t\t\t\r\n\t\t\t}\r\n\t\t\t\r\n\t\t\tthis.m.IsAlive = false;\r\n\t\t\tthis.fadeAndDie();\r\n\t\t});",
+  "new": "\t\tlocal _fadeOutAndDie = ::mods_getMember(this, \"fadeOutAndDie\");\r\n\t\t::mods_override(this, \"fadeOutAndDie\", function() {\r\n\t\t\tlocal faction = this.World.FactionManager.getFaction(this.getFaction());\r\n\t\t\tif (faction != null && this.World.Flags.get(\"NorthExpansionBarbarianRoster\")) {\r\n\t\t\t\tlocal roster = this.World.getRoster(faction.getID());\r\n\t\t\t\tlocal chieftain = this.Tactical.getEntityByID(this.getFlags().get(\"NorthExpansionChieftain\"));\r\n\t\t\t\tif (roster != null && chieftain != null) {\r\n\t\t\t\t\troster.remove(chieftain);\r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t\t_fadeOutAndDie();\r\n\t\t});"
+}

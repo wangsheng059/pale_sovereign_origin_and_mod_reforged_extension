@@ -376,7 +376,7 @@ S.refreshLeaderAuras <- function()
                     local owned = skills.getSkillByID(wantID);
                     local blocked = false;
                     foreach (other in skills.query(::Const.SkillType.Trait))
-                        if (other.isExcluded(wantID) || trait.isExcluded(other.getID()))
+                        if (this.traitExcludes(other, wantID) || this.traitExcludes(trait, other.getID()))
                             blocked = true;
                     if (owned == null && !blocked)
                     {

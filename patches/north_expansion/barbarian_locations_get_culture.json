@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "NorthExpansionMod/entity_hooks/barbarian_locations_hook.nut",
+  "before": "5dbb353145666f51b87b6f8209b6bece4a2ea7fb934cb49b840de86ef8494352",
+  "after": "8e3008f04593756208dfc62588b273550d2687c5350ab195fb504cf875c3a98d",
+  "old": "\t\tgetCulture <- function()\r\n\t\t{\r\n\t\t\tthis.Const.World.Culture.Northern;\r\n\t\t}",
+  "new": "\t\tgetCulture <- function()\r\n\t\t{\r\n\t\t\treturn this.Const.World.Culture.Northern;\r\n\t\t}"
+}

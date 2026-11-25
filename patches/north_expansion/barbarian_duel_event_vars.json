@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/events/events/barbarian_duel_event.nut",
+  "before": "cdaaaa665ad9a85886e70d750e7943bc945876b8ead67dd2aa764d3b82bb3871",
+  "after": "5d81f15297b921d56de8f77ce7bb4627f49fc95097873026302ffd35ec6a2df8",
+  "old": "\t\t_vars.push([\r\n\t\t\t\"barbarianname\",\r\n\t\t\tthis.m.Flags.get(\"ChampionName\")\r\n\t\t]);\r\n\t\t_vars.push([\r\n\t\t\t\"champbrother\",\r\n\t\t\tthis.m.Flags.get(\"ChampionBrotherName\")\r\n\t\t]);",
+  "new": "\t\t_vars.push([\r\n\t\t\t\"barbarianname\",\r\n\t\t\tthis.m.ChampionName\r\n\t\t]);\r\n\t\t_vars.push([\r\n\t\t\t\"champbrother\",\r\n\t\t\tthis.m.ChampionBrotherName\r\n\t\t]);"
+}

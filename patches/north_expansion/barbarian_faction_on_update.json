@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "NorthExpansionMod/faction_hooks/barbarian_faction_hook.nut",
+  "before": "d01ac4fc571843e7177de5993a4537fdd080c612143e8b3883fc92d0df84cc17",
+  "after": "1c87e16ea97bcf3b99697c62d0e087bf082df06fe838d9f747b8a446cf7e4749",
+  "old": "    logInfo(\"barb faction override\")\r\n    ::mods_override(o, \"onUpdate\", function()\r\n\t{\r\n        \r\n        foreach (s in this.getSettlements()) {\r\n            \r\n            if(s.isReadyForContract())\r\n            {\r\n                s.createNewContract();\r\n            }\r\n        }\r\n    });",
+  "new": "    local _onUpdate = ::mods_getMember(o, \"onUpdate\");\r\n    ::mods_override(o, \"onUpdate\", function()\r\n\t{\r\n        _onUpdate();\r\n        foreach (s in this.getSettlements()) {\r\n            if ((\"isReadyForContract\" in s) && s.isReadyForContract())\r\n            {\r\n                s.createNewContract();\r\n            }\r\n        }\r\n    });"
+}

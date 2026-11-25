@@ -27,15 +27,24 @@ this.pale_arrow_rain <- ::inherit("scripts/skills/effects/pale_tier_passive", {
     function onCombatStarted() { this.m.Used = false; }
     function onCombatFinished() { this.m.Used = false; }
 
-    function getItem()
+    function getMainhandWeapon()
     {
         local container = this.getContainer();
-        return ::MSU.isNull(container) ? null : container.getActor().getMainhandItem();
+        if (::MSU.isNull(container))
+            return null;
+        local actor = container.getActor();
+        return ::MSU.isNull(actor) ? null : actor.getMainhandItem();
+    }
+
+    function getItem()
+    {
+        local weapon = this.getMainhandWeapon();
+        return weapon == null ? null : ::WeakTableRef(weapon);
     }
 
     function getAttackProfile()
     {
-        local weapon = this.getItem();
+        local weapon = this.getMainhandWeapon();
         local types = ::Const.Items.WeaponType;
         if (!::MSU.isKindOf(weapon, "weapon") || !weapon.isWeaponType(types.Bow | types.Throwing))
             return null;
@@ -49,7 +58,9 @@ this.pale_arrow_rain <- ::inherit("scripts/skills/effects/pale_tier_passive", {
 
     function getVolleyAmmo()
     {
-        local weapon = this.getItem();
+        local weapon = this.getMainhandWeapon();
+        if (weapon == null)
+            return null;
         if (weapon.isWeaponType(::Const.Items.WeaponType.Throwing))
             return weapon;
         local ammo = this.getContainer().getActor().getItems().getItemAtSlot(::Const.ItemSlot.Ammo);
@@ -128,8 +139,10 @@ this.pale_arrow_rain <- ::inherit("scripts/skills/effects/pale_tier_passive", {
             return false;
         this.m.Used = true;
         local S = ::PaleSovereign;
-        local weapon = this.getItem();
+        local weapon = this.getMainhandWeapon();
         local ammo = this.getVolleyAmmo();
+        if (weapon == null || ammo == null)
+            return false;
         weapon.onUse(this);
         S.playBattleArt("arrow_rain", _tile, 40, 1.2);
         foreach (tile in this.getAffectedTiles(_tile))

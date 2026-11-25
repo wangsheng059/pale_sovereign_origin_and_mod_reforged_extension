@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/ph_champs/uber_necro_raise_dead.nut",
+  "before": "78e21ef2d731eb31a98e08e5657093c8244e08978f8e0cf78a782e1a21c74e35",
+  "after": "e6ed81c2bf42e033e15da35c44dd2dad1a06097bac6f7db10615df923fcdd4ba",
+  "old": "\t\tthis.m.Scripts = ::MSU.Class.WeightedContainer([\n\t\t\t[20, \"scripts/entity/tactical/zombie\"],\n\t\t\t[40, \"scripts/entity/tactical/zombie_yeoman\"],\n\t\t\t[30, \"scripts/entity/tactical/zombie_nomad\"],\n\t\t\t[10, \"scripts/entity/tactical/zombie_knight_bodyguard\"],\n\t\t]);",
+  "new": "\t\tthis.m.Scripts = ::MSU.Class.WeightedContainer([\n\t\t\t[20, \"scripts/entity/tactical/enemies/zombie\"],\n\t\t\t[40, \"scripts/entity/tactical/enemies/zombie_yeoman\"],\n\t\t\t[30, \"scripts/entity/tactical/enemies/zombie_nomad\"],\n\t\t\t[10, \"scripts/entity/tactical/enemies/zombie_knight_bodyguard\"],\n\t\t]);"
+}

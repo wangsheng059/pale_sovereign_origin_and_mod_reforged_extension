@@ -177,7 +177,7 @@ local applyJadePetChain = S.applyJadePet;
 S.applyJadePet = function( _pet, _entity )
 {
     applyJadePetChain.call(this, _pet, _entity);
-    if (this.get("TwinMode") != 1 || this.mainPet() != _pet)
+    if (this.get("TwinMode") != 1 || !::MSU.isEqual(this.mainPet(), _pet))
         return;
     local twin = this.twinPet();
     if (twin == null)

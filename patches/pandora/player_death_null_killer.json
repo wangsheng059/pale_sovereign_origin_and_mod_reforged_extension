@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "mod_pandoras_hobby/hooks/entity/tactical/player.nut",
+  "before": "8caea9a417738615b68fb5b6b516c7e3c37d97b6bece438918c7820d0dd9dabf",
+  "after": "bbcf435cdcb5274df76972caddcc9f5bdf1d3f7920f4631db23513bd2b4fefe2",
+  "old": "\t\tif(dropTile == null)\r\n\t\t{\r\n\t\t\tdropTile = _killer.getTile();\r\n\t\t}",
+  "new": "\t\tif(dropTile == null && _killer != null && !_killer.isNull())\r\n\t\t{\r\n\t\t\tdropTile = _killer.getTile();\r\n\t\t}"
+}

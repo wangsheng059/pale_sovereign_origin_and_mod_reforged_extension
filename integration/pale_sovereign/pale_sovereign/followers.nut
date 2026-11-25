@@ -316,7 +316,7 @@ S.Mod.rawHookTree("scripts/items/accessory/accessory", function(p)
         if (rank >= 1 && _xp > 0)
         {
             local mult = rank >= 2 ? 1.20 : 1.0;
-            if (S.isCoffin(this) && (S.mainPet() == this || this.m.PaleID > 0))
+            if (S.isCoffin(this) && (::MSU.isEqual(S.mainPet(), this) || this.m.PaleID > 0))
                 mult += 0.50;
             if (mult != 1.0)
                 _xp = ::Math.round(_xp * mult);

@@ -106,7 +106,7 @@ S.graftCandidates <- function( _bro )
             continue;
         local fits = true;
         foreach (other in owned)
-            if (other.isExcluded(trait.getID()) || trait.isExcluded(other.getID()))
+            if (this.traitExcludes(other, trait.getID()) || this.traitExcludes(trait, other.getID()))
                 fits = false;
         if (fits)
             ret.push(trait);

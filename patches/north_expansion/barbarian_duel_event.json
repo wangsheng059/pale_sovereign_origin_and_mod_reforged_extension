@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/events/events/barbarian_duel_event.nut",
+  "before": "4743d240bf59f67a2fe0f54966ba103b99e3708e0d9b1e5ae71ea8e10bda34aa",
+  "after": "852a04716d31f658b4d424fac02e2c32c3e647c584dd56fa8eec6976ce80e822",
+  "old": "\tm = {\r\n\t\tLocation = null,\r\n\t},",
+  "new": "\tm = {\r\n\t\tLocation = null,\r\n\t\tChampionName = \"\",\r\n\t\tChampionBrotherName = \"\",\r\n\t\tChampionBrother = 0,\r\n\t},"
+}

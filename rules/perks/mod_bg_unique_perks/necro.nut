@@ -168,9 +168,13 @@
 }
 
 // generateCorpse：优先用 kill 之前记下的数据
-::BGP.Necro.onGenerateCorpse <- function( _actor, _corpse )
+::BGP.Necro.onGenerateCorpse <- function( _actor, _corpse, _fatalityType = null )
 {
-	if (_corpse == null || ("BGP_Necro" in _corpse))
+	if (_corpse == null)
+		return;
+	if (_fatalityType == ::Const.FatalityType.Unconscious)
+		_corpse.BGP_Unconscious <- true;
+	if ("BGP_Necro" in _corpse)
 		return;
 	local info = null;
 	try
@@ -231,17 +235,51 @@
 	return false;
 }
 
+::BGP.Necro.isUnconsciousCorpse <- function( _corpse )
+{
+	try { return _corpse != null && ("BGP_Unconscious" in _corpse) && _corpse.BGP_Unconscious; } catch (e) {}
+	return false;
+}
+
+::BGP.Necro.hasBrokenPlayerCorpseItems <- function( _corpse )
+{
+	try
+	{
+		if (_corpse == null || _corpse.Type != "scripts/entity/tactical/enemies/zombie_player")
+			return false;
+		return !("Items" in _corpse) || _corpse.Items == null || !("transferTo" in _corpse.Items);
+	}
+	catch (e)
+	{
+		return true;
+	}
+}
+
 // 原版 / 重铸“过几回合自己爬起来”的尸体：IsResurrectable 和 IsConsumable 同时被设为 false
+// 排除倒地昏迷（Unconscious）的活人兄弟、无头尸以及缺少装备容器的 zombie_player 尸体，防止 onResurrect 触发 transferTo 报错
 ::BGP.Necro.isPendingResurrection <- function( _corpse )
 {
-	try { return !_corpse.IsResurrectable && !_corpse.IsConsumable && _corpse.Type != null && _corpse.Type != ""; } catch (e) { return false; }
+	try
+	{
+		if (_corpse == null || ::BGP.Necro.isUnconsciousCorpse(_corpse))
+			return false;
+		if (("IsHeadAttached" in _corpse) && !_corpse.IsHeadAttached)
+			return false;
+		if (::BGP.Necro.hasBrokenPlayerCorpseItems(_corpse))
+			return false;
+		return !_corpse.IsResurrectable && !_corpse.IsConsumable && _corpse.Type != null && _corpse.Type != "";
+	}
+	catch (e)
+	{
+		return false;
+	}
 	return false;
 }
 
 // 返回 null 表示不能复活；否则 { Mode = "vanilla" / "spawn", Script, Category }
 ::BGP.Necro.getRaisePlan <- function( _user, _corpse )
 {
-	if (_corpse == null)
+	if (_corpse == null || ::BGP.Necro.isUnconsciousCorpse(_corpse))
 		return null;
 	// 1.6.5 即将自行爬起的尸体（僵尸等）也能复活：复活时取消它原本排好的自行复活（见 raise 和 necro_hooks.nut）
 	// 1.6.0 永恒禁卫的残骸只能用“不灭号令”唤回
@@ -261,6 +299,8 @@
 	{
 		try
 		{
+			if (::BGP.Necro.hasBrokenPlayerCorpseItems(_corpse))
+				return null;
 			// 1.6.6 被僵尸感染、即将化为行尸爬起的人类尸体（IsResurrectable 被置为 false）也能复活
 			if ((_corpse.IsResurrectable || ::BGP.Necro.isPendingResurrection(_corpse)) && _corpse.Type != null && _corpse.Type != "")
 				return { Mode = "vanilla", Script = _corpse.Type, Category = "human" };
@@ -313,6 +353,8 @@
 	local e = null;
 	if (plan.Mode == "vanilla")
 	{
+		if (::BGP.Necro.hasBrokenPlayerCorpseItems(corpse))
+			return null;
 		corpse.Faction = ::Const.Faction.PlayerAnimals;
 		e = ::Tactical.Entities.onResurrect(corpse, true);
 		if (e == null)

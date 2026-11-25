@@ -68,7 +68,7 @@ S.castleCanForge <- function( _job, _target, _isPet )
             return this.petGet(_target, "Gilded") == 0;
         if (key == "gem")
             return this.petGet(_target, "GemEyes") == 0;
-        return _target == this.mainPet();
+        return ::MSU.isEqual(_target, this.mainPet());
     }
     if (key == "enchant")
         return true;
