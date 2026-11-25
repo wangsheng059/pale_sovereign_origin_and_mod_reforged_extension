@@ -43,8 +43,31 @@ local function toAsciiPrefix( _text )
 	return hasAsciiAlnum(prefix) ? prefix : "";
 }
 
+local function extractAsciiParenSuffix( _text )
+{
+	if (typeof _text != "string" || _text.len() < 4)
+		return "";
+	if (_text.slice(_text.len() - 1) != ")")
+		return "";
+
+	for (local i = _text.len() - 3; i >= 0; --i)
+	{
+		if (_text.slice(i, i + 2) == " (")
+		{
+			local suffix = _text.slice(i);
+			if (!hasNonAscii(suffix) && suffix.len() >= 4)
+				return suffix;
+			return "";
+		}
+	}
+	return "";
+}
+
 local function resolveAsciiLabel( _entity, _rawText )
 {
+	local suffix = extractAsciiParenSuffix(_rawText);
+	local coreText = suffix != "" ? _rawText.slice(0, _rawText.len() - suffix.len()) : _rawText;
+
 	local scriptName = "";
 	try
 	{
@@ -54,56 +77,57 @@ local function resolveAsciiLabel( _entity, _rawText )
 	{
 	}
 
+	local baseLabel = "";
 	if (("PaleSovereign" in ::getroottable()) && ::PaleSovereign.isActive() && ::PaleSovereign.isCastle(_entity))
-		return "Pale Keep";
-
-	if (scriptName.find("stronghold_player_base") != null)
+		baseLabel = "Pale Keep";
+	else if (scriptName.find("stronghold_player_base") != null)
 	{
 		local size = 1;
 		try { size = _entity.getSize(); } catch (_e) {}
 		if (size <= 1)
-			return "Outpost";
-		if (size == 2)
-			return "Fort";
-		return "Stronghold";
+			baseLabel = "Outpost";
+		else if (size == 2)
+			baseLabel = "Fort";
+		else
+			baseLabel = "Stronghold";
 	}
-
-	if (scriptName.find("stronghold_hamlet") != null)
-		return "Hamlet";
-
-	if (scriptName.find("cultist_camp_location") != null)
-		return "Cultist Camp";
-
-	if (_rawText.find("讨伐") != null)
-		return "Crusaders";
-	if (_rawText.find("攻城") != null)
-		return "Raiders";
-	if (_rawText.find("邪教") != null)
-		return "Cultists";
-	if (_rawText.find("雇佣兵") != null || _rawText.find("佣兵") != null)
-		return "Mercenary Patrol";
-	if (_rawText.find("巡逻") != null)
-		return "Patrol";
-	if (_rawText.find("商队") != null)
-		return "Caravan";
-	if (_rawText.find("驻军") != null || _rawText.find("守卫") != null || _rawText.find("护卫") != null)
-		return "Garrison";
-	if (_rawText.find("野蛮") != null || _rawText.find("氏族") != null)
-		return "Barbarians";
-
-	local prefix = toAsciiPrefix(_rawText);
-	if (prefix != "")
-		return prefix;
-
-	local isLoc = false;
-	try { isLoc = _entity.isLocation(); } catch (_e) {}
-	if (isLoc)
+	else if (scriptName.find("stronghold_hamlet") != null)
+		baseLabel = "Hamlet";
+	else if (scriptName.find("cultist_camp_location") != null)
+		baseLabel = "Cultist Camp";
+	else if (coreText.find("讨伐") != null)
+		baseLabel = "Crusaders";
+	else if (coreText.find("攻城") != null)
+		baseLabel = "Raiders";
+	else if (coreText.find("邪教") != null)
+		baseLabel = "Cultists";
+	else if (coreText.find("雇佣兵") != null || coreText.find("佣兵") != null)
+		baseLabel = "Mercenary Patrol";
+	else if (coreText.find("巡逻") != null)
+		baseLabel = "Patrol";
+	else if (coreText.find("商队") != null)
+		baseLabel = "Caravan";
+	else if (coreText.find("驻军") != null || coreText.find("守卫") != null || coreText.find("护卫") != null)
+		baseLabel = "Garrison";
+	else if (coreText.find("野蛮") != null || coreText.find("氏族") != null)
+		baseLabel = "Barbarians";
+	else
 	{
-		if (scriptName.find("settlements/") != null)
-			return "Settlement";
-		return "Location";
+		local prefix = toAsciiPrefix(coreText);
+		if (prefix != "")
+			baseLabel = prefix;
+		else
+		{
+			local isLoc = false;
+			try { isLoc = _entity.isLocation(); } catch (_e) {}
+			if (isLoc)
+				baseLabel = scriptName.find("settlements/") != null ? "Settlement" : "Location";
+			else
+				baseLabel = "Party";
+		}
 	}
-	return "Party";
+
+	return baseLabel + suffix;
 }
 
 local function sanitizeEntityLabel( _entity )
@@ -152,45 +176,59 @@ mod.queue(">mod_msu", function()
 
 mod.queue([">mod_msu", ">mod_pale_sovereign"], function()
 {
-	mod.hook("scripts/entity/world/world_entity", function(q)
+	local wrapMethod = function( _q, _methodName )
 	{
-		q.onInit = @(__original) function()
+		_q[_methodName] = @(__original) function(...)
 		{
-			__original();
-			sanitizeEntityLabel(this);
-		};
-
-		q.setName = @(__original) function( _n )
-		{
-			local ret = __original(_n);
+			local args = [this];
+			args.extend(vargv);
+			local ret = __original.acall(args);
 			sanitizeEntityLabel(this);
 			return ret;
 		};
-
-		q.onDeserialize = @(__original) function( _in )
-		{
-			local ret = __original(_in);
-			sanitizeEntityLabel(this);
-			return ret;
-		};
-	});
-
-	local hookLabelRefresh = function( _scriptPath, _methodName )
-	{
-		mod.hook(_scriptPath, function(q)
-		{
-			q[_methodName] = @(__original) function()
-			{
-				local ret = __original();
-				sanitizeEntityLabel(this);
-				return ret;
-			};
-		});
 	};
 
-	hookLabelRefresh("scripts/entity/world/settlements/stronghold_player_base", "updateTown");
-	hookLabelRefresh("scripts/entity/world/settlements/stronghold_hamlet", "updateTown");
-	hookLabelRefresh("scripts/entity/world/locations/cultist_camp_location", "updateName");
+	local wrapIfDefined = function( _q, _methods )
+	{
+		foreach (methodName in _methods)
+		{
+			if (_q.contains(methodName, false))
+				wrapMethod(_q, methodName);
+		}
+	};
+
+	local entityMethods = [
+		"onInit",
+		"onAfterInit",
+		"setName",
+		"onDeserialize",
+		"updateStrength",
+		"updateName",
+		"updateTown",
+		"onCombatLost"
+	];
+
+	mod.hook("scripts/entity/world/world_entity", function(q)
+	{
+		wrapIfDefined(q, entityMethods);
+	});
+
+	mod.hookTree("scripts/entity/world/world_entity", function(q)
+	{
+		wrapIfDefined(q, entityMethods);
+	});
+
+	mod.hook("scripts/entity/world/party", function(q)
+	{
+		if (q.contains("onUpdate", false))
+			wrapMethod(q, "onUpdate");
+	});
+
+	mod.hookTree("scripts/entity/world/party", function(q)
+	{
+		if (q.contains("onUpdate", false))
+			wrapMethod(q, "onUpdate");
+	});
 
 	mod.hook("scripts/ui/screens/stronghold/modules/stronghold_screen_main_module", function(q)
 	{
