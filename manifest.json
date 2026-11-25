@@ -1334,6 +1334,9 @@
     "patches/pandora/ethereal_null_skill.json",
     "patches/pandora/ghastly_touch_wither.json",
     "patches/pandora/necro_ammy_spawn_safety.json",
-    "patches/pandora/player_death_null_killer.json"
+    "patches/pandora/player_death_null_killer.json",
+    "patches/davkul/cultist_clashes_has_skill.json",
+    "patches/davkul/fear_hate_cultists_has_skill.json",
+    "patches/black_pyramid/elemental_attacker_null_guard.json"
   ]
 }

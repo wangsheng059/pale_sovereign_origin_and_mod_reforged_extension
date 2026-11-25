@@ -1,0 +1,8 @@
+{
+  "source": "最新达库尔崛起重铸修复汉化版20260521.zip",
+  "member": "scripts/events/events/cultist_clashes_with_partymember.nut",
+  "before": "0f54b0d369051a03332ce9c0001356dd20b4037b3dbcb7bf4c465720b216b2d7",
+  "after": "163e45f7f41ff9756991a8bf9442cbfe3c9077316651eba70b89600bd75e6869",
+  "old": "\t\tforeach( bro in brothers )\n\t\t{\n\t\t\tif (bro.hasSkill(\"background.cultist\")) cultistBros.push(bro)\n\t\t\tif (bro.hasSkill(\"trait.hate_cultists\") || bro.hasSkill(\"trait.fear_cultists\")) otherBros.push(bro)\n\t\t}\n\n\t\tif (cultistBros.len() == 0 || otherBros.len() == 0)\n\t\t{\n\t\t\treturn;\n\t\t}\n\n\t\tthis.m.CultistBro = this.Math.randArray(cultistBros);\n\t\tthis.m.OtherBro = this.Math.randArray(otherBros);\n\t\tthis.m.FearOrHate = this.m.OtherBro.hasSkill(\"trait.hate_cultists\") ? \"fears\" : \"hates\"",
+  "new": "\t\tforeach( bro in brothers )\n\t\t{\n\t\t\tif (bro.getSkills().hasSkill(\"background.cultist\")) cultistBros.push(bro)\n\t\t\tif (bro.getSkills().hasSkill(\"trait.hate_cultists\") || bro.getSkills().hasSkill(\"trait.fear_cultists\")) otherBros.push(bro)\n\t\t}\n\n\t\tif (cultistBros.len() == 0 || otherBros.len() == 0)\n\t\t{\n\t\t\treturn;\n\t\t}\n\n\t\tthis.m.CultistBro = this.Math.randArray(cultistBros);\n\t\tthis.m.OtherBro = this.Math.randArray(otherBros);\n\t\tthis.m.FearOrHate = this.m.OtherBro.getSkills().hasSkill(\"trait.hate_cultists\") ? \"fears\" : \"hates\""
+}

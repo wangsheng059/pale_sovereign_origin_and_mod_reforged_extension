@@ -361,9 +361,12 @@ this.bgp_command_link_effect <- ::inherit("scripts/skills/skill", {
 	function onBeforeDamageReceived( _attacker, _skill, _hitInfo, _properties )
 	{
 		// 中军印：相邻有持中军印的友军时，受到伤害 -20%
-		if (this.getContainer().hasSkill("effects.bgp_seal_center"))
+		local container = this.getContainer();
+		if (container == null || container.hasSkill("effects.bgp_seal_center"))
 			return;
-		local actor = this.getContainer().getActor();
+		local actor = container.getActor();
+		if (actor == null)
+			return;
 		foreach (e in ::BGP.countAdjacent(actor).List)
 		{
 			try
@@ -384,7 +387,12 @@ this.bgp_command_link_effect <- ::inherit("scripts/skills/skill", {
 	{
 		if (this.m.Count < 5 || this.m.PainDone)
 			return;
-		local actor = this.getContainer().getActor();
+		local container = this.getContainer();
+		if (container == null)
+			return;
+		local actor = container.getActor();
+		if (actor == null)
+			return;
 		try
 		{
 			if (actor.getHitpoints() > 0 && actor.getHitpoints() < actor.getHitpointsMax() * 0.25)

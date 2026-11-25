@@ -171,7 +171,9 @@
 - 潘多拉冠军样本的物品路径写错，掉不出来。
 - 潘多拉亡灵营地冠军报错：冠军死灵法师召唤僵尸的脚本路径漏了 `enemies/` 导致空指针崩溃；冠军幽魂受无技能来源伤害时崩溃、枯萎之触存活判定写反；护身符/玩家死亡空引用保护。
 - 北境扩张（野蛮人扩张）营地与合同报错：驱逐野蛮人单挑弹窗在无冠军特质兄弟或遍历候选人时报错；野蛮人营地销毁与派系更新缺少空值/方法检查及返回值遗漏。
-- 背景专属特技 1.6.11：修复「复活死者」误将倒地昏迷（永久伤存活）的我方活人兄弟当作待复活尸体并触发 `transferTo` 报错的问题。
+- 达库尔崛起事件报错：修复 `cultist_clashes_with_partymember.nut`（3 处）与 `fear_hate_cultists_event.nut`（1 处）直接对兄弟对象调用 `bro.hasSkill(...)` 而漏写 `.getSkills()` 导致的 `the index 'hasSkill' does not exist` 崩溃。
+- 黑色金字塔元素受击钩子加固：`mod_elemental/hooks/actor_on_damage.nut` 增加 `::MSU.isNull(_attacker)` 判空，避免远程延迟投射物落地时攻击者已阵亡的 `WeakTableRef` 空引用异常。
+- 背景专属特技 1.6.11：修复「复活死者」误将倒地昏迷（永久伤存活）的我方活人兄弟当作待复活尸体并触发 `transferTo` 报错的问题；加固统帅「指挥链接」`bgp_command_link_effect.nut` 受击回调的空容器判断。
 - 亡灵主宰 1.7.7 实机通测修复：
   - 修复 `pale_sovereign/hooks.nut` 中 `WeakTableRef` 与原生表直接比较导致冠军/尸妖王进场时全部专属技能（冢王护持、号令亡魂、冢王威压、吞魂/名器/魂玉铭刻与镀金）被静默跳过的 Bug（并同步加固其余 3 处 `mainPet()` 比较）。
   - 修复 3 阶远程亡灵「箭雨编织者」技能 `pale_arrow_rain.getItem()` 返回原生武器表而非 `WeakTableRef`，导致打开角色界面或升级时触发 `the index 'isNull' does not exist` 崩溃。

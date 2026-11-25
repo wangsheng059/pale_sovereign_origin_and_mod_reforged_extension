@@ -1,0 +1,8 @@
+{
+  "source": "Black_Pyramid_1.4.5_汉化.zip",
+  "member": "mod_elemental/hooks/actor_on_damage.nut",
+  "before": "f4fd7e282814051b335ff03c44bc140ebdcbeea4c12f48be902e8b67a2384b97",
+  "after": "d1fe3f4af2f24b48a1884c64bfda2da0483787493e253914aeaf89fe281c07b6",
+  "old": "        if (_attacker == null)\n            return ret;",
+  "new": "        if (_attacker == null || ::MSU.isNull(_attacker))\n            return ret;"
+}

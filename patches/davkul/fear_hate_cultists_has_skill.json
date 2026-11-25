@@ -1,0 +1,8 @@
+{
+  "source": "最新达库尔崛起重铸修复汉化版20260521.zip",
+  "member": "scripts/events/events/fear_hate_cultists_event.nut",
+  "before": "8a0a0ea867242ab948a7651dc0b31bc7867496289cadacec98b64df0eaeb1147",
+  "after": "524cac8b2c0f3b71fad09c51b2f0ad486597ee94fcb53616a3fb03ad6ae558b5",
+  "old": "\t\t\tforeach(skill in skillToAdd.m.Excluded){\n\t\t\t\tif (bro.hasSkill(skill)){\n\t\t\t\t\tisExcluded = true\n\t\t\t\t}\n\t\t\t}",
+  "new": "\t\t\tforeach(skill in skillToAdd.m.Excluded){\n\t\t\t\tif (bro.getSkills().hasSkill(skill)){\n\t\t\t\t\tisExcluded = true\n\t\t\t\t}\n\t\t\t}"
+}
