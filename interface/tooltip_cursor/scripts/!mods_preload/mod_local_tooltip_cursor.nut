@@ -174,60 +174,70 @@ mod.queue(">mod_msu", function()
 	});
 });
 
-mod.queue([">mod_msu", ">mod_pale_sovereign"], function()
+mod.queue([">mod_msu", ">mod_modular_vanilla", ">mod_reforged", ">mod_pale_sovereign"], function()
 {
-	local wrapMethod = function( _q, _methodName )
+	local wrapZeroArg = function( _q, _methodName )
 	{
-		_q[_methodName] = @(__original) function(...)
+		_q[_methodName] = @(__original) function()
 		{
-			local args = [this];
-			args.extend(vargv);
-			local ret = __original.acall(args);
+			local ret = __original();
 			sanitizeEntityLabel(this);
 			return ret;
 		};
 	};
 
-	local wrapIfDefined = function( _q, _methods )
+	local wrapOneArg = function( _q, _methodName )
 	{
-		foreach (methodName in _methods)
+		_q[_methodName] = @(__original) function( _arg )
 		{
-			if (_q.contains(methodName, false))
-				wrapMethod(_q, methodName);
-		}
+			local ret = __original(_arg);
+			sanitizeEntityLabel(this);
+			return ret;
+		};
 	};
 
-	local entityMethods = [
+	local zeroArgMethods = [
 		"onInit",
 		"onAfterInit",
-		"setName",
-		"onDeserialize",
 		"updateStrength",
 		"updateName",
 		"updateTown",
 		"onCombatLost"
 	];
 
+	local oneArgMethods = [
+		"setName",
+		"onDeserialize"
+	];
+
+	local wrapEntityClass = function( _q )
+	{
+		foreach (m in zeroArgMethods)
+		{
+			if (_q.contains(m, false))
+				wrapZeroArg(_q, m);
+		}
+		foreach (m in oneArgMethods)
+		{
+			if (_q.contains(m, false))
+				wrapOneArg(_q, m);
+		}
+	};
+
 	mod.hook("scripts/entity/world/world_entity", function(q)
 	{
-		wrapIfDefined(q, entityMethods);
+		wrapEntityClass(q);
 	});
 
 	mod.hookTree("scripts/entity/world/world_entity", function(q)
 	{
-		wrapIfDefined(q, entityMethods);
+		wrapEntityClass(q);
 	});
 
 	mod.hook("scripts/entity/world/party", function(q)
 	{
 		if (q.contains("onUpdate", false))
-			wrapMethod(q, "onUpdate");
-	});
-
-	mod.hookTree("scripts/entity/world/party", function(q)
-	{
-		if (q.contains("onUpdate", false))
-			wrapMethod(q, "onUpdate");
+			wrapZeroArg(q, "onUpdate");
 	});
 
 	mod.hook("scripts/ui/screens/stronghold/modules/stronghold_screen_main_module", function(q)
