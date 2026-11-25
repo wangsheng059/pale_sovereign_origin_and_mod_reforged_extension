@@ -16,7 +16,7 @@ this.pg_bgp_necro_scourge <- ::inherit(::DynamicPerks.Class.PerkGroup, {
 			["perk.bgp_necro_mastery"],
 			["perk.bgp_necro_fly_swarm"],
 			["perk.bgp_necro_curse_of_ages"],
-			["perk.bgp_corpse_explosion"]
+			["perk.bgp_corpse_explosion", "perk.bgp_necro_grandmaster"]
 		];
 	}
 

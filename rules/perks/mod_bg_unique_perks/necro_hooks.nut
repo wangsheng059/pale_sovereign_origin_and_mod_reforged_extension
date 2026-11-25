@@ -234,3 +234,37 @@ foreach (beastClass in ["ghoul", "direwolf", "hyena", "wolf", "alp", "schrat", "
 		return flags.has("bgp_bound_orc_injury") ? flags.get("bgp_bound_orc_injury") : __original();
 	};
 });
+
+// Tier 7 Grandmaster: extend staggered_effect duration when applied by Corpse Explosion.
+::BGP.HooksMod.hook("scripts/skills/effects/staggered_effect", function(q)
+{
+	q.m.BGP_ExtraTurns <- 0;
+
+	q.getTooltip = @(__original) function()
+	{
+		local ret = __original();
+		if (this.m.BGP_ExtraTurns > 0)
+			ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = "亡灵法术大师延长：额外持续 " + this.m.BGP_ExtraTurns + " 回合" });
+		return ret;
+	};
+
+	q.onTurnEnd = @(__original) function()
+	{
+		if (this.m.BGP_ExtraTurns > 0)
+		{
+			this.m.BGP_ExtraTurns -= 1;
+			return;
+		}
+		return __original();
+	};
+});
+
+// Old-save migration: ensure Tier 7 Grandmaster exists on existing necromancer / mentor perk trees.
+::BGP.HooksMod.hook("scripts/states/world_state", function(q)
+{
+	q.onDeserialize = @(__original) function( _in )
+	{
+		__original(_in);
+		try { ::BGP.Necro.ensureGrandmasterInPerkTrees(); } catch (e) {}
+	};
+});

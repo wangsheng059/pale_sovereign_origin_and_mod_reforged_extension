@@ -34,9 +34,9 @@ this.bgp_curse_of_ages_effect <- ::inherit("scripts/skills/skill", {
 		return ret;
 	}
 
-	function refresh( _decay = null )
+	function refresh( _decay = null, _turns = 3 )
 	{
-		this.m.TurnsLeft = 3;
+		this.m.TurnsLeft = _turns;
 		if (_decay != null)
 			this.m.Decay = _decay;
 	}

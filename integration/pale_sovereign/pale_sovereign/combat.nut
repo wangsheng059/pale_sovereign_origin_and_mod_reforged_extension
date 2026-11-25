@@ -40,7 +40,7 @@ S.directDamage <- function( _user, _skill, _target, _amount )
     _target.onDamageReceived(_user, _skill, hit);
 };
 
-S.markPrey <- function( _target )
+S.markPrey <- function( _target, _turns = 2 )
 {
     if (this.Battle == null)
         return;
@@ -53,7 +53,7 @@ S.markPrey <- function( _target )
         effect = ::new(this.SkillDir + "effects/pale_prey_effect");
         _target.getSkills().add(effect);
     }
-    effect.m.Turns = 2;
+    effect.m.Turns = _turns;
     this.Battle.Prey = ::MSU.asWeakTableRef(_target);
 };
 

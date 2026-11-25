@@ -695,13 +695,6 @@ mod.hook("scripts/skills/backgrounds/bgp_necromancer_background", function(q)
 
 mod.hook("scripts/skills/actives/bgp_necro_bind_skill", function(q)
 {
-    q.isUsable = @(__original) function()
-    {
-        if (S.isActive() && (!S.isChief(this.getContainer().getActor()) || S.oath() != S.Oath.Champion))
-            return false;
-        return __original();
-    };
-
     q.onUse = @(__original) function( _user, _tile )
     {
         local elite = S.Battle != null && _tile.IsOccupiedByActor && S.isElite(_tile.getEntity());
@@ -757,21 +750,27 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
     q.isStashMode <- function()
     {
         local actor = this.getContainer().getActor();
-        return actor.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) != null && actor.getSkills().hasSkill("perk.bgp_necro_mastery")
+        return actor.getItems().getItemAtSlot(::Const.ItemSlot.Accessory) != null && actor.getSkills().hasSkill("perk.bgp_necro_grandmaster")
             && S.canStashPet(actor);
     };
 
-    // 亡灵法师导师不能驯服野兽：驯服技能对导师隐藏且不可用
+    // 亡灵法师导师学会“亡灵法术大师”后可在双路线驯服亡灵，但仍不能驯服野兽；未学前隐藏且不可用
     q.isHidden = @(__original) function()
     {
-        if (S.isActive() && S.isChief(this.getContainer().getActor()))
-            return true;
+        local actor = this.getContainer().getActor();
+        if (S.isActive() && S.isChief(actor))
+        {
+            if (!actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"))
+                return true;
+            return __original() && !this.isStashMode();
+        }
         return __original() && !this.isStashMode();
     };
 
     q.isUsable = @(__original) function()
     {
-        if (S.isActive() && S.isChief(this.getContainer().getActor()))
+        local actor = this.getContainer().getActor();
+        if (S.isActive() && S.isChief(actor) && !actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"))
             return false;
         return __original();
     };
@@ -780,8 +779,8 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
     {
         local ret = __original();
         local actor = this.getContainer().getActor();
-        if (S.isActive() && S.isChief(actor) && actor.getSkills().hasSkill("perk.bgp_necro_mastery"))
-            ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = S.StashRule + "（只能驯服亡灵）" });
+        if (S.isActive() && S.isChief(actor) && actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"))
+            ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = S.StashRule + "（只能驯服亡灵）" });
         return ret;
     };
 
@@ -789,10 +788,12 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
     {
         if (!__original(_originTile, _targetTile))
             return false;
-        if (!this.isStashMode())
+        local actor = this.getContainer().getActor();
+        local chiefOnlyUndead = S.isActive() && S.isChief(actor);
+        if (!chiefOnlyUndead && !this.isStashMode())
             return true;
         local prev = ::BGP.NecroPet.TamingActor;
-        ::BGP.NecroPet.TamingActor = this.getContainer().getActor();
+        ::BGP.NecroPet.TamingActor = actor;
         local type = null;
         try { type = ::Const.Companions.resolveTameType(_targetTile.getEntity()); } catch (e) { type = null; }
         ::BGP.NecroPet.TamingActor = prev;
@@ -801,11 +802,21 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
 
     q.onUse = @(__original) function( _user, _targetTile )
     {
-        if (!this.isStashMode())
-            return __original(_user, _targetTile);
         local actor = this.getContainer().getActor();
         local target = _targetTile.getEntity();
         local elite = S.Battle != null && target != null && S.isElite(target);
+        if (!this.isStashMode())
+        {
+            local prev = S.mainPet();
+            local ret = __original(_user, _targetTile);
+            if (ret && elite && S.isChief(actor))
+            {
+                local pet = S.mainPet();
+                if (pet != null && pet != prev)
+                    S.petSet(pet, "Elite", 1);
+            }
+            return ret;
+        }
         local unleash = actor.getSkills().getSkillByID("actives.unleash_companion");
         local used = unleash == null ? null : unleash.m.IsUsed;
         S.TameStash = { Actor = actor, Item = null };

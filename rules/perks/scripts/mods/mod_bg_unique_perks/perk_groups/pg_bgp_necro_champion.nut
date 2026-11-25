@@ -15,7 +15,7 @@ this.pg_bgp_necro_champion <- ::inherit(::DynamicPerks.Class.PerkGroup, {
 			["perk.bgp_necro_mastery"],
 			["perk.bgp_necro_mind_meld"],
 			["perk.bgp_necro_infusion"],
-			["perk.bgp_necro_undying_champion"]
+			["perk.bgp_necro_undying_champion", "perk.bgp_necro_grandmaster"]
 		];
 	}
 

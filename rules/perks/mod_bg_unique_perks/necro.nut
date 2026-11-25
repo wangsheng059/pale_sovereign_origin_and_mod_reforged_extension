@@ -877,3 +877,165 @@
 	}
 	return changed;
 }
+
+// ---------------------------------------------------------------------------
+// Tier 7 Grandmaster: spell registry, duration bonus, Hunger passive, 4-tile pulse, old-save tree fix
+// ---------------------------------------------------------------------------
+::BGP.Necro.SpellIDs <- {
+	["actives.bgp_necro_raise"] = true,
+	["actives.possess_undead"] = true,
+	["actives.bgp_necro_infusion"] = true,
+	["actives.bgp_corpse_explosion"] = true,
+	["actives.bgp_necro_flesh_reforge"] = true,
+	["actives.bgp_necro_eternal_command"] = true,
+	["actives.bgp_necro_curse_of_ages"] = true,
+	["actives.bgp_necro_bind"] = true,
+	["actives.pale_weaken"] = true,
+	["actives.pale_summon_zombie"] = true,
+	["actives.pale_summon_skeleton"] = true,
+	["actives.pale_soul_bind"] = true,
+	["actives.pale_soul_chain"] = true
+};
+
+::BGP.Necro.hasGrandmaster <- function( _actor )
+{
+	if (_actor == null || ::MSU.isNull(_actor))
+		return false;
+	try { return _actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"); } catch (e) {}
+	return false;
+}
+
+::BGP.Necro.spellDurationBonus <- function( _actor )
+{
+	return ::BGP.Necro.hasGrandmaster(_actor) ? 1 : 0;
+}
+
+// Non-permanent friendly undead (undead pets, Eternal Guard, raised/summoned minions);
+// excludes permanent undead (Pale Sovereign roster undead / Soulbound).
+::BGP.Necro.isNonPermanentFriendlyUndead <- function( _a )
+{
+	if (!::BGP.isValid(_a))
+		return false;
+	try
+	{
+		if (_a.getFaction() != ::Const.Faction.PlayerAnimals)
+			return false;
+		if (!_a.getFlags().has("undead"))
+			return false;
+		if (::isKindOf(_a, "player"))
+			return false;
+		if ("PaleSovereign" in ::getroottable() && ::PaleSovereign.isUndead(_a))
+			return false;
+		return true;
+	}
+	catch (e)
+	{
+	}
+	return false;
+}
+
+// All friendly undead (permanent undead, Soulbound, undead pets/champions, Eternal Guard, temporary minions).
+::BGP.Necro.isAllFriendlyUndead <- function( _caster, _a )
+{
+	if (!::BGP.isValid(_a) || _caster == null || ::MSU.isNull(_caster))
+		return false;
+	try
+	{
+		if (_a.getID() == _caster.getID() || !_a.isAlliedWith(_caster))
+			return false;
+		if (_a.getFlags().has("undead"))
+			return true;
+		if ("PaleSovereign" in ::getroottable() && ::PaleSovereign.isPaleUndeadActor(_a))
+			return true;
+	}
+	catch (e)
+	{
+	}
+	return false;
+}
+
+::BGP.Necro.ensureHunger <- function()
+{
+	if (!::BGP.isInBattle())
+		return;
+	if (::BGP.getBrosWithSkill("perk.bgp_necro_grandmaster").len() == 0)
+		return;
+	foreach (a in ::BGP.getAllActors())
+	{
+		if (!::BGP.Necro.isNonPermanentFriendlyUndead(a))
+			continue;
+		try
+		{
+			if (!a.getSkills().hasSkill("effects.bgp_necro_hunger"))
+				a.getSkills().add(::new("scripts/skills/effects/bgp_necro_hunger_effect"));
+		}
+		catch (e)
+		{
+			::logError("mod_bg_unique_perks: 添加饥渴被动失败: " + e);
+		}
+	}
+}
+
+::BGP.Necro.triggerGrandmasterPulse <- function( _caster )
+{
+	if (!::BGP.isInBattle() || !::BGP.isValid(_caster))
+		return;
+	local count = 0;
+	foreach (a in ::BGP.getAllActors())
+	{
+		if (!::BGP.Necro.isAllFriendlyUndead(_caster, a))
+			continue;
+		if (::BGP.distance(_caster, a) > 4)
+			continue;
+		try
+		{
+			local missing = a.getHitpointsMax() - a.getHitpoints();
+			local heal = ::Math.min(missing, 8);
+			if (heal > 0)
+				::BGP.heal(a, heal);
+			if (!a.getSkills().hasSkill("effects.bgp_necro_surge"))
+				a.getSkills().add(::new("scripts/skills/effects/bgp_necro_surge_effect"));
+			a.getSkills().update();
+			a.setDirty(true);
+			++count;
+		}
+		catch (e)
+		{
+			::logError("mod_bg_unique_perks: 死灵法术大师余波失败: " + e);
+		}
+	}
+	if (count > 0)
+		::BGP.log(_caster, "施法引发死灵余波，" + count + " 名友方亡灵回复 8 点生命并获得 +5 近战/远程技能");
+}
+
+::BGP.Necro.ensureGrandmasterInPerkTrees <- function()
+{
+	if (!("World" in ::getroottable()) || ::World == null || !("State" in ::World) || ::World.State == null)
+		return;
+	local roster = null;
+	try { roster = ::World.getPlayerRoster(); } catch (e) { roster = null; }
+	if (roster == null)
+		return;
+	foreach (bro in roster.getAll())
+	{
+		try
+		{
+			if (bro == null || ::MSU.isNull(bro))
+				continue;
+			local skills = bro.getSkills();
+			if (skills == null)
+				continue;
+			local isNecro = skills.hasSkill("background.bgp_necromancer") || skills.hasSkill("background.pale_necromancer");
+			local tree = bro.getPerkTree();
+			if (tree == null)
+				continue;
+			if (!isNecro && !tree.hasPerkGroup("pg.bgp_necro_champion") && !tree.hasPerkGroup("pg.bgp_necro_scourge"))
+				continue;
+			if (!tree.hasPerk("perk.bgp_necro_grandmaster"))
+				tree.addPerk("perk.bgp_necro_grandmaster", 7, true);
+		}
+		catch (e)
+		{
+		}
+	}
+}

@@ -195,8 +195,8 @@ foreach (name, art in casts)
 }
 
 S.Mod.hook("scripts/skills/effects/bgp_curse_of_ages_effect", function(q) {
-    q.refresh = @(__original) function( _decay = null ) {
-        __original(_decay);
+    q.refresh = @(__original) function( _decay = null, _turns = 3 ) {
+        __original(_decay, _turns);
         if (this.m.PaleArtAttached)
             S.playBattleArt("mark_age", this.getContainer().getActor().getTile(), 44);
     };

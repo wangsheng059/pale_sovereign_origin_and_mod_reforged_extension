@@ -676,7 +676,9 @@ S.onPaleSummoned = function( _user, _e )
     if (!_e.getSkills().hasSkill("effects.pale_bone_ward"))
     {
         this.addSummonPlating(_e, 30);
-        _e.getSkills().add(::new(this.SkillDir + "effects/pale_bone_ward_effect"));
+        local ward = ::new(this.SkillDir + "effects/pale_bone_ward_effect");
+        ward.m.Turns = 3 + ::BGP.Necro.spellDurationBonus(_user);
+        _e.getSkills().add(ward);
     }
 };
 

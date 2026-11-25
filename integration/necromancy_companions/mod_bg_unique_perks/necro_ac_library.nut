@@ -50,7 +50,7 @@ foreach (d in ::BGP.NecroPet.Defs)
 	::BGP.NecroPet.TypeDefs[C.TypeList[key]] <- d;
 }
 
-// 驯服：带“死灵精通”的人驯服亡灵时，按亡灵的类路径给出对应的死灵宠物种类（配件兄弟和兼容补丁认得的仍按原样）
+// 驯服：带“亡灵法术大师”的人驯服亡灵时，按亡灵的类路径给出对应的死灵宠物种类（配件兄弟和兼容补丁认得的仍按原样）
 local originalResolve = C.resolveTameType;
 C.resolveTameType = function( _entity )
 {
@@ -60,7 +60,7 @@ C.resolveTameType = function( _entity )
 	try
 	{
 		local actor = ::BGP.NecroPet.TamingActor;
-		if (actor == null || !actor.getSkills().hasSkill("perk.bgp_necro_mastery"))
+		if (actor == null || !actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"))
 			return null;
 		if (!_entity.isAlive())
 			return null;

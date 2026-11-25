@@ -35,11 +35,11 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         return this.getContainer().getActor().getSkills().hasSkill("perk.bgp_necro_mastery");
     }
 
-    // 0 = 基础，1 = 死灵精通（第 4 阶），2 = 第 7 阶（不灭冠军 / 尸爆）
+    // 0 = 基础，1 = 死灵精通（第 4 阶），2 = 第 7 阶（不灭冠军 / 尸爆 / 亡灵法术大师）
     function getRank()
     {
         local skills = this.getContainer().getActor().getSkills();
-        if (skills.hasSkill("perk.bgp_necro_undying_champion") || skills.hasSkill("perk.bgp_corpse_explosion"))
+        if (skills.hasSkill("perk.bgp_necro_undying_champion") || skills.hasSkill("perk.bgp_corpse_explosion") || skills.hasSkill("perk.bgp_necro_grandmaster"))
             return 2;
         return skills.hasSkill("perk.bgp_necro_mastery") ? 1 : 0;
     }
@@ -52,7 +52,7 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         ret.push({ id = 10, type = "text", icon = "ui/backgrounds/" + this.m.ArtStem + "_" + rank + ".png",
             text = "在相邻的空格召出一名" + names[rank] + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
-            + "；学会第 7 阶特技（不灭冠军或尸爆）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
+            + "；学会第 7 阶特技（不灭冠军、尸爆或亡灵法术大师）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
         if (this.m.FearInsteadOfOverwhelm)
             ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”，决心为施法者当前决心的一半，可获得战旗加成" });
         if (this.m.EliteExtraText != "")

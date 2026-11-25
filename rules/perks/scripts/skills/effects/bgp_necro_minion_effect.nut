@@ -95,6 +95,18 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 				}
 			}
 		}
+
+		if (::BGP.Necro.hasGrandmaster(_master) && ::BGP.Necro.isNonPermanentFriendlyUndead(actor) && !actor.getSkills().hasSkill("effects.bgp_necro_hunger"))
+		{
+			try
+			{
+				actor.getSkills().add(::new("scripts/skills/effects/bgp_necro_hunger_effect"));
+			}
+			catch (e)
+			{
+				::logError("mod_bg_unique_perks: 亡灵仆从添加饥渴失败: " + e);
+			}
+		}
 		try { actor.getSkills().update(); } catch (e) {}
 	}
 

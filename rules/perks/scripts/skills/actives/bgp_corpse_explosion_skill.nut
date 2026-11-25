@@ -48,12 +48,13 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 	{
 		local ret = this.skill.getDefaultUtilityTooltip();
 		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
+		local extra = ::BGP.Necro.spellDurationBonus(this.getContainer().getActor());
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "技能范围为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；目标为有尸体的格子（格子上可以有人）" },
 			{ id = 11, type = "text", icon = "ui/icons/regular_damage.png", text = "对目标格和相邻 1 格内的所有敌人造成钝器伤害，等于尸体生前最大生命的 " + ::MSU.Text.colorPositive(::BGP.Necro.pctText(::BGP.Necro.WillScale.BlastPct(w))) + ::BGP.Necro.willText(w) + "；不伤友军" },
 			{ id = 12, type = "text", icon = "ui/icons/armor_damage.png", text = "尸体死亡时头甲、身甲还有剩余耐久的，额外造成劈砍伤害，等于剩余耐久总和的 " + ::MSU.Text.colorPositive("25%") + "（对护甲效率 " + ::MSU.Text.colorPositive("150%") + "）" },
 			{ id = 13, type = "text", icon = "ui/icons/morale.png", text = "被波及还活着的敌人做一次士气检定，难度 " + ::MSU.Text.colorNegative("-" + ::BGP.Necro.WillScale.BlastMorale(w)) },
-			{ id = 14, type = "text", icon = "ui/icons/special.png", text = "被波及的敌人陷入“趔趄”；尸体被摧毁，不能再复活" }
+			{ id = 14, type = "text", icon = "ui/icons/special.png", text = (extra > 0 ? "被波及的敌人陷入“趔趄”（额外持续 +" + extra + " 回合）；" : "被波及的敌人陷入“趔趄”；") + "尸体被摧毁，不能再复活" }
 		]);
 		return ret;
 	}
@@ -99,6 +100,7 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 		if (blast == null)
 			return false;
 		local moraleDifficulty = -::BGP.Necro.WillScale.BlastMorale(::BGP.Necro.getWill(_user));
+		local extra = ::BGP.Necro.spellDurationBonus(_user);
 
 		::BGP.Necro.removeCorpse(_targetTile);
 		try
@@ -136,8 +138,17 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 				::BGP.Necro.applyBlast(_user, this, target, blast.Blunt, 1.0, ::Const.Injury.BluntBody, ::Const.Injury.BluntHead, ::Const.Damage.DamageType.Blunt);
 				if (blast.Cutting > 0)
 					::BGP.Necro.applyBlast(_user, this, target, blast.Cutting, this.m.ArmorEfficiency, ::Const.Injury.CuttingBody, ::Const.Injury.CuttingHead, ::Const.Damage.DamageType.Cutting);
-				if (target.isAlive() && !target.isDying() && !target.getSkills().hasSkill("effects.staggered"))
-					target.getSkills().add(::new("scripts/skills/effects/staggered_effect"));
+				if (target.isAlive() && !target.isDying())
+				{
+					local stagger = target.getSkills().getSkillByID("effects.staggered");
+					if (stagger == null)
+					{
+						stagger = ::new("scripts/skills/effects/staggered_effect");
+						target.getSkills().add(stagger);
+					}
+					if (extra > 0)
+						stagger.m.BGP_ExtraTurns = ::Math.max(stagger.m.BGP_ExtraTurns, extra);
+				}
 				if (target.isAlive() && !target.isDying())
 				{
 					try { target.checkMorale(-1, moraleDifficulty); } catch (e) {}

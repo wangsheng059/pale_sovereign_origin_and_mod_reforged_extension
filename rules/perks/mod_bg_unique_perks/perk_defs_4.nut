@@ -15,6 +15,7 @@
 ::BGP.PerkNames.NecroUndyingChampion <- "不灭冠军";
 ::BGP.PerkNames.NecroCurseOfAges <- "岁月诅咒";
 ::BGP.PerkNames.NecroFlySwarm <- "腐毒蝇群";
+::BGP.PerkNames.NecroGrandmaster <- "亡灵法术大师";
 
 ::BGP.PerkDescriptions.NecroArts <- ::UPD.getDescription({
 	Fluff = "人也好，兽也好，死了都一样。",
@@ -58,10 +59,7 @@
 		Description = [
 			"亡灵冠军、亡灵天灾两组共用（不参与两组互斥）。",
 			"亡灵法师的主动技能（复活死者、支配亡灵、死灵灌注、尸爆、血肉重铸、不灭号令、岁月诅咒）行动点消耗 " + ::MSU.Text.colorPositive("-1") + "、疲劳消耗 " + ::MSU.Text.colorPositive("-25%") + "。",
-			"（需要配件兄弟）可以用“驯服野兽”驯服亡灵：僵尸、骷髅、死灵学者、血肉魔像、墓穴死尸、僵尸兽人等，驯服后和宠物一样装在饰品栏（饰品栏要空着；亡灵主宰的亡灵法师导师饰品栏已有死灵宠物时，驯服的亡灵放进仓库）。",
-			"（需要配件兄弟）解锁“驱役亡灵”：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("16") + " 疲劳，将 6 格内自己复活的友军，或仍存活且生命不高于 30% 的敌方亡灵收入棺椁。只可驱役有对应死灵宠物类型的目标（只能在饰品栏空着时使用，收服后直接装备；亡灵主宰的亡灵法师导师饰品栏已有死灵宠物时，放进仓库）。",
-			"封进配件的亡灵属性沿用它自己的，之后像宠物一样放出、收回、积累经验升级；升级时从亡灵特质池抽特质（含不朽之躯、腐臭、死而复生、灵魂虹吸、中毒，以及按它的装备和体型给的武器精通、盾牌专家、战斗锻造、咄咄逼人等），11 级得到“死灵契约”。",
-			"死灵宠物记住被封入 / 驯服时身上的武器和护甲，每次放出都是满耐久的同款装备，这些装备不会掉落。只有亡灵法师能装备死灵宠物。"
+			"（注：驯服亡灵与“驱役亡灵”已移至第 7 层“亡灵法术大师”。）"
 		]
 	}]
 });
@@ -181,6 +179,21 @@
 	}]
 });
 
+::BGP.PerkDescriptions.NecroGrandmaster <- ::UPD.getDescription({
+	Fluff = "生者惧死，而你已在死界封王。",
+	Effects = [{
+		Type = ::UPD.EffectType.Passive,
+		Description = [
+			"亡灵冠军、亡灵天灾两组共用（不参与两组互斥）。",
+			"（需要配件兄弟）解锁亡灵驯服与“驱役亡灵”（亡灵主宰导师双路线学会后皆可用，但仍不能驯服野兽）：可用“驯服野兽”驯服亡灵（成功率随决心提升，饰品栏空着直接装备；导师已有死灵宠物时放进仓库）。",
+			"（需要配件兄弟）“驱役亡灵”可收服 6 格内自己复活的友军（不限血量），或仍存活且生命不高于最大生命 " + ::MSU.Text.colorPositive("5% + ⌊(当前决心 − 20) / 8⌋%") + "（上限 " + ::MSU.Text.colorPositive("30%") + "）的敌方亡灵；亡灵宠物沿用目标属性与装备，升级走亡灵特质池。",
+			"给予所有非永久友方亡灵（亡灵宠物、永恒禁卫、复活与召唤的亡灵，不含常驻亡灵）被动“饥渴”：与敌人贴身（距离 1 格）时每回合开始恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "，攻击命中敌人时额外恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "。",
+			"你施放的亡灵法术所附加的增益或减益效果（死灵灌注、岁月诅咒、衰弱术、冠军猎物、尸爆“趔趄”、千魂回响“玉骨盾”）持续时间 " + ::MSU.Text.colorPositive("+1") + " 回合。",
+			"每施放一次亡灵法术，自身 " + ::MSU.Text.colorPositive("4") + " 格内所有友方亡灵（含常驻亡灵、冠军宠物、临时仆从）回复 " + ::MSU.Text.colorPositive("8") + " 点生命，并在本回合获得 " + ::MSU.Text.colorPositive("+5") + " 近战技能与远程技能（不叠加，每回合最多触发 1 次）。"
+		]
+	}]
+});
+
 local perks4 = [];
 foreach (d in [
 	["NecroArts", "perk.bgp_necro_arts", "perk_bgp_necro_arts"],
@@ -195,7 +208,8 @@ foreach (d in [
 	["NecroFleshReforge", "perk.bgp_necro_flesh_reforge", "perk_bgp_necro_flesh_reforge"],
 	["NecroUndyingChampion", "perk.bgp_necro_undying_champion", "perk_bgp_necro_undying_champion"],
 	["NecroCurseOfAges", "perk.bgp_necro_curse_of_ages", "perk_bgp_necro_curse_of_ages"],
-	["NecroFlySwarm", "perk.bgp_necro_fly_swarm", "perk_bgp_necro_fly_swarm"]
+	["NecroFlySwarm", "perk.bgp_necro_fly_swarm", "perk_bgp_necro_fly_swarm"],
+	["NecroGrandmaster", "perk.bgp_necro_grandmaster", "perk_bgp_necro_grandmaster"]
 ])
 {
 	::Const.Strings.PerkName[d[0] + "_BGP"] <- ::BGP.PerkNames[d[0]];

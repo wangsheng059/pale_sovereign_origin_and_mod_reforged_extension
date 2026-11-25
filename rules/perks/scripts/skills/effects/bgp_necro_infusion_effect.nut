@@ -19,9 +19,9 @@ this.bgp_necro_infusion_effect <- ::inherit("scripts/skills/skill", {
 		this.m.IsSerialized = false;
 	}
 
-	function refresh()
+	function refresh( _turns = 2 )
 	{
-		this.m.TurnsLeft = 2;
+		this.m.TurnsLeft = _turns;
 	}
 
 	function getTooltip()

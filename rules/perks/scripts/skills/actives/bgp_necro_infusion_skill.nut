@@ -40,11 +40,12 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 	{
 		local ret = this.skill.getDefaultUtilityTooltip();
 		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
+		local turns = 2 + ::BGP.Necro.spellDurationBonus(this.getContainer().getActor());
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "目标为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格内的一名友方亡灵（不需要视野）" },
 			{ id = 11, type = "text", icon = "ui/icons/health.png", text = "立刻回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionHeal(w)) + " 点生命" + ::BGP.Necro.willText(w) },
 			{ id = 12, type = "text", icon = "ui/icons/fatigue.png", text = "立刻减少 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionFatigue(w)) + " 点疲劳" + ::BGP.Necro.willText(w) },
-			{ id = 13, type = "text", icon = "ui/icons/action_points.png", text = "行动点数 " + ::MSU.Text.colorPositive("+4") + "，持续 2 回合（再次灌注会刷新持续时间，不叠加）" }
+			{ id = 13, type = "text", icon = "ui/icons/action_points.png", text = "行动点数 " + ::MSU.Text.colorPositive("+4") + "，持续 " + turns + " 回合（再次灌注会刷新持续时间，不叠加）" }
 		]);
 		return ret;
 	}
@@ -73,13 +74,18 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 		try
 		{
 			local w = ::BGP.Necro.getWill(_user);
+			local turns = 2 + ::BGP.Necro.spellDurationBonus(_user);
 			::BGP.heal(target, ::BGP.Necro.WillScale.InfusionHeal(w));
 			::BGP.reduceFatigue(target, ::BGP.Necro.WillScale.InfusionFatigue(w));
 			local fx = target.getSkills().getSkillByID("effects.bgp_necro_infusion");
 			if (fx != null)
-				fx.refresh();
+				fx.refresh(turns);
 			else
-				target.getSkills().add(::new("scripts/skills/effects/bgp_necro_infusion_effect"));
+			{
+				fx = ::new("scripts/skills/effects/bgp_necro_infusion_effect");
+				fx.m.TurnsLeft = turns;
+				target.getSkills().add(fx);
+			}
 			target.getSkills().update();
 			target.setDirty(true);
 			if (!_user.isHiddenToPlayer())
