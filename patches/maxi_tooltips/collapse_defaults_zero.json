@@ -1,0 +1,8 @@
+{
+  "source": "mod_tooltips-敌人属性显示-1.2.zip",
+  "member": "mod_maxi_tooltips/zz_mod_config.nut",
+  "before": "66caade603f6ea9a5ead10f62eacd2ad54e2cd00e1067ef4e8a3c0078be0e821",
+  "after": "575102f881f497119de3954e293818dd6f0d634a05045a2af7cf428b98d7bdab",
+  "old": "tacticalTooltipPage.addRangeSetting(\"CollapsePerksWhenX\", 5, 0, 20, 1, \"特技折叠阈值\", \"当特技数量低于此值时，所有特技均显示图标并独占一行；否则将合并为一段文字以节省空间。\");\ntacticalTooltipPage.addRangeSetting(\"CollapseActivesWhenX\", 5, 0, 20, 1, \"主动技能折叠阈值\", \"当主动技能数量低于此值时，所有技能均显示图标并独占一行；否则将合并为一段文字以节省空间。\");",
+  "new": "tacticalTooltipPage.addRangeSetting(\"CollapsePerksWhenX\", 0, 0, 20, 1, \"特技折叠阈值\", \"当特技数量低于此值时逐行显示文字；达到或超过此值时合并显示（关闭“以文本形式折叠”即为图标阵列，0 表示始终显示图标阵列）。\");\ntacticalTooltipPage.addRangeSetting(\"CollapseActivesWhenX\", 0, 0, 20, 1, \"主动技能折叠阈值\", \"当主动技能数量低于此值时逐行显示文字；达到或超过此值时合并显示（关闭“以文本形式折叠”即为图标阵列，0 表示始终显示图标阵列）。\");"
+}

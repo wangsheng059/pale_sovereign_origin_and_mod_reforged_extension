@@ -1,0 +1,8 @@
+{
+  "source": "mod_tooltips-敌人属性显示-1.2.zip",
+  "member": "mod_maxi_tooltips/tooltip_functions.nut",
+  "before": "0e0ad63b39f08c48264c1619483564f6a7db6c477a1a5db30c1308ffe965082a",
+  "after": "cdc090cca6fe94facf7f52d223449138fd8954ee50b77c94365202dcbbbd99b9",
+  "old": "\t\tret.push({\n\t\t\tid = _startID,\n\t\t\ttype = \"text\",\n\t\t\ttext = ::ModMaxiTooltips.Mod.Tooltips.parseString(entryText)\n\t\t});",
+  "new": "\t\tif (entryText != \"\")\n\t\t{\n\t\t\tret.push({\n\t\t\t\tid = _startID,\n\t\t\t\ttype = \"text\",\n\t\t\t\ttext = ::ModMaxiTooltips.Mod.Tooltips.parseString(entryText)\n\t\t\t});\n\t\t}"
+}

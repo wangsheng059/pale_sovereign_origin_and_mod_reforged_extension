@@ -1337,6 +1337,11 @@
     "patches/pandora/player_death_null_killer.json",
     "patches/davkul/cultist_clashes_has_skill.json",
     "patches/davkul/fear_hate_cultists_has_skill.json",
-    "patches/black_pyramid/elemental_attacker_null_guard.json"
+    "patches/black_pyramid/elemental_attacker_null_guard.json",
+    "patches/maxi_tooltips/collapse_defaults_zero.json",
+    "patches/maxi_tooltips/enemy_traits_and_typo.json",
+    "patches/maxi_tooltips/effects_empty_guard.json",
+    "patches/maxi_tooltips/actives_empty_guard.json",
+    "patches/legacy/town_portraits_incremental.json"
   ]
 }
