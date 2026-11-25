@@ -1,4 +1,4 @@
-// 城镇招募候选倍率（本地改写自“8倍招募新兵”）：模组设置里 2–10 倍可调，默认 5 倍。
+// 城镇招募候选倍率（本地改写自“8倍招募新兵”）：模组设置里 1–10 倍可调，默认 5 倍。
 // 新倍率在定居点下次刷新招募修正值时生效。
 ::MoreRecruits <- {
   ID = "mod_moreRecruits",
@@ -25,7 +25,7 @@
 {
   ::MoreRecruits.Mod = ::MSU.Class.Mod(::MoreRecruits.ID, ::MoreRecruits.Version, ::MoreRecruits.Name);
   local page = ::MoreRecruits.Mod.ModSettings.addPage("General", "招募");
-  page.addRangeSetting("RecruitsMult", ::MoreRecruits.Default, 2, 10, 1, "城镇招募候选倍率",
+  page.addRangeSetting("RecruitsMult", ::MoreRecruits.Default, 1, 10, 1, "城镇招募候选倍率",
     "城镇酒馆可招募的新兵数量倍率。1 倍为原版，默认 5 倍。改动后在各定居点下次刷新时生效。");
 
   ::mods_hookNewObject("entity/world/settlement_modifiers", function(o) {
