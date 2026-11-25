@@ -221,7 +221,7 @@ S.limitPanel <- function( _event, _screen )
 {
     local jade = this.countItems("misc.pale_jade");
     _screen.Text = "锁魂者只带着生前八成的力量回来。用魂玉补上缺掉的那一截残魂，它们还能再往前走一步。\n\n"
-        + "一阶·补魂（1 枚魂玉）：6 项主属性各 +3、生命 +15，并获得 1 个特技点。\n二阶·玉魂不灭（2 枚魂玉，需 9 级）：再得 1 个特技点；每场第一次被击倒时，只要导师在场就以 35% 生命站起（带缚魂镣铐时改为 50% 生命、恢复 25 疲劳，并在 2 回合内受到的伤害 −50%）。\n" + this.resourceLine();
+        + "一阶·补魂（1 枚魂玉）：6 项主属性各 +3、生命再 +15，并获得 1 个特技点。\n二阶·玉魂不灭（2 枚魂玉，需 9 级）：再得 1 个特技点；每场第一次被击倒时，只要导师在场就以 35% 生命站起（带缚魂镣铐时改为 50% 生命、恢复 25 疲劳，并在 2 回合内受到的伤害 −50%）。\n" + this.resourceLine();
     foreach (bro in this.undead())
     {
         if (!this.isSoulbound(bro))
@@ -240,7 +240,7 @@ S.limitPanel <- function( _event, _screen )
                 unit.m.PerkPoints += 1;
                 unit.getFlags().set("PaleLimitBreak", 1);
                 unit.getSkills().update();
-                return "魂玉碎在锁魂者的胸骨上，缺掉的残魂一点点补了回来。\n\n（" + unit.getName() + " 6 项主属性各 +3、生命 +15，获得 1 个特技点）";
+                return "魂玉碎在锁魂者的胸骨上，缺掉的残魂一点点补了回来。\n\n（" + unit.getName() + " 6 项主属性各 +3、生命再 +15，获得 1 个特技点）";
             });
         else if (stage == 1 && jade >= 2 && unit.getLevel() >= 9)
             this.option(_screen, unit.getName() + " · 玉魂不灭（2 枚魂玉）", function()

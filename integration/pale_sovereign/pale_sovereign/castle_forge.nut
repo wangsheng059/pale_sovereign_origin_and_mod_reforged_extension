@@ -123,8 +123,13 @@ S.forgeConsume <- function( _job, _extra )
 
 S.findStashItemByInstance <- function( _id )
 {
+    if (_id == null)
+        return null;
+    local needle = _id + "";
+    if (needle.len() == 0)
+        return null;
     foreach (item in ::World.Assets.getStash().getItems())
-        if (item != null && item.getInstanceID() == _id)
+        if (item != null && (item.getInstanceID() + "") == needle)
             return item;
     return null;
 };
@@ -224,7 +229,7 @@ S.forgeApply <- function( _job, _target, _isPet, _extra = "" )
                     this.forgeReroll(_target);
                 else
                 {
-                    local item = this.findStashItemByInstance(_extra.tointeger());
+                    local item = this.findStashItemByInstance(_extra);
                     if (item == null)
                         return false;
                     this.forgeNamed(_target, item);
@@ -342,7 +347,7 @@ S.castleForgeTick <- function( _town, _present, _now )
         && (recipe.Key == "enchant" || this.castleCanForge(job, target, pet))
         && (pet || target == null || this.getUndeadTier(target) == ::Math.max(1, flags.getAsInt("PaleForgeTier")))
         && this.jobAffordable(job, extra == "gold");
-    if (ok && recipe.Key == "named" && extra != "gold" && this.findStashItemByInstance(extra.tointeger()) == null)
+    if (ok && recipe.Key == "named" && extra != "gold" && this.findStashItemByInstance(extra) == null)
         ok = false;
     if (!ok || !this.forgeConsume(job, extra) || !this.forgeApply(job, target, pet, extra))
     {

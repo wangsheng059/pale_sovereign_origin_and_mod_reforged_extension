@@ -1,6 +1,6 @@
 // 1.6.30 古堡盐窖的防腐秘仪：开局由 embalm_craft.nut 挂上，只在本场战斗存在（不存档）
 this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
-    m = { Rites = [], Infusion = 0, MoveBackup = null, BreakFreeAP = -1, Busy = false },
+    m = { Rites = [], Infusion = 0, MoveBackup = null, MoveApplied = null, BreakFreeAP = -1, Busy = false },
     function create()
     {
         this.m.ID = "effects.pale_embalm_rite";
@@ -58,7 +58,10 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
             flags.set("PaleRiteArmor", true);
         }
         if (this.hasRite("tendon"))
+        {
+            this.getContainer().update();
             this.applyMovement();
+        }
         this.getContainer().update();
     }
 
@@ -71,8 +74,9 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
         if (!this.getContainer().hasSkill("perk.pathfinder") && "PathfinderMovementAPCost" in ::Const && "PathfinderMovementFatigueCost" in ::Const)
         {
             // 没有探路者：直接套用原版探路者的移动消耗
-            actor.m.ActionPointCosts = ::Const.PathfinderMovementAPCost;
-            actor.m.FatigueCosts = ::Const.PathfinderMovementFatigueCost;
+            this.m.MoveApplied = { AP = ::Const.PathfinderMovementAPCost, Fatigue = ::Const.PathfinderMovementFatigueCost };
+            actor.m.ActionPointCosts = this.m.MoveApplied.AP;
+            actor.m.FatigueCosts = this.m.MoveApplied.Fatigue;
             actor.m.LevelActionPointCost = 0;
             return;
         }
@@ -83,6 +87,7 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
         local fatigue = [];
         foreach (cost in actor.m.FatigueCosts)
             fatigue.push(cost <= 0 ? cost : ::Math.max(1, ::Math.floor(cost / 2)));
+        this.m.MoveApplied = { AP = ap, Fatigue = fatigue };
         actor.m.ActionPointCosts = ap;
         actor.m.FatigueCosts = fatigue;
         actor.m.LevelActionPointCost = 0;
@@ -92,11 +97,16 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
     {
         if (this.m.MoveBackup == null)
             return;
-        local actor = this.getContainer().getActor();
-        actor.m.ActionPointCosts = this.m.MoveBackup.AP;
-        actor.m.FatigueCosts = this.m.MoveBackup.Fatigue;
-        actor.m.LevelActionPointCost = this.m.MoveBackup.Level;
+        local container = this.getContainer();
+        local actor = container != null ? container.getActor() : null;
+        if (actor != null)
+        {
+            actor.m.ActionPointCosts = this.m.MoveBackup.AP;
+            actor.m.FatigueCosts = this.m.MoveBackup.Fatigue;
+            actor.m.LevelActionPointCost = this.m.MoveBackup.Level;
+        }
         this.m.MoveBackup = null;
+        this.m.MoveApplied = null;
     }
 
     function getInfusionDamage()
@@ -127,6 +137,17 @@ this.pale_embalm_rite_effect <- ::inherit("scripts/skills/skill", {
     {
         if (!this.hasRite("tendon"))
             return;
+        if (this.m.MoveApplied != null)
+        {
+            local container = this.getContainer();
+            local actor = container != null ? container.getActor() : null;
+            if (actor != null)
+            {
+                actor.m.ActionPointCosts = this.m.MoveApplied.AP;
+                actor.m.FatigueCosts = this.m.MoveApplied.Fatigue;
+                actor.m.LevelActionPointCost = 0;
+            }
+        }
         foreach (skill in this.getContainer().getSkillsByFunction(@(_s) _s.getID().find("break_free") != null))
         {
             // MSU 每次更新会把行动点还原成基础值；只在还没减半时减半，避免重复叠加
