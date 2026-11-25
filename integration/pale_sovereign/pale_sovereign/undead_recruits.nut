@@ -345,9 +345,23 @@ S.createUndead <- function( _kind, _roster = null, _purify = true )
     bro.getFlags().set("undead", true);
     try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 常驻亡灵天赋: " + e); }
     this.addUndeadTraits(bro, kind.Skeleton, null, _purify);
+    bro.m.Attributes = [];
     bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
     this.assignUndeadTitle(bro);
     bro.m.MoraleState = ::Const.MoraleState.Ignore;
+    bro.getSkills().update();
+    // Rebuild perk tree after rolling talents and traits so Reforged projection/special groups see final state.
+    try
+    {
+        local tree = bro.getBackground().createPerkTreeBlueprint();
+        tree.setActor(bro);
+        bro.m.PerkTree = tree;
+        tree.build();
+    }
+    catch (e)
+    {
+        ::logError("[PaleSovereign] 常驻亡灵技能树: " + e);
+    }
     this.applyUndeadLook(bro);
     bro.getSkills().update();
     bro.setHitpointsPct(1.0);

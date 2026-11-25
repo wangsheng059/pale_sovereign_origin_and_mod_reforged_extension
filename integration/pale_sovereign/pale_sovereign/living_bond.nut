@@ -248,6 +248,9 @@ S.convertToUndead <- function( _rec, _tier2 )
     foreach (i, value in talents)
         if (i < own.len() && value.tointeger() >= 2)
             own[i] = value.tointeger();
+    // Re-roll attribute level-up queues using the updated inherited talents.
+    bro.m.Attributes = [];
+    bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
     local level = 1;
     try { level = typeof _rec.Level == "integer" ? _rec.Level : _rec.Level.tointeger(); } catch (e) { level = 1; }
     local target = ::Math.max(3, ::Math.floor(level * 0.7));

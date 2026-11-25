@@ -1,6 +1,8 @@
-// 心灵交融：复活的单位复制你的部分被动防御 / 属性特技；你自己每回合开始时回复 5 生命
+// Mind Meld: raised/pet/guard undead copy selected passive perks; the caster gains 10% of all 8 attributes of their equipped accessory undead pet.
 this.perk_bgp_necro_mind_meld <- ::inherit("scripts/skills/skill", {
-	m = {},
+	m = {
+		PetBonus = null
+	},
 	function create()
 	{
 		this.m.ID = "perk.bgp_necro_mind_meld";
@@ -11,11 +13,53 @@ this.perk_bgp_necro_mind_meld <- ::inherit("scripts/skills/skill", {
 		this.m.Order = ::Const.SkillOrder.Perk;
 	}
 
-	function onTurnStart()
+	function getEquippedUndeadPet()
 	{
-		local actor = this.getContainer().getActor();
-		local heal = ::Math.min(5, actor.getHitpointsMax() - actor.getHitpoints());
-		if (heal > 0)
-			::BGP.heal(actor, heal);
+		try
+		{
+			local container = this.getContainer();
+			if (container == null)
+				return null;
+			local actor = container.getActor();
+			if (actor == null || ::MSU.isNull(actor))
+				return null;
+			local items = actor.getItems();
+			if (items == null)
+				return null;
+			local acc = items.getItemAtSlot(::Const.ItemSlot.Accessory);
+			if (acc == null || !("NecroPet" in ::BGP) || !::BGP.NecroPet.isOwnItem(acc))
+				return null;
+			if (!("Attributes" in acc.m) || acc.m.Attributes == null)
+				return null;
+			return acc;
+		}
+		catch (e)
+		{
+			return null;
+		}
+	}
+
+	function onUpdate( _properties )
+	{
+		this.m.PetBonus = null;
+		local pet = this.getEquippedUndeadPet();
+		if (pet == null)
+			return;
+		try
+		{
+			local a = pet.m.Attributes;
+			local bonus = {};
+			foreach (key in ["Hitpoints", "Stamina", "Bravery", "Initiative", "MeleeSkill", "RangedSkill", "MeleeDefense", "RangedDefense"])
+			{
+				local gain = ::Math.max(0, ::Math.floor(a[key] * 0.1));
+				bonus[key] <- gain;
+				_properties[key] += gain;
+			}
+			this.m.PetBonus = bonus;
+		}
+		catch (e)
+		{
+			this.m.PetBonus = null;
+		}
 	}
 });

@@ -403,6 +403,8 @@ S.rebuildUndead <- function( _rec )
             if (i < own.len())
                 own[i] = value.tointeger();
     }
+    if (!this.hasAnyTalent(bro))
+        try { bro.fillTalentValues(); } catch (e) {}
     local level = 1;
     try { level = typeof _rec.Level == "integer" ? _rec.Level : _rec.Level.tointeger(); } catch (e) { level = 1; }
     bro.m.Level = ::Math.max(1, level);

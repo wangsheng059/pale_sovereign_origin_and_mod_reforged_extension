@@ -4,16 +4,109 @@ S.CurrentEvent <- "event.pale_sovereign_camp";
 // 1.7.0 荒坟守卫晋升尸妖王需要与导师并肩打赢 10 场
 S.GuardWinsNeeded <- 10;
 S.NextWorldCheck <- 0;
+S.PendingCampUntil <- 0;
 
-S.openEvent <- function( _page )
+// Clear stale Battle state once the game has returned to the world map with no active or pending combat.
+S.clearStaleBattle <- function()
 {
-    if (!::World.Events.canFireEvent(true, true))
+    if (this.Battle == null)
+        return;
+    local inTactical = ("State" in ::Tactical) && ::Tactical.State != null;
+    local st = ("State" in ::World) ? ::World.State : null;
+    if (!inTactical && (st == null || st.m.CombatProperties == null))
+        this.Battle = null;
+};
+
+// Direct world-UI check for player-triggered camp opens. Unlike World.Events.canFireEvent(),
+// this does not fail due to nearby non-allied towns/ruins/parties, post-battle cooldowns,
+// LastEnteredTown, or a paused background selectEvent coroutine.
+S.canOpenManualEvent <- function()
+{
+    local st = ("State" in ::World) ? ::World.State : null;
+    if (st == null || st.getPlayer() == null || ::MSU.isNull(st.getPlayer()))
         return false;
+    if (("State" in ::Tactical) && ::Tactical.State != null)
+        return false;
+    if (st.m.CombatProperties != null)
+        return false;
+    if (::LoadingScreen != null && (::LoadingScreen.isVisible() || ::LoadingScreen.isAnimating()))
+        return false;
+    if (st.m.WorldScreen == null || !st.m.WorldScreen.isVisible() || st.m.WorldScreen.isAnimating())
+        return false;
+    if (st.m.WorldTownScreen != null && (st.m.WorldTownScreen.isVisible() || st.m.WorldTownScreen.isAnimating()))
+        return false;
+    if (st.m.EventScreen != null && (st.m.EventScreen.isVisible() || st.m.EventScreen.isAnimating()))
+        return false;
+    if (st.m.MenuStack != null && st.m.MenuStack.hasBacksteps())
+        return false;
+    local ev = ("Events" in ::World) ? ::World.Events : null;
+    if (ev == null || ev.m.ActiveEvent != null)
+        return false;
+    return true;
+};
+
+S.canQueueManualCamp <- function()
+{
+    local st = ("State" in ::World) ? ::World.State : null;
+    if (st == null || st.getPlayer() == null || ::MSU.isNull(st.getPlayer()))
+        return false;
+    if (("State" in ::Tactical) && ::Tactical.State != null)
+        return false;
+    if (st.m.CombatProperties != null)
+        return false;
+    local ev = ("Events" in ::World) ? ::World.Events : null;
+    if (ev == null || ev.m.ActiveEvent != null)
+        return false;
+    local worldAnim = st.m.WorldScreen != null && st.m.WorldScreen.isAnimating();
+    local townAnim = st.m.WorldTownScreen != null && st.m.WorldTownScreen.isAnimating();
+    local eventAnim = st.m.EventScreen != null && st.m.EventScreen.isAnimating();
+    local loadingAnim = ::LoadingScreen != null && ::LoadingScreen.isAnimating();
+    return worldAnim || townAnim || eventAnim || loadingAnim;
+};
+
+S.openEvent <- function( _page, _manual = false )
+{
+    if (_manual)
+    {
+        this.clearStaleBattle();
+        if (!this.canOpenManualEvent())
+            return false;
+    }
+    else if (!::World.Events.canFireEvent(true, true))
+    {
+        return false;
+    }
     local event = ::World.Events.getEvent(this.CurrentEvent);
     if (event == null)
         return false;
     event.m.Page = _page;
     return ::World.Events.fire(this.CurrentEvent, false);
+};
+
+S.tryOpenPendingCamp <- function()
+{
+    if (this.PendingCampUntil <= 0)
+        return;
+    if (!this.isActive() || this.chief() == null || ::Time.getRealTimeF() > this.PendingCampUntil)
+    {
+        this.PendingCampUntil = 0;
+        return;
+    }
+    local st = ::World.State;
+    if (("State" in ::Tactical) && ::Tactical.State != null || st.m.CombatProperties != null || ::World.Events.m.ActiveEvent != null)
+    {
+        this.PendingCampUntil = 0;
+        return;
+    }
+    if (this.canOpenManualEvent())
+    {
+        this.PendingCampUntil = 0;
+        this.openEvent("camp", true);
+    }
+    else if (!this.canQueueManualCamp())
+    {
+        this.PendingCampUntil = 0;
+    }
 };
 
 S.worldEvent <- function()
@@ -29,7 +122,7 @@ S.worldEvent <- function()
     this.followerWorldTick();
     this.castleWorldTick();
     this.conquestWorldTick();
-    if (this.CastlePage != null && ::World.State.m.LastEnteredTown == null && this.openEvent(this.CastlePage))
+    if (this.CastlePage != null && ::World.State.m.LastEnteredTown == null && this.openEvent(this.CastlePage, true))
     {
         this.CastlePage = null;
         return;
@@ -884,6 +977,7 @@ S.renderEvent <- function( _event, _screen )
                 this.option(_screen, "“付你一笔安家费。拿好提灯，替我分担些杂活。”（250 金币）", function()
                 {
                     local apprentice = S.spawnBrother("bgp_necromancer_background", ["armor/wizard_robe", "weapons/wooden_stick"]);
+                    apprentice.m.Attributes = [];
                     apprentice.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
                     assets.addMoney(-250);
                     assets.updateFormation(true);

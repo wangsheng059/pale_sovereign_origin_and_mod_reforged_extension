@@ -117,6 +117,33 @@ if (::BGP.HasAC)
 				::BGP.NecroPet.updateLevel(this, upd);
 			}
 		}
+
+		// Refresh owner's Mind Meld attribute bonus whenever an equipped undead pet updates its stats.
+		if ("updateCompanion" in p)
+		{
+			local updComp = p.updateCompanion;
+			p.updateCompanion <- function()
+			{
+				updComp.call(this);
+				if (!::BGP.NecroPet.isOwnType(this.m.Type))
+					return;
+				try
+				{
+					local container = this.getContainer();
+					if (container == null || this.getCurrentSlotType() != ::Const.ItemSlot.Accessory)
+						return;
+					local actor = container.getActor();
+					if (actor == null || ::MSU.isNull(actor))
+						return;
+					local skills = actor.getSkills();
+					if (skills != null && !skills.m.IsUpdating && skills.hasSkill("perk.bgp_necro_mind_meld"))
+						skills.update();
+				}
+				catch (e)
+				{
+				}
+			}
+		}
 	});
 
 	// 1.5.1 只有死灵法师能装备死灵宠物（和重铸老剑师起源、德鲁伊 mod 一样，在装备时拒绝）

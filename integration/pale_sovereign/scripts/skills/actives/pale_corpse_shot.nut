@@ -21,7 +21,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
         this.m.ActionPointCost = 4;
         this.m.FatigueCost = 20;
         this.m.MinRange = 1;
-        this.m.MaxRange = 4;
+        this.m.MaxRange = 3;
         this.m.DirectDamageMult = 0.15;
         this.m.InjuriesOnBody = ::Const.Injury.BluntBody;
         this.m.InjuriesOnHead = ::Const.Injury.BluntHead;
@@ -31,7 +31,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
     function getTooltip()
     {
         local ret = this.getDefaultTooltip();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "消耗 1 点防腐尸骸，距离最多 4 格，命中造成 20–30 点钝器伤害。尸体会落在被砸中的人脚下，没砸中就落在目标格；落地的尸体可以复活或引爆。战团还有 " + ::PaleSovereign.get("Reserve") + " 点防腐尸骸。" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "消耗 1 点防腐尸骸，距离最多 3 格，命中造成 20–30 点钝器伤害。尸体会落在被砸中的人脚下，没砸中就落在目标格；落地的尸体可以复活或引爆。战团还有 " + ::PaleSovereign.get("Reserve") + " 点防腐尸骸。" });
         return ret;
     }
 
@@ -62,7 +62,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
 
     function onVerifyTarget( _origin, _tile )
     {
-        return _origin.getDistanceTo(_tile) <= 4 && this.skill.onVerifyTarget(_origin, _tile)
+        return _origin.getDistanceTo(_tile) <= this.getMaxRange() && this.skill.onVerifyTarget(_origin, _tile)
             && ::PaleSovereign.isEnemy(this.getContainer().getActor(), _tile);
     }
 

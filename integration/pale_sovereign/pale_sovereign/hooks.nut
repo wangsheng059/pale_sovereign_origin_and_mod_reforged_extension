@@ -370,10 +370,22 @@ mod.hook("scripts/ui/screens/world/modules/topbar/world_screen_topbar_options_mo
 {
     q.onPaleCampButtonPressed <- function()
     {
-        if (!S.isActive() || S.Battle != null || S.chief() == null)
+        if (!S.isActive() || S.chief() == null)
             return false;
-        local map = ::World.State.m.WorldScreen;
-        return map.isVisible() && !map.isAnimating() && S.openEvent("camp");
+        S.clearStaleBattle();
+        if (S.Battle != null)
+            return false;
+        if (S.openEvent("camp", true))
+        {
+            S.PendingCampUntil = 0;
+            return true;
+        }
+        if (S.canQueueManualCamp())
+        {
+            S.PendingCampUntil = ::Time.getRealTimeF() + 1.5;
+            return true;
+        }
+        return false;
     };
 });
 
@@ -382,8 +394,15 @@ mod.hook("scripts/states/world_state", function(q)
     q.onUpdate = @(__original) function()
     {
         __original();
-        if (S.isActive() && S.Battle == null && this.getPlayer() != null && !::MSU.isNull(this.getPlayer()))
-            S.worldEvent();
+        if (S.isActive() && this.getPlayer() != null && !::MSU.isNull(this.getPlayer()))
+        {
+            S.clearStaleBattle();
+            if (S.Battle == null)
+            {
+                S.tryOpenPendingCamp();
+                S.worldEvent();
+            }
+        }
     };
 
     q.getLocalCombatProperties = @(__original) function( _pos, _ignoreNoEnemies = false )
@@ -417,6 +436,8 @@ mod.hook("scripts/states/world_state", function(q)
         {
             S.applyRosterLimits();
             S.refreshUndeadLore();
+            if ("repairSoulboundRoster" in S)
+                S.repairSoulboundRoster();
         }
         return ret;
     };
@@ -425,6 +446,7 @@ mod.hook("scripts/states/world_state", function(q)
     {
         S.Battle = null;
         S.NextWorldCheck = 0;
+        S.PendingCampUntil = 0;
         S.CastlePage = null;
         local result = __original(_file);
         if (this.m.WorldScreen != null)

@@ -37,19 +37,31 @@ this.pale_soulbound_background <- ::inherit("scripts/skills/backgrounds/pale_und
 
     function createPerkTreeBlueprint()
     {
-        local rows = [];
-        foreach (row in ::PaleSovereign.SoulboundClasses[this.m.PaleSoulClass].Tree)
+        local S = ::PaleSovereign;
+        local def = S.SoulboundClasses[this.m.PaleSoulClass];
+        local groups = {
+            ["pgc.rf_weapon"] = def.Groups[0].map(@(group) "pg.rf_" + group),
+            ["pgc.rf_fighting_style"] = def.Groups[1].map(@(group) "pg.rf_" + group),
+            ["pgc.rf_armor"] = def.Groups[2].map(@(group) "pg.rf_" + group),
+            ["pgc.rf_shared_1"] = def.Groups[3].map(@(group) "pg.rf_" + group),
+            ["pgc.rf_exclusive_1"] = ["pg.pale_sb_" + this.m.PaleSoulClass]
+        };
+        return ::new(::DynamicPerks.Class.PerkTree).init({ DynamicMap = groups });
+    }
+
+    function getPerkGroupMultiplier( _groupID, _tree )
+    {
+        local def = ::PaleSovereign.SoulboundClasses[this.m.PaleSoulClass];
+        if (_groupID.find("pg.rf_") == 0)
         {
-            local valid = [];
-            foreach (id in row)
-            {
-                if (::Const.Perks.findById(id) != null)
-                    valid.push(id);
-                else
-                    ::logWarning("Pale Sovereign: soulbound perk " + id + " not found");
-            }
-            rows.push(valid);
+            local group = _groupID.slice(6);
+            if (def.Excluded.find(group) != null)
+                return 0;
+            if (def.Weighted.find(group) != null)
+                return 3;
         }
-        return ::new(::DynamicPerks.Class.PerkTree).init({ Template = rows });
+        if (this.m.PaleSoulClass == "hex" && _groupID == "pg.special.rf_leadership")
+            return 3;
+        return this.pale_undead_background.getPerkGroupMultiplier(_groupID, _tree);
     }
 });

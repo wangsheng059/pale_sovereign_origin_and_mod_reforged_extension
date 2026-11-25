@@ -9,6 +9,9 @@ S.SoulboundClasses <- {
         Scripts = ["skeleton_heavy", "skeleton_heavy_bodyguard", "skeleton_heavy_polearm", "rf_skeleton_heavy_elite",
             "rf_skeleton_heavy_elite_bodyguard", "rf_skeleton_medium_elite", "rf_skeleton_medium_elite_polearm",
             "rf_skeleton_legatus", "rf_skeleton_centurion", "rf_skeleton_decanus"],
+        Groups = [["sword", "polearm"], ["shield", "power"], ["heavy_armor", "medium_armor"], ["tough", "trained"]],
+        Excluded = ["bow", "crossbow", "throwing", "ranged", "dagger", "light_armor"],
+        Weighted = ["spear", "mace"],
         Tree = [
             ["perk.shield_expert", "perk.fortified_mind"],
             ["perk.rf_rebuke", "perk.rf_entrenched"],
@@ -23,6 +26,9 @@ S.SoulboundClasses <- {
         Name = "堕落骑士", Skeleton = false, Look = "dread_corpse_lord",
         Description = "锈死的板甲里仍裹着一具不肯腐烂的骑士躯体。锁链勒进它的护喉，它便把那份旧日的冲锋之力交给了导师。",
         Scripts = ["zombie_knight", "zombie_knight_bodyguard", "rf_zombie_hero", "rf_zombie_hero_bodyguard"],
+        Groups = [["sword", "axe"], ["power", "shield"], ["heavy_armor", "medium_armor"], ["unstoppable", "tough"]],
+        Excluded = ["bow", "crossbow", "throwing", "ranged", "dagger", "light_armor", "swift"],
+        Weighted = ["hammer", "mace", "flail"],
         Tree = [
             ["perk.rf_formidable_approach", "perk.rf_dismantle"],
             ["perk.rf_death_dealer", "perk.rf_sweeping_strikes"],
@@ -37,6 +43,9 @@ S.SoulboundClasses <- {
         Name = "墓穴恶鬼", Skeleton = false, Look = "fallen_hero",
         Description = "墓冢里爬出的北地亡者，须发上还挂着冰霜。锁链没能磨掉它的狂怒，只是替这份狂怒指定了方向。",
         Scripts = ["rf_draugr_huskarl", "rf_draugr_huskarl_bodyguard", "rf_draugr_hero"],
+        Groups = [["axe", "cleaver"], ["power", "swift"], ["medium_armor", "heavy_armor"], ["vicious", "unstoppable"]],
+        Excluded = ["bow", "crossbow", "throwing", "ranged", "dagger"],
+        Weighted = ["hammer", "flail", "spear"],
         Tree = [
             ["perk.rf_feral_rage", "perk.colossus"],
             ["perk.overwhelm", "perk.rf_exploit_opening"],
@@ -51,6 +60,9 @@ S.SoulboundClasses <- {
         Name = "禁咒师", Skeleton = true, Look = "skeleton_king",
         Description = "祭司与先知的禁咒刻在它的骨头上。它不再为自己的神祇吟唱，而是用那些古老的音节扼住生者的胆气。",
         Scripts = ["skeleton_priest", "rf_draugr_shaman"],
+        Groups = [["polearm", "dagger"], ["swift", "shield"], ["light_armor", "medium_armor"], ["tactician", "fast"]],
+        Excluded = ["bow", "crossbow", "throwing", "ranged", "heavy_armor"],
+        Weighted = ["spear", "mace"],
         Tree = [
             ["perk.pale_sb_barrow_chant", "perk.fortified_mind"],
             ["perk.rf_terrifying_visage", "perk.rf_menacing"],
@@ -65,6 +77,9 @@ S.SoulboundClasses <- {
         Name = "血族", Skeleton = false, Look = "tomb_blademaster",
         Description = "暗夜的捕食者被锁链拴在了导师的阴影里。它依旧渴血，只是现在由别人决定它该咬向谁的喉咙。",
         Scripts = ["vampire", "vampire_low", "rf_vampire_lord"],
+        Groups = [["sword", "cleaver"], ["swift", "power"], ["light_armor", "medium_armor"], ["agile", "fast"]],
+        Excluded = ["bow", "crossbow", "throwing", "ranged", "shield", "heavy_armor"],
+        Weighted = ["dagger", "axe"],
         Tree = [
             ["perk.pale_sb_blood_thirst", "perk.dodge"],
             ["perk.pale_sb_night_walker", "perk.footwork"],
@@ -118,6 +133,24 @@ foreach (key, def in S.SoulPerks)
     });
 }
 ::DynamicPerks.Perks.addPerks(perkDefs);
+
+// Register each Soulbound class's curated perks as an exclusive DynamicPerks perk group (weight 0).
+local exclusiveCol = ::DynamicPerks.PerkGroupCategories.findById("pgc.rf_exclusive_1");
+foreach (cls in S.SoulboundOrder)
+{
+    try
+    {
+        local group = ::new("scripts/mods/mod_pale_sovereign/perk_groups/pg_pale_sb_" + cls);
+        if (::DynamicPerks.PerkGroups.findById(group.getID()) == null)
+            ::DynamicPerks.PerkGroups.add(group);
+        if (exclusiveCol != null && exclusiveCol.getGroups().find(group.getID()) == null)
+            exclusiveCol.addPerkGroup(group.getID());
+    }
+    catch (e)
+    {
+        ::logError("[PaleSovereign] register soulbound perk group " + cls + ": " + e);
+    }
+}
 
 // ---------------------------------------------------------------------------
 // 识别
@@ -336,6 +369,7 @@ S.recruitSoulbound <- function( _index )
             props[key] = rec.Stats[i];
     props.Bravery = 120;
     props.ActionPoints = 9;
+    try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 锁魂者天赋: " + e); }
     bro.m.Attributes = [];
     bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
 
@@ -368,6 +402,7 @@ S.recruitSoulbound <- function( _index )
 
     local background = bro.getBackground();
     background.buildDescription(true);
+    bro.getSkills().update();
     local tree = background.createPerkTreeBlueprint();
     tree.setActor(bro);
     bro.m.PerkTree = tree;
@@ -381,6 +416,78 @@ S.recruitSoulbound <- function( _index )
     this.saveSoulboundPending(list);
     return "锁链在 " + rec.Name + " 的脊骨上收紧最后一圈。它跪下，又站起，成了战团的一员。\n\n（" + def.Name + "：属性为生前的 80%"
         + (rec.LegacyName != "" ? "，保留生前特技【" + rec.LegacyName + "】" : "") + "）";
+};
+
+// Backfill missing talent stars and legacy 13-perk template trees on existing Soulbound brothers.
+S.hasAnyTalent <- function( _bro )
+{
+    local talents = _bro.getTalents();
+    if (talents == null || talents.len() == 0)
+        return false;
+    foreach (v in talents)
+        if (v > 0)
+            return true;
+    return false;
+};
+
+S.repairSoulboundBro <- function( _bro )
+{
+    if (!this.isSoulbound(_bro))
+        return false;
+    local changed = false;
+    if (!this.hasAnyTalent(_bro))
+    {
+        try
+        {
+            _bro.fillTalentValues();
+            _bro.m.Attributes = [];
+            _bro.fillAttributeLevelUpValues(::Const.XP.MaxLevelWithPerkpoints - 1);
+            changed = true;
+        }
+        catch (e)
+        {
+            ::logError("[PaleSovereign] repair soulbound talents: " + e);
+        }
+    }
+    local tree = null;
+    try { tree = _bro.getPerkTree(); } catch (e) { tree = null; }
+    if (tree == null || tree.getPerks().len() <= 20)
+    {
+        try
+        {
+            local bg = _bro.getBackground();
+            if (bg != null && ::MSU.isKindOf(bg, "pale_soulbound_background"))
+            {
+                _bro.getSkills().update();
+                local nextTree = bg.createPerkTreeBlueprint();
+                nextTree.setActor(_bro);
+                _bro.m.PerkTree = nextTree;
+                nextTree.build();
+                changed = true;
+            }
+        }
+        catch (e)
+        {
+            ::logError("[PaleSovereign] repair soulbound perk tree: " + e);
+        }
+    }
+    if (changed)
+        try { _bro.getSkills().update(); } catch (e) {}
+    return changed;
+};
+
+S.repairSoulboundRoster <- function()
+{
+    local roster = ::World.getPlayerRoster();
+    if (roster == null)
+        return 0;
+    local fixed = 0;
+    foreach (bro in roster.getAll())
+        if (this.repairSoulboundBro(bro))
+            ++fixed;
+    if (fixed > 0)
+        ::logInfo("[PaleSovereign] Repaired " + fixed + " existing Soulbound brother(s) (talents / perk trees).");
+    return fixed;
 };
 
 S.soulboundPanel <- function( _screen )
