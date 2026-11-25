@@ -1,46 +1,54 @@
-亡灵主宰起源和重铸扩展（早期开发版本 V1.1.0）
-2026-11-24　｜　亡灵主宰 1.7.7，背景专属特技 1.6.11，基于 Reforged（重铸）0.9.3
+亡灵主宰起源和重铸扩展（早期开发版本 V1.2.0）
+2026-11-25　｜　亡灵主宰 1.7.7，背景专属特技 1.6.11，基于 Reforged（重铸）0.9.3
 
-这个包里有亡灵主宰起源、它依赖的全部模组、中文汉化包和启动器。解压后照下面的步骤放进游戏目录就能玩。
+这个包里有亡灵主宰起源、它依赖的全部模组和中文汉化。V1.2.0 分为两个分发版本：
+- 有启动器版：使用 bb-launcher-gog.exe + awesome-battle-brothers + zdata_cn.zip（与 V1.1.0 相同的启动器方式）。
+- 免启动器版：不带启动器，使用定制版 zzz_mod_原版汉化.zip，直接运行游戏目录 win32\BattleBrothers.exe 即可（全量 4 个核心自制/整合模组与有启动器版完全一致）。
 
 
 一、使用说明
 
 1. 需要什么
 
-- Windows 版 Battle Brothers（战场兄弟）GOG 1.5.2.3。我只在这个版本上测过，Steam 版和其他版本没测过。
+- Windows 版 Battle Brothers（战场兄弟）GOG 1.5.2.3。有启动器版只在这个版本上测过；免启动器版同样在 GOG 1.5.2.3 原生 Win32 客户端验证通过（理论上 1.5.2.3 其他版本也可尝试免启动器版）。
 - 重铸要求的五个 DLC：Lindwurm、Beasts & Exploration、Warriors of the North、Blazing Deserts、Of Flesh and Faith。
 - 本包没有音乐包（Historical Music and Audio），不影响游戏，想要可以自己装。
 
 2. 包里有什么
 
+  有启动器版包含：
   Readme.txt                              本说明
   bb-launcher-gog.exe                     启动器，放到游戏根目录
   awesome-battle-brothers\bb-launcher-gog.exe   启动器实际运行的程序（内置 1.5.2.2 的游戏程序），整个文件夹放到游戏根目录
-  data\                                   18 个模组 ZIP，原样放进游戏的 data 文件夹
+  data\                                   18 个模组 ZIP（含 zdata_cn.zip），原样放进游戏的 data 文件夹
 
-  data 里的 18 个 ZIP：
+  免启动器版包含：
+  Readme.txt                              本说明
+  data\                                   18 个模组 ZIP（将 zdata_cn.zip 替换为定制版 zzz_mod_原版汉化.zip），原样放进游戏的 data 文件夹
+
+  data 里的核心模组 ZIP：
   zz_local_integration.zip                亡灵主宰起源和跨模组联动
   zz_local_rules.zip                      本地玩法规则（背景专属特技等）
   zz_local_campaign.zip                   战役与内容合集
   zz_local_interface.zip                  界面与操作工具合集
   mod_reforged_core_0.9.3.zip             重铸核心
   mod_reforged_assets-0.1.4.zip           重铸美术资源
-  zdata_cn.zip                            中文汉化包
+  zdata_cn.zip / zzz_mod_原版汉化.zip     中文汉化包（分别对应有启动器版 / 免启动器版）
   其余 11 个                              重铸和各模组的前置（见第三节）
 
 3. 安装步骤
 
   1) 退出游戏。先备份“文档\Battle Brothers\savegames”里的存档。
-  2) 把游戏目录 data 文件夹里原有的模组 ZIP 移到别处（游戏自带的 data_001.dat 等文件不要动）。同一个模组装两份会重复注册或互相覆盖。
-  3) 把本包 data 文件夹里的 18 个 ZIP 复制到游戏目录的 data 文件夹。不要解压这些 ZIP，也不要改文件名。zdata_cn.zip 会替换你原来的同名汉化包。
-  4) 把 bb-launcher-gog.exe 和 awesome-battle-brothers 文件夹复制到游戏根目录，也就是和 win32 文件夹同一层。
-  5) 双击游戏根目录的 bb-launcher-gog.exe 启动游戏。
-  6) 主菜单选“新战役”，起源选“亡灵主宰”。
+  2) 把游戏目录 data 文件夹里原有的模组 ZIP 移到别处（游戏自带的 data_001.dat 等文件不要动）。同一个模组装两份会重复注册或互相覆盖，尤其不要同时放 zdata_cn.zip 和 zzz_mod_原版汉化.zip。
+  3) 把本包 data 文件夹里的 18 个 ZIP 复制到游戏目录的 data 文件夹。不要解压这些 ZIP，也不要改文件名。
+  4) 若为【有启动器版】：把 bb-launcher-gog.exe 和 awesome-battle-brothers 文件夹复制到游戏根目录（与 win32 同层），然后双击 bb-launcher-gog.exe 启动游戏。
+     若为【免启动器版】：不需要复制任何启动器文件，直接运行游戏目录 win32\BattleBrothers.exe 启动游戏。
+  5) 主菜单选“新战役”，起源选“亡灵主宰”。
 
 4. 注意事项
 
-- 一定要用 bb-launcher-gog.exe 启动，不要直接运行 win32\BattleBrothers.exe。直接运行时游戏版本对不上，部分模组会报错，部分汉化会乱码。用启动器时，游戏和日志里显示的版本是 1.5.2.2，这是正常的：启动器内置的是 1.5.2.2 的游戏程序，读取的游戏内容仍是你安装的 1.5.2.3。
+- 【有启动器版】必须用 bb-launcher-gog.exe 启动，不要直接运行 win32\BattleBrothers.exe（zdata_cn.zip 需要启动器配套字库）。用启动器时，游戏和日志里显示的版本是 1.5.2.2，这是正常的：启动器内置的是 1.5.2.2 的游戏程序，读取的游戏内容仍是你安装的 1.5.2.3。
+- 【免启动器版】必须直接运行 win32\BattleBrothers.exe，游戏日志显示原生 1.5.2-3。原版客户端大地图 OpenGL 位图字库只包含 ASCII 字符，因此整合包在检测到免启动器模式（`::Const.NoLauncherCN == true`）时会自动将古堡（Pale Keep）、据点（Outpost / Fort / Stronghold / Hamlet）、邪教徒营地（Cultist Camp）及中文名大地图队伍（Crusaders / Raiders / Cultists / Mercenary Patrol 等）的地图头顶标签兜底为简短英文，防止变成空白或乱码；实体的真实中文名称、悬浮窗、城镇界面、合同与事件文案均保持完整中文，不影响存档互通与实际显示。
 - 启动出错时，打开“文档\Battle Brothers\log.html”，把里面的红字报错发给我。
 - 进游戏后 WASD 不能移动视角：多半是输入法停在中文模式，按 Shift 切成英文即可。
 - 关掉游戏后，后台有时还留着 bb-launcher-gog 进程，占着 data 里的文件。要换模组时先在任务管理器里结束它。
@@ -88,7 +96,7 @@
   Stack Based Skills（堆叠技能）0.5.3   mod_stack_based_skills  重铸的技能叠加
   Unified Perk Descriptions 0.1.2       mod_upd                 统一特技描述格式
   stdlib（标准库）2.5                   stdlib                  自动战斗、德鲁伊等内容使用
-  中文汉化包（2026-11-09 版）           zdata_cn                游戏本体和重铸的中文
+  中文汉化包                            zdata_cn / zzz_mod_原版汉化   有启动器版使用 zdata_cn（2026-11-09 版）；免启动器版使用定制 zzz_mod_原版汉化.zip
 
 （二）zz_local_interface.zip：界面与操作
 
@@ -182,6 +190,7 @@
   - 清理战斗状态标记重复显示（`battle_art.nut`）：移除挂在单位头脸上的持久 `pale_mark_*` 贴图图层，仅保留血条上方标准状态栏图标（`IconMini`）与施加瞬间的短暂提示特效。
   - 修复原版 `special.morale.check` 在士气免疫（`MoraleState.Ignore` /「坚不可摧」）状态下沿用默认白旗小图标（`status_effect_02_mini`）、缺失大图且悬停提示为空的问题：新增手绘石铁堡垒专属状态图标（`pale_unbreakable_status.png` / `_sw.png` 与 20×20 迷你刷子 `pale_unbreakable_mini`）及完整中文说明，其他士气状态保持原版不变。
   - 修复 `pale_sovereign/hooks.nut` 中 `WeakTableRef` 与原生表直接比较导致冠军/尸妖王进场时全部专属技能（冢王护持、号令亡魂、冢王威压、吞魂/名器/魂玉铭刻与镀金）被静默跳过的 Bug（并同步加固其余 3 处 `mainPet()` 比较）。
+  - 修复古堡名器熔铸（`castle_forge.nut`）仅检查仓库未检索角色已装备物品的 ID 查找漏判、加固「筋腱寻路」防腐效果（`pale_embalm_rite_effect.nut`）读档与切回合后的行动点减耗持久化、以及魂玉突破复制（`jade_ops.nut`）保留源模板 `MaxLevel`。
   - 修复 3 阶远程亡灵「箭雨编织者」技能 `pale_arrow_rain.getItem()` 返回原生武器表而非 `WeakTableRef`，导致打开角色界面或升级时触发 `the index 'isNull' does not exist` 崩溃。
   - 修复「魂玉统领」执念共鸣（`jade_ops.nut`）及肢体嫁接/亡灵事件/招募特质互斥检查对非 `character_trait` 特质直接调用 `isExcluded()` 导致战斗回合开始卡死的崩溃。
   - 修复全量事件通测检出的 `SkillType.Trait` 过滤漏判（原版背景/特殊技能同样带有 `Trait` 标志位）：新增 `S.pureTraits()` 纯特质筛选，修复「生前契约仪式」（`living_bond.nut`）与「锁魂召返」（`chain_ops.nut`）误删新建亡灵背景导致 `setName()`/`buildDescription()` 触发 `getActor` 报错与二次点击硬闪退，同时修复特质剥离（`reserve_ops.nut`）误将背景列入可剥离项、以及净化负面特质/征召预览（`undead_recruits.nut`）误计背景的缺陷。
@@ -191,7 +200,8 @@
 - 大队伍经验原来对所有经验来源都按名册放大，改为只按本场实际出战人数放大战斗经验。
 - 著名 / 传奇武器在视野外损坏时不掉落。
 - 尸爆技能创建时覆盖了 MSU 的伤害类型对象，导致报错。
-- 地格提示遇到空坐标时报错。
+- 地格提示遇到空坐标时报错；并在 `mod_local_tooltip_cursor` 1.1.0 中为免启动器模式（`::Const.NoLauncherCN == true`）补充大地图 OpenGL 标签 ASCII 兜底，保证直连原版客户端时头顶标签正常可读且中文悬浮窗、界面与事件完整保留。
+- 免启动器版定制 `zzz_mod_原版汉化.zip`：新增 `!no_launcher_cn.nut` 标识位并修正 `ui/i18n.js` 中两处过于激进的括号/中点截断正则，避免误截断“特质（说明）”“词条（+X）”类括号说明。
 
 启动器
 
