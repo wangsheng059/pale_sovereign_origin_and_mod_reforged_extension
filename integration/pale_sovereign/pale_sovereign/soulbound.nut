@@ -135,22 +135,26 @@ foreach (key, def in S.SoulPerks)
 ::DynamicPerks.Perks.addPerks(perkDefs);
 
 // Register each Soulbound class's curated perks as an exclusive DynamicPerks perk group (weight 0).
-local exclusiveCol = ::DynamicPerks.PerkGroupCategories.findById("pgc.rf_exclusive_1");
-foreach (cls in S.SoulboundOrder)
+// Invoked from mod_pale_sovereign.nut in Hooks.QueueBucket.AfterHooks after DynamicPerks VeryLate initializes PerkGroupIDs.
+S.registerSoulboundPerkGroups <- function()
 {
-    try
+    local exclusiveCol = ::DynamicPerks.PerkGroupCategories.findById("pgc.rf_exclusive_1");
+    foreach (cls in this.SoulboundOrder)
     {
-        local group = ::new("scripts/mods/mod_pale_sovereign/perk_groups/pg_pale_sb_" + cls);
-        if (::DynamicPerks.PerkGroups.findById(group.getID()) == null)
-            ::DynamicPerks.PerkGroups.add(group);
-        if (exclusiveCol != null && exclusiveCol.getGroups().find(group.getID()) == null)
-            exclusiveCol.addPerkGroup(group.getID());
+        try
+        {
+            local group = ::new("scripts/mods/mod_pale_sovereign/perk_groups/pg_pale_sb_" + cls);
+            if (::DynamicPerks.PerkGroups.findById(group.getID()) == null)
+                ::DynamicPerks.PerkGroups.add(group);
+            if (exclusiveCol != null && exclusiveCol.getGroups().find(group.getID()) == null)
+                exclusiveCol.addPerkGroup(group.getID());
+        }
+        catch (e)
+        {
+            ::logError("[PaleSovereign] register soulbound perk group " + cls + ": " + e);
+        }
     }
-    catch (e)
-    {
-        ::logError("[PaleSovereign] register soulbound perk group " + cls + ": " + e);
-    }
-}
+};
 
 // ---------------------------------------------------------------------------
 // 识别

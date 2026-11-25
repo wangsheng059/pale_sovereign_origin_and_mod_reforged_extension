@@ -46,8 +46,11 @@
 });
 
 // 1.6.33 棺椁说明里写明亡灵主宰战役中活人兄弟可用（宠物库在 AfterHooks 阶段才登记）
-::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_AC"], function()
+// Also register Soulbound DynamicPerks perk groups in AfterHooks after DynamicPerks VeryLate initializes PerkGroupIDs.
+::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_AC", ">mod_reforged", ">mod_dynamic_perks"], function()
 {
+    if ("registerSoulboundPerkGroups" in ::PaleSovereign)
+        ::PaleSovereign.registerSoulboundPerkGroups();
     if (!("BGP" in ::getroottable()) || !("NecroPet" in ::BGP) || !("Companions" in ::Const))
         return;
     local before = "只有亡灵法师能装备。";

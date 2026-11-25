@@ -30,9 +30,11 @@
 });
 
 // 1.6.9 亡灵（常驻亡灵、复活 / 召唤的仆从，旗标 undead）在原版没给加成时补算战旗决心，原版已给的不重复加
+// Vanilla battle_standard_effect calculates m.Difference and m.IsHidden in onAfterUpdate,
+// so hook onAfterUpdate rather than onUpdate to avoid vanilla resetting Difference to 0 on PlayerAnimals.
 ::BGP.HooksMod.hook("scripts/skills/effects/battle_standard_effect", function(q)
 {
-	q.onUpdate = @(__original) function( _properties )
+	q.onAfterUpdate = @(__original) function( _properties )
 	{
 		__original(_properties);
 		try

@@ -182,10 +182,10 @@
 - 北境扩张（野蛮人扩张）营地与合同报错：驱逐野蛮人单挑弹窗在无冠军特质兄弟或遍历候选人时报错；野蛮人营地销毁与派系更新缺少空值/方法检查及返回值遗漏。
 - 达库尔崛起事件与装备报错：修复 `cultist_clashes_with_partymember.nut`（3 处）与 `fear_hate_cultists_event.nut`（1 处）直接对兄弟对象调用 `bro.hasSkill(...)` 而漏写 `.getSkills()` 导致的 `the index 'hasSkill' does not exist` 崩溃；修复饰品「献祭项圈」（`sacrificial_collar_item.nut`）误调用 `getCultists().getFlags()`（应为 `.m.Flags`）导致的悬停报错。
 - 黑色金字塔元素受击钩子加固：`mod_elemental/hooks/actor_on_damage.nut` 增加 `::MSU.isNull(_attacker)` 判空，避免远程延迟投射物落地时攻击者已阵亡的 `WeakTableRef` 空引用异常。
-- 背景专属特技 1.6.11：修复「复活死者」误将倒地昏迷（永久伤存活）的我方活人兄弟当作待复活尸体并触发 `transferTo` 报错的问题；加固统帅「指挥链接」`bgp_command_link_effect.nut` 受击回调的空容器判断；为 8 类原版朝左野兽（食尸鬼、恐狼、鬣狗、狼、梦魇、树精、毒蛇、蜘蛛）补齐 `onFactionChanged()` 及食尸鬼 `grow()` 水平翻转，修复复活野兽（含食尸鬼成长后）及死灵宠物面朝左的朝向反向问题；「心灵交融」移除自身每回合开始回复 5 点生命，改为获得装备在饰品位的亡灵宠物全属性 10% 加成（向下取整，宠物升级或晋升尸妖王时自动刷新）。
+- 背景专属特技 1.6.11：修复「复活死者」误将倒地昏迷（永久伤存活）的我方活人兄弟当作待复活尸体并触发 `transferTo` 报错的问题；加固统帅「指挥链接」`bgp_command_link_effect.nut` 受击回调的空容器判断；为 8 类原版朝左野兽（食尸鬼、恐狼、鬣狗、狼、梦魇、树精、毒蛇、蜘蛛）补齐 `onFactionChanged()` 及食尸鬼 `grow()` 水平翻转，修复复活野兽（含食尸鬼成长后）及死灵宠物面朝左的朝向反向问题；「心灵交融」移除自身每回合开始回复 5 点生命，改为获得装备在饰品位的亡灵宠物全属性 10% 加成（向下取整，宠物升级或晋升尸妖王时自动刷新）；修复驯兽师「声东击西」（`bgp_feint_skill.nut`）在换位飞行瞬间因 `isPlacedOnMap()` 为 false 导致被换位野兽从未获得「防御姿态」（+15 近防）的缺陷；修复战旗光环钩子（`necro_hooks.nut`）挂在 `onUpdate` 而非 `onAfterUpdate` 导致召唤/复活亡灵（`PlayerAnimals`）被原版重置 `Difference = 0` 且图标隐藏的问题。
 - 亡灵主宰 1.7.7 实机通测修复：
   - 修复「亡灵营地」按钮在战斗后或进出城镇后偶发打不开的问题：手动点击改走独立大地图安全检查 `S.canOpenManualEvent()`，绕开原版 `canFireEvent()` 的 400 像素非友方城镇/遗址/敌军阻挡、战后冷却与暂停态后台事件协程阻塞，并补齐过场动画期间短暂排队与残留 `S.Battle` 自动清理。
-  - 修复锁魂者（全部 5 类）仅使用 13 特技固定模板且招募漏调 `fillTalentValues()` 导致技能树残缺与零天赋星的缺陷：注册 5 个 `DynamicPerks` 专属锁魂特技组（`pg.pale_sb_*`）并接入完整重铸动态特技树（44–51 特技），补齐招募天赋星掷骰并内置旧档读档自动修复；同时加固低阶常驻亡灵（先抽天赋与特质再重建技能树并清空重复升级队列）、活人转化与锁魂召返的天赋星逻辑。
+  - 修复锁魂者（全部 5 类）仅使用 13 特技固定模板且招募漏调 `fillTalentValues()` 导致技能树残缺与零天赋星的缺陷：注册 5 个 `DynamicPerks` 专属锁魂特技组（`pg.pale_sb_*`）并延后至 `Hooks.QueueBucket.AfterHooks`（`>mod_dynamic_perks`）挂载，消除启动时 `PerkGroupIDs` 报错并接入完整重铸动态特技树（44–51 特技）与 `pgc.rf_exclusive_1`，补齐招募天赋星掷骰并内置旧档读档自动修复；同时加固低阶常驻亡灵（先抽天赋与特质再重建技能树并清空重复升级队列）、活人转化与锁魂召返的天赋星逻辑。
   - 调整「尸弹」最大攻击距离由 4 格改为 3 格（同步判定与技能提示）。
   - 清理战斗状态标记重复显示（`battle_art.nut`）：移除挂在单位头脸上的持久 `pale_mark_*` 贴图图层，仅保留血条上方标准状态栏图标（`IconMini`）与施加瞬间的短暂提示特效。
   - 修复原版 `special.morale.check` 在士气免疫（`MoraleState.Ignore` /「坚不可摧」）状态下沿用默认白旗小图标（`status_effect_02_mini`）、缺失大图且悬停提示为空的问题：新增手绘石铁堡垒专属状态图标（`pale_unbreakable_status.png` / `_sw.png` 与 20×20 迷你刷子 `pale_unbreakable_mini`）及完整中文说明，其他士气状态保持原版不变。

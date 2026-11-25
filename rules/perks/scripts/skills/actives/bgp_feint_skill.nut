@@ -43,15 +43,20 @@ this.bgp_feint_skill <- ::inherit("scripts/skills/actives/rotation", {
 		local target = _targetTile.getEntity();
 		local ret = this.rotation.onUse(_user, _targetTile);
 
-		try
+		if (ret)
 		{
-			if (::BGP.isValid(target))
-				target.getSkills().add(::new("scripts/skills/effects/bgp_guard_stance_effect"));
-			_user.getSkills().add(::new("scripts/skills/effects/bgp_feint_haste_effect"));
-		}
-		catch (e)
-		{
-			::logError("mod_bg_unique_perks: 声东击西附加效果失败: " + e);
+			try
+			{
+				// switchEntities temporarily detaches target from its tile during the swap animation,
+				// so check liveness directly instead of ::BGP.isValid (which requires isPlacedOnMap).
+				if (target != null && target.isAlive() && !target.isDying())
+					target.getSkills().add(::new("scripts/skills/effects/bgp_guard_stance_effect"));
+				_user.getSkills().add(::new("scripts/skills/effects/bgp_feint_haste_effect"));
+			}
+			catch (e)
+			{
+				::logError("mod_bg_unique_perks: 声东击西附加效果失败: " + e);
+			}
 		}
 
 		return ret;
