@@ -157,8 +157,8 @@
 - Modular Vanilla 0.9.1：前置条件从 vanilla >= 1.5.2-3 改成 >= 1.5.2-2，配合启动器显示的 1.5.2.2。
 - 达库尔崛起：修复 bug、汉化和统一译名；新增 MSU 节奏设置（改宗冷却、事件权重、全局事件频率）。
 - 装备融合：只作用于武器、身甲、头盔、盾牌；品质颜色和边框重做；盾牌词条加近远防；身甲头盔词条增幅翻倍；红装保底稀有。
-- 遗产：中文日志用全角括号，原来命中和闪避一次都没统计上，已修好；补汉化；优化进出城镇的裸装头像缓存逻辑（移除进城重复缓存，离城仅对未缓存或外貌/永久伤发生变化的兄弟增量缓存，消除每次进出城镇约 7 秒的卡顿）。
-- 智能工具提示（敌人属性显示）：默认将特技与主动技能折叠阈值设为 0（敌我统一默认显示图标阵列，可在 MSU 设置调回），补齐敌人可见特质显示并修复文本折叠分支条件笔误。
+- 遗产：中文日志用全角括号，原来命中和闪避一次都没统计上，已修好；补汉化；优化进出城镇的裸装头像缓存逻辑（移除进城重复缓存，离城仅对未缓存或外貌/永久伤发生变化的兄弟增量缓存，消除每次进出城镇约 7 秒的卡顿）；将 `Legacy_EnemyTooltip`（战斗悬停隐藏敌人信息）默认值由 `"Hide everything"` 改为 `"Off"`，同时修复 `"Hide everything"` 模式兼容智能工具提示命中率（`id=10`）且无可见行时返回空数组，消除新装玩家战斗悬停敌人出现空羊皮纸条的问题。
+- 智能工具提示（敌人属性显示）：默认将特技与主动技能折叠阈值设为 0（敌我统一默认显示图标阵列，可在 MSU 设置调回），将悬浮窗内折叠图标缩小至原图尺寸一半（`2.8rem × 2.8rem`，约 `28 × 28` 像素，防图标过大），补齐敌人可见特质显示、空类防空白行并修复文本折叠分支条件笔误。
 - 黑色金字塔 1.4.5：元素装备前后缀、格斯之剑、戒指和各类日志汉化，28 个新敌人名和 16 个武僧冠军名汉化；修复杀死无尸体冠军时的崩溃。
 - zbigmap054 冠军生成：修复每次读档冠军倍数再乘一次、最后溢出成负数的问题。
 - Quicker 加速：改用 Modern Hooks，并加入 Swifter 的功能（大地图倍速、护送倍速、战斗倍速存档、阻挡高光），扎营速度跟随扎营前。
@@ -172,14 +172,17 @@
 - 潘多拉冠军样本的物品路径写错，掉不出来。
 - 潘多拉亡灵营地冠军报错：冠军死灵法师召唤僵尸的脚本路径漏了 `enemies/` 导致空指针崩溃；冠军幽魂受无技能来源伤害时崩溃、枯萎之触存活判定写反；护身符/玩家死亡空引用保护。
 - 北境扩张（野蛮人扩张）营地与合同报错：驱逐野蛮人单挑弹窗在无冠军特质兄弟或遍历候选人时报错；野蛮人营地销毁与派系更新缺少空值/方法检查及返回值遗漏。
-- 达库尔崛起事件报错：修复 `cultist_clashes_with_partymember.nut`（3 处）与 `fear_hate_cultists_event.nut`（1 处）直接对兄弟对象调用 `bro.hasSkill(...)` 而漏写 `.getSkills()` 导致的 `the index 'hasSkill' does not exist` 崩溃。
+- 达库尔崛起事件与装备报错：修复 `cultist_clashes_with_partymember.nut`（3 处）与 `fear_hate_cultists_event.nut`（1 处）直接对兄弟对象调用 `bro.hasSkill(...)` 而漏写 `.getSkills()` 导致的 `the index 'hasSkill' does not exist` 崩溃；修复饰品「献祭项圈」（`sacrificial_collar_item.nut`）误调用 `getCultists().getFlags()`（应为 `.m.Flags`）导致的悬停报错。
 - 黑色金字塔元素受击钩子加固：`mod_elemental/hooks/actor_on_damage.nut` 增加 `::MSU.isNull(_attacker)` 判空，避免远程延迟投射物落地时攻击者已阵亡的 `WeakTableRef` 空引用异常。
-- 背景专属特技 1.6.11：修复「复活死者」误将倒地昏迷（永久伤存活）的我方活人兄弟当作待复活尸体并触发 `transferTo` 报错的问题；加固统帅「指挥链接」`bgp_command_link_effect.nut` 受击回调的空容器判断。
+- 背景专属特技 1.6.11：修复「复活死者」误将倒地昏迷（永久伤存活）的我方活人兄弟当作待复活尸体并触发 `transferTo` 报错的问题；加固统帅「指挥链接」`bgp_command_link_effect.nut` 受击回调的空容器判断；为 8 类原版朝左野兽（食尸鬼、恐狼、鬣狗、狼、梦魇、树精、毒蛇、蜘蛛）补齐 `onFactionChanged()` 及食尸鬼 `grow()` 水平翻转，修复复活野兽（含食尸鬼成长后）及死灵宠物面朝左的朝向反向问题。
 - 亡灵主宰 1.7.7 实机通测修复：
   - 修复 `pale_sovereign/hooks.nut` 中 `WeakTableRef` 与原生表直接比较导致冠军/尸妖王进场时全部专属技能（冢王护持、号令亡魂、冢王威压、吞魂/名器/魂玉铭刻与镀金）被静默跳过的 Bug（并同步加固其余 3 处 `mainPet()` 比较）。
   - 修复 3 阶远程亡灵「箭雨编织者」技能 `pale_arrow_rain.getItem()` 返回原生武器表而非 `WeakTableRef`，导致打开角色界面或升级时触发 `the index 'isNull' does not exist` 崩溃。
   - 修复「魂玉统领」执念共鸣（`jade_ops.nut`）及肢体嫁接/亡灵事件/招募特质互斥检查对非 `character_trait` 特质直接调用 `isExcluded()` 导致战斗回合开始卡死的崩溃。
   - 修复全量事件通测检出的 `SkillType.Trait` 过滤漏判（原版背景/特殊技能同样带有 `Trait` 标志位）：新增 `S.pureTraits()` 纯特质筛选，修复「生前契约仪式」（`living_bond.nut`）与「锁魂召返」（`chain_ops.nut`）误删新建亡灵背景导致 `setName()`/`buildDescription()` 触发 `getActor` 报错与二次点击硬闪退，同时修复特质剥离（`reserve_ops.nut`）误将背景列入可剥离项、以及净化负面特质/征召预览（`undead_recruits.nut`）误计背景的缺陷。
+  - 修复「守夜人的骨灯」（`pale_bone_lantern.nut`）占据箭袋位且标为 `ItemType.Ammo` 却缺少 `getAmmo()` 导致关闭角色栏或离开城镇时 `asset_manager.refillAmmo()` 崩溃并卡死在城镇界面（改为 `ItemType.Tool` 并补齐安全弹药接口，兼容已有存档）。
+  - 优化常驻亡灵外貌刷新（`combat.nut` `S.applyUndeadLook` / `S.applySummonedLook`）：先算最终刷子名且仅在变化时调用 `setBrush`，消除每次给常驻亡灵穿脱装备时连调 6 次 `onUpdateInjuryLayer()` 反复卸载/重解码 27.3 MB 贴图导致的近 1 秒卡顿（925 ms → 3.8 ms）。
+  - 加固「缚魂镣铐」（`pale_soul_shackle.nut` / `pale_shackle_effect.nut`）空容器判空，消除仓库未装备状态悬停时触发 `getActor` 回退提示。
 - 大队伍经验原来对所有经验来源都按名册放大，改为只按本场实际出战人数放大战斗经验。
 - 著名 / 传奇武器在视野外损坏时不掉落。
 - 尸爆技能创建时覆盖了 MSU 的伤害类型对象，导致报错。

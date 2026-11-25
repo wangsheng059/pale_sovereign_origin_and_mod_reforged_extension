@@ -14,7 +14,12 @@ this.pale_shackle_effect <- ::inherit("scripts/skills/skill", {
 
     function isHidden()
     {
-        return !::PaleSovereign.isUndead(this.getContainer().getActor());
+        local c = this.getContainer();
+        if (c == null || ::MSU.isNull(c))
+            return true;
+        local actor = null;
+        try { actor = c.getActor(); } catch (e) { return true; }
+        return actor == null || ::MSU.isNull(actor) || !::PaleSovereign.isUndead(actor);
     }
 
     function getTooltip()
@@ -28,7 +33,12 @@ this.pale_shackle_effect <- ::inherit("scripts/skills/skill", {
 
     function onUpdate( _properties )
     {
-        if (!::PaleSovereign.isUndead(this.getContainer().getActor()))
+        local c = this.getContainer();
+        if (c == null || ::MSU.isNull(c))
+            return;
+        local actor = null;
+        try { actor = c.getActor(); } catch (e) { return; }
+        if (actor == null || ::MSU.isNull(actor) || !::PaleSovereign.isUndead(actor))
             return;
         _properties.Hitpoints += 10;
         _properties.Stamina += 10;

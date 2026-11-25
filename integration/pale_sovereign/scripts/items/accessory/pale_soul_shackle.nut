@@ -17,7 +17,11 @@ this.pale_soul_shackle <- ::inherit("scripts/items/accessory/accessory", {
     {
         this.accessory.onEquip();
         this.addSkill(::new("scripts/skills/effects/pale_shackle_effect"));
-        local actor = this.getContainer().getActor();
+        local container = this.getContainer();
+        if (container == null || ::MSU.isNull(container))
+            return;
+        local actor = null;
+        try { actor = container.getActor(); } catch (e) { return; }
         if (actor == null || ::MSU.isNull(actor) || !::PaleSovereign.isSoulbound(actor) || actor.getFlags().has("PaleShacklePoint"))
             return;
         actor.getFlags().add("PaleShacklePoint");

@@ -178,7 +178,29 @@
 });
 
 
-// Native growth replaces the head and body brushes. Restore the raised ghoul's selected look immediately.
+// Sync horizontal flipping for vanilla left-facing beast species when allied with the player (raised undead / pets).
+local leftFacingBeastLayers = ["body", "head", "injury", "body_blood", "head_frenzy", "legs_front", "legs_back", "armor", "helmet"];
+::BGP.Necro.syncLeftBeastFacing <- function( _actor )
+{
+	local flip = _actor.isAlliedWithPlayer();
+	foreach (layer in leftFacingBeastLayers)
+		if (_actor.hasSprite(layer))
+			_actor.getSprite(layer).setHorizontalFlipping(flip);
+};
+
+foreach (beastClass in ["ghoul", "direwolf", "hyena", "wolf", "alp", "schrat", "serpent", "spider"])
+{
+	::BGP.HooksMod.hook("scripts/entity/tactical/enemies/" + beastClass, function(q)
+	{
+		q.onFactionChanged = @(__original) function()
+		{
+			__original();
+			::BGP.Necro.syncLeftBeastFacing(this);
+		};
+	});
+}
+
+// Native growth replaces the head and body brushes. Restore the raised ghoul's selected look and facing immediately.
 ::BGP.HooksMod.hook("scripts/entity/tactical/enemies/ghoul", function(q)
 {
 	q.grow = @(__original) function( _instant = false )
@@ -186,6 +208,7 @@
 		__original(_instant);
 		if (this.getFlags().has("bgp_bound_variant"))
 			::BGP.Necro.applyBoundArt(this);
+		::BGP.Necro.syncLeftBeastFacing(this);
 	};
 });
 

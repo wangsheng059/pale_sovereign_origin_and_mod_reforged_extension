@@ -311,13 +311,21 @@
             {
                 if (pool == "orc_berserker" && ::MSU.isKindOf(_actor, "rf_zombie_orc_berserker") && !flags.has("bgp_bound_orc_injury"))
                     flags.set("bgp_bound_orc_injury", _actor.getZombifyBrushNameHead());
-                sprite.setBrush(brush);
+                if (key != brush) sprite.setBrush(brush);
                 // Both new heads already include facial detail. The native death paths still look up these layers.
-                if (pool == "skeleton" && _actor.hasSprite("face")) _actor.getSprite("face").setBrush("bgpv_face_overlay");
-                if (frenzy) _actor.getSprite("head_frenzy").setBrush("bgpv_frenzy_overlay");
+                if (pool == "skeleton" && _actor.hasSprite("face"))
+                {
+                    local fsp = _actor.getSprite("face");
+                    if (!fsp.HasBrush || fsp.getBrush().Name != "bgpv_face_overlay") fsp.setBrush("bgpv_face_overlay");
+                }
+                if (frenzy)
+                {
+                    local hsp = _actor.getSprite("head_frenzy");
+                    if (!hsp.HasBrush || hsp.getBrush().Name != "bgpv_frenzy_overlay") hsp.setBrush("bgpv_frenzy_overlay");
+                }
                 continue;
             }
         }
-        if (key in this.BoundBrushes) sprite.setBrush(this.BoundBrushes[key]);
+        if (key in this.BoundBrushes && key != this.BoundBrushes[key]) sprite.setBrush(this.BoundBrushes[key]);
     }
 }

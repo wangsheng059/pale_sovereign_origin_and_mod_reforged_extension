@@ -1342,6 +1342,11 @@
     "patches/maxi_tooltips/enemy_traits_and_typo.json",
     "patches/maxi_tooltips/effects_empty_guard.json",
     "patches/maxi_tooltips/actives_empty_guard.json",
-    "patches/legacy/town_portraits_incremental.json"
+    "patches/legacy/town_portraits_incremental.json",
+    "patches/legacy/enemy_tooltip_fallback_off.json",
+    "patches/legacy/enemy_tooltip_default_off.json",
+    "patches/davkul/sacrificial_collar_flags.json",
+    "patches/maxi_tooltips/nested_icon_class.json",
+    "patches/maxi_tooltips/nested_icon_size_css.json"
   ]
 }

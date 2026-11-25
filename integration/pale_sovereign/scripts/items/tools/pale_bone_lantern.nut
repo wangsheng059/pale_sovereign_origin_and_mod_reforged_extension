@@ -8,8 +8,42 @@ this.pale_bone_lantern <- ::inherit("scripts/items/item", {
         this.m.Icon = "pale/bone_lantern.png";
         this.m.IconLarge = this.m.Icon;
         this.m.SlotType = ::Const.ItemSlot.Ammo;
-        this.m.ItemType = ::Const.Items.ItemType.Ammo;
+        this.m.ItemType = ::Const.Items.ItemType.Tool;
         this.m.Value = 500;
+    }
+
+    // Keep item inheritance for save compatibility while exposing safe ammo stubs for callers inspecting ItemSlot.Ammo.
+    function getAmmo()
+    {
+        return 0;
+    }
+
+    function getAmmoMax()
+    {
+        return 0;
+    }
+
+    function getAmmoCost()
+    {
+        return 0;
+    }
+
+    function getAmmoType()
+    {
+        return -1;
+    }
+
+    function setAmmo( _a )
+    {
+    }
+
+    function consumeAmmo()
+    {
+    }
+
+    function isAmmoFull()
+    {
+        return true;
     }
 
     function onEquip()

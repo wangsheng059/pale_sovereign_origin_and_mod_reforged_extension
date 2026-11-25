@@ -292,26 +292,47 @@ local undeadSpriteVariants = [
     { Layer = "body", Flag = "PaleBodyVariant", Count = 6 }
 ];
 
+S.setSpriteBrushIfChanged <- function( _sprite, _brush )
+{
+    if (_sprite == null || _brush == null || _brush == "")
+        return false;
+    if (_sprite.HasBrush && _sprite.getBrush().Name == _brush)
+        return false;
+    _sprite.setBrush(_brush);
+    return true;
+};
+
+S.resolveUndeadVariantBrush <- function( _flags, _model, _layer, _fallback = null )
+{
+    local variant = _layer == "head" ? undeadSpriteVariants[0] : undeadSpriteVariants[1];
+    local index = this.getOrRollUndeadIndex(_flags, variant.Flag, variant.Count);
+    local name = format("%s_%s_%02d", _model, _layer, index + 1);
+    if (_layer == "body")
+    {
+        local detail = this.getOrRollUndeadIndex(_flags, "PaleDetailVariant", 6);
+        local dressed = format("%s_detail_%02d", name, detail + 1);
+        if (::doesBrushExist(dressed))
+            name = dressed;
+    }
+    if (::doesBrushExist(name))
+        return name;
+    return _fallback;
+};
+
 S.applyUndeadVariants <- function( _actor, _model )
 {
     local flags = _actor.getFlags();
+    local changed = false;
     foreach (variant in undeadSpriteVariants)
     {
-        local index = this.getOrRollUndeadIndex(flags, variant.Flag, variant.Count);
-        local name = format("%s_%s_%02d", _model, variant.Layer, index + 1);
-        if (variant.Layer == "body")
-        {
-            local detail = this.getOrRollUndeadIndex(flags, "PaleDetailVariant", 6);
-            local dressed = format("%s_detail_%02d", name, detail + 1);
-            if (::doesBrushExist(dressed))
-                name = dressed;
-        }
-        if (::doesBrushExist(name))
-            _actor.getSprite(variant.Layer).setBrush(name);
+        local target = this.resolveUndeadVariantBrush(flags, _model, variant.Layer, null);
+        if (target != null && this.setSpriteBrushIfChanged(_actor.getSprite(variant.Layer), target))
+            changed = true;
     }
     local appearance = _actor.getItems().getAppearance();
     appearance.HideHair = true;
     appearance.HideBeard = true;
+    return changed;
 };
 
 S.applyUndeadLook <- function( _bro )
@@ -330,68 +351,110 @@ S.applyUndeadLook <- function( _bro )
     local branch = look != null || background.m.PaleTier > 1 ? this.TierBranches[key] : null;
     local body = _bro.getSprite("body");
     local head = _bro.getSprite("head");
+    local flags = _bro.getFlags();
+    local appearance = _bro.getItems().getAppearance();
     if (skeleton)
-    {
-        body.setBrush("bust_skeleton_body_01");
-        head.setBrush("bust_skeleton_head");
-        _bro.getItems().getAppearance().Corpse = "bust_skeleton_body_01_dead";
-    }
-    else
-    {
-        head.setBrush("bgpu_bust_head_01");
-    }
+        appearance.Corpse = "bust_skeleton_body_01_dead";
+
+    // Compute final brushes once before calling setBrush to avoid unloading and re-decoding large atlases.
+    local bodyBrush = skeleton ? "bust_skeleton_body_01" : null;
+    local headBrush = skeleton ? "bust_skeleton_head" : "bgpu_bust_head_01";
     if (background.m.PaleRanged)
     {
-        body.setBrush("pale_skeleton_archer_body");
-        head.setBrush("pale_skeleton_archer_head");
-        this.applyUndeadVariants(_bro, "pale_skeleton_archer");
+        bodyBrush = this.resolveUndeadVariantBrush(flags, "pale_skeleton_archer", "body", "pale_skeleton_archer_body");
+        headBrush = this.resolveUndeadVariantBrush(flags, "pale_skeleton_archer", "head", "pale_skeleton_archer_head");
+        appearance.HideHair = true;
+        appearance.HideBeard = true;
     }
     else if (branch != null)
     {
         local stem = "pale_" + (key in this.TierBrushStems ? this.TierBrushStems[key] : key);
         if (look != null)
             stem = "pale_sb_" + background.m.PaleSoulClass;
-        body.setBrush(stem + "_body");
-        head.setBrush(stem + "_head");
+        bodyBrush = stem + "_body";
+        headBrush = stem + "_head";
     }
     else if (background.getID() == "background.pale_skeleton" || background.getID() == "background.pale_zombie")
     {
-        this.applyUndeadVariants(_bro, skeleton ? "pale_summon_skeleton_0" : "pale_summon_zombie_0");
+        local model = skeleton ? "pale_summon_skeleton_0" : "pale_summon_zombie_0";
+        bodyBrush = this.resolveUndeadVariantBrush(flags, model, "body", bodyBrush);
+        headBrush = this.resolveUndeadVariantBrush(flags, model, "head", headBrush);
+        appearance.HideHair = true;
+        appearance.HideBeard = true;
     }
+
+    local dirty = false;
+    if (this.setSpriteBrushIfChanged(body, bodyBrush))
+        dirty = true;
+    if (this.setSpriteBrushIfChanged(head, headBrush))
+        dirty = true;
+
     body.Color = ::createColor(branch != null || skeleton ? "#ffffff" : "#b4c4a5");
     head.Color = body.Color;
     if (branch != null && branch.Scale != 1.0)
     {
         foreach (layer in ["body", "head", "armor", "helmet", "armor_upgrade", "body_blood", "head_blood"])
             if (_bro.hasSprite(layer))
-                _bro.getSprite(layer).Scale = branch.Scale;
+            {
+                local sp = _bro.getSprite(layer);
+                if (sp.Scale != branch.Scale)
+                {
+                    sp.Scale = branch.Scale;
+                    dirty = true;
+                }
+            }
     }
     if (background.m.PaleBranch == "skeleton_king" && _bro.hasSprite("helmet")
         && _bro.getItems().getItemAtSlot(::Const.ItemSlot.Head) == null)
     {
         local crown = _bro.getSprite("helmet");
-        crown.setBrush("pale_skeleton_king_crown");
-        crown.Visible = true;
+        if (this.setSpriteBrushIfChanged(crown, "pale_skeleton_king_crown"))
+            dirty = true;
+        if (!crown.Visible)
+        {
+            crown.Visible = true;
+            dirty = true;
+        }
     }
     foreach (layer in ["hair", "beard", "beard_top", "tattoo_body", "tattoo_head", "injury", "injury_body"])
     {
         if (_bro.hasSprite(layer))
-            _bro.getSprite(layer).Visible = false;
+        {
+            local sp = _bro.getSprite(layer);
+            if (sp.Visible)
+            {
+                sp.Visible = false;
+                dirty = true;
+            }
+        }
     }
     if (skeleton)
     {
         foreach (layer in ["body_blood", "head_blood"])
             if (_bro.hasSprite(layer))
-                _bro.getSprite(layer).Visible = false;
+            {
+                local sp = _bro.getSprite(layer);
+                if (sp.Visible)
+                {
+                    sp.Visible = false;
+                    dirty = true;
+                }
+            }
     }
-    _bro.setDirty(true);
+    if (dirty)
+        _bro.setDirty(true);
 };
 
 S.applySummonedLook <- function( _actor, _stem )
 {
-    _actor.getSprite("body").setBrush(_stem + "_body");
-    _actor.getSprite("head").setBrush(_stem + "_head");
-    this.applyUndeadVariants(_actor, _stem);
+    local flags = _actor.getFlags();
+    local bodyBrush = this.resolveUndeadVariantBrush(flags, _stem, "body", _stem + "_body");
+    local headBrush = this.resolveUndeadVariantBrush(flags, _stem, "head", _stem + "_head");
+    this.setSpriteBrushIfChanged(_actor.getSprite("body"), bodyBrush);
+    this.setSpriteBrushIfChanged(_actor.getSprite("head"), headBrush);
+    local appearance = _actor.getItems().getAppearance();
+    appearance.HideHair = true;
+    appearance.HideBeard = true;
     foreach (layer in ["body", "head"])
         _actor.getSprite(layer).Color = ::createColor("#ffffff");
     foreach (layer in ["hair", "beard", "beard_top", "injury", "injury_body", "body_blood_always"])

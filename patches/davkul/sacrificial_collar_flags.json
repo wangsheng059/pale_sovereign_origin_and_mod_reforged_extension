@@ -1,0 +1,8 @@
+{
+  "source": "最新达库尔崛起重铸修复汉化版20260521.zip",
+  "member": "scripts/items/accessory/sacrificial_collar_item.nut",
+  "before": "f15507d7d92291364b9e3f580e86febd12227f921fc7abba545c7886a060bc4b",
+  "after": "4cdc9810a400e217bb784d0fd77327441a61bec1059a702aaeb952e1b8daffe4",
+  "old": "\t\tif(!this.getCultists().getFlags().get(\"CultistLegendaryLocationBeat\"))",
+  "new": "\t\tlocal cultists = this.getCultists();\n\t\tif (cultists == null || !cultists.m.Flags.get(\"CultistLegendaryLocationBeat\"))"
+}

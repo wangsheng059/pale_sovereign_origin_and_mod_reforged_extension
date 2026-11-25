@@ -1,0 +1,8 @@
+{
+  "source": "mod_tooltips-敌人属性显示-1.2.zip",
+  "member": "ui/mods/mod_maxi_tooltips/css/tooltip.css",
+  "before": "9eb6fa47a19828026ed789e6b0ec9b75065b98efbaf41983e70bfb25e8e156b7",
+  "after": "9499d272aafe37f67899d56fab1cf73d19d9f02de2d774f7c2c26c4c80baf75c",
+  "old": "div.maxi-damage-tooltip span {\n    width: 4.8rem;\n    display:flex;\n    justify-content: flex-start;\n    flex-shrink: 1;\n}",
+  "new": "div.maxi-damage-tooltip span {\n    width: 4.8rem;\n    display:flex;\n    justify-content: flex-start;\n    flex-shrink: 1;\n}\n\nimg.maxi-tt-grid-icon {\n    width: 2.8rem !important;\n    height: 2.8rem !important;\n    margin: 0.1rem 0.2rem 0.1rem 0;\n    vertical-align: middle;\n}"
+}
