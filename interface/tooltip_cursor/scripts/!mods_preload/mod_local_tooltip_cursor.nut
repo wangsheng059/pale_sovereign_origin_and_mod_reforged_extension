@@ -174,71 +174,102 @@ mod.queue(">mod_msu", function()
 	});
 });
 
-mod.queue([">mod_msu", ">mod_modular_vanilla", ">mod_reforged", ">mod_pale_sovereign"], function()
+mod.queue([">mod_msu", ">mod_pale_sovereign"], function()
 {
-	local wrapZeroArg = function( _q, _methodName )
+	mod.hook("scripts/entity/world/world_entity", function(q)
 	{
-		_q[_methodName] = @(__original) function()
+		q.onInit = @(__original) function()
 		{
 			local ret = __original();
 			sanitizeEntityLabel(this);
 			return ret;
 		};
-	};
 
-	local wrapOneArg = function( _q, _methodName )
-	{
-		_q[_methodName] = @(__original) function( _arg )
+		q.setName = @(__original) function( _n )
 		{
-			local ret = __original(_arg);
+			local ret = __original(_n);
 			sanitizeEntityLabel(this);
 			return ret;
 		};
-	};
 
-	local zeroArgMethods = [
-		"onInit",
-		"onAfterInit",
-		"updateStrength",
-		"updateName",
-		"updateTown",
-		"onCombatLost"
-	];
-
-	local oneArgMethods = [
-		"setName",
-		"onDeserialize"
-	];
-
-	local wrapEntityClass = function( _q )
-	{
-		foreach (m in zeroArgMethods)
+		q.onDeserialize = @(__original) function( _in )
 		{
-			if (_q.contains(m, false))
-				wrapZeroArg(_q, m);
-		}
-		foreach (m in oneArgMethods)
-		{
-			if (_q.contains(m, false))
-				wrapOneArg(_q, m);
-		}
-	};
-
-	mod.hook("scripts/entity/world/world_entity", function(q)
-	{
-		wrapEntityClass(q);
+			local ret = __original(_in);
+			sanitizeEntityLabel(this);
+			return ret;
+		};
 	});
 
 	mod.hookTree("scripts/entity/world/world_entity", function(q)
 	{
-		wrapEntityClass(q);
+		q.updateStrength = @(__original) function()
+		{
+			local ret = __original();
+			sanitizeEntityLabel(this);
+			return ret;
+		};
 	});
 
 	mod.hook("scripts/entity/world/party", function(q)
 	{
-		if (q.contains("onUpdate", false))
-			wrapZeroArg(q, "onUpdate");
+		q.onUpdate = @(__original) function()
+		{
+			local ret = __original();
+			sanitizeEntityLabel(this);
+			return ret;
+		};
 	});
+
+	mod.hook("scripts/entity/world/location", function(q)
+	{
+		q.onAfterInit = @(__original) function()
+		{
+			local ret = __original();
+			sanitizeEntityLabel(this);
+			return ret;
+		};
+
+		q.onDeserialize = @(__original) function( _in )
+		{
+			local ret = __original(_in);
+			sanitizeEntityLabel(this);
+			return ret;
+		};
+	});
+
+	mod.hook("scripts/entity/world/settlement", function(q)
+	{
+		q.onInit = @(__original) function()
+		{
+			local ret = __original();
+			sanitizeEntityLabel(this);
+			return ret;
+		};
+
+		q.onDeserialize = @(__original) function( _in )
+		{
+			local ret = __original(_in);
+			sanitizeEntityLabel(this);
+			return ret;
+		};
+	});
+
+	local hookLabelRefresh = function( _scriptPath, _methodName )
+	{
+		mod.hook(_scriptPath, function(q)
+		{
+			q[_methodName] = @(__original) function()
+			{
+				local ret = __original();
+				sanitizeEntityLabel(this);
+				return ret;
+			};
+		});
+	};
+
+	hookLabelRefresh("scripts/entity/world/settlements/stronghold_player_base", "updateTown");
+	hookLabelRefresh("scripts/entity/world/settlements/stronghold_hamlet", "updateTown");
+	hookLabelRefresh("scripts/entity/world/locations/cultist_camp_location", "updateName");
 
 	mod.hook("scripts/ui/screens/stronghold/modules/stronghold_screen_main_module", function(q)
 	{
