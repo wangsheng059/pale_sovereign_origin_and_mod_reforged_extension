@@ -94,21 +94,9 @@ local marks = {
     ["effects.pale_jade_guard"] = "jade_guard", ["effects.pale_bone_ward"] = "bone_ward",
     ["effects.pale_shot_mark"] = "shot_mark"
 };
-local markOrder = ["bound", "prey", "weak", "blind", "age", "fracture", "wound", "stench", "domain", "dirge", "wail", "flies", "venom",
-    "corpse_poison", "chain_hold", "doom_mark", "daunted", "barrow_dread", "jade_miasma", "jade_guard", "bone_ward", "shot_mark"];
 
-local function arrangeMarks( _actor )
-{
-    local visible = markOrder.filter(@(_, k) _actor.hasSprite("pale_mark_" + k));
-    foreach (i, key in visible)
-    {
-        local column = i % 5;
-        local count = ::Math.min(5, visible.len() - i + column);
-        _actor.setSpriteOffset("pale_mark_" + key, ::createVec((column - (count - 1) * 0.5) * 17, 58 + (i / 5) * 16));
-    }
-    _actor.setDirty(true);
-}
-
+// Status marks are displayed exclusively in the native HP-bar IconMini row (never pinned onto actor faces).
+// Keep the brief application pulse VFX when a mark is first applied.
 local function attachMark( _skill )
 {
     local id = _skill.getID();
@@ -118,22 +106,14 @@ local function attachMark( _skill )
     if (actor == null || !actor.isPlacedOnMap() || !actor.isAlive() || actor.isDying())
         return;
     local key = marks[id];
-    local layer = "pale_mark_" + key;
     if (!("PaleArtMarks" in actor.m))
         actor.m.PaleArtMarks <- {};
     local counts = actor.m.PaleArtMarks;
-    counts[key] <- key in counts ? counts[key] + 1 : 1;
+    local wasActive = key in counts && counts[key] > 0;
+    counts[key] <- wasActive ? counts[key] + 1 : 1;
     _skill.m.PaleArtAttached = true;
-    if (!actor.hasSprite(layer))
-    {
-        local detailed = highResolutionBrush(layer);
-        local sprite = actor.addSprite(layer);
-        sprite.setBrush(detailed == null ? layer : detailed);
-        if (detailed != null)
-            sprite.Scale = 0.5;
-        arrangeMarks(actor);
+    if (!wasActive)
         S.playBattleArt("mark_" + key, actor.getTile(), 54, 0.80);
-    }
 }
 
 local function detachMark( _skill )
@@ -149,10 +129,6 @@ local function detachMark( _skill )
     if (!(key in counts) || --counts[key] > 0)
         return;
     delete counts[key];
-    local layer = "pale_mark_" + key;
-    if (actor.hasSprite(layer))
-        actor.removeSprite(layer);
-    arrangeMarks(actor);
 }
 
 foreach (name in ["pale_weaken_effect", "pale_blind_effect", "pale_hex_domain_effect", "pale_chant_effect",
@@ -230,5 +206,64 @@ S.Mod.hook("scripts/skills/actives/bgp_necro_curse_of_ages_skill", function(q) {
     q.spawnIcon = @(__original) function( _brush, _tile ) {
         if (S.Battle == null || _brush != "status_effect_67")
             return __original(_brush, _tile);
+    };
+});
+
+// Vanilla special.morale_check leaves MoraleState.Ignore on the default white-flag mini icon
+// (status_effect_02_mini) with a missing Icon PNG and null tooltip. Give it a dedicated bastion
+// status icon and tooltip while preserving all other morale states (and UndeadCurse's isHidden).
+S.Mod.hook("scripts/skills/special/morale_check", function(q) {
+    local applyUnbreakableVisual = function( _skill )
+    {
+        local c = _skill.getContainer();
+        if (c == null)
+            return;
+        local actor = c.getActor();
+        if (actor == null || actor.getMoraleState() != ::Const.MoraleState.Ignore)
+            return;
+        _skill.m.Icon = "skills/pale_unbreakable_status.png";
+        _skill.m.IconDisabled = "skills/pale_unbreakable_status_sw.png";
+        _skill.m.IconMini = "pale_unbreakable_mini";
+        _skill.m.IsHidden = false;
+    };
+
+    q.onAdded = @(__original) function() {
+        __original();
+        applyUnbreakableVisual(this);
+    };
+
+    q.onUpdate = @(__original) function( _properties ) {
+        __original(_properties);
+        applyUnbreakableVisual(this);
+    };
+
+    q.getTooltip = @(__original) function() {
+        local ret = __original();
+        if (ret != null)
+            return ret;
+        local c = this.getContainer();
+        local actor = c != null ? c.getActor() : null;
+        if (actor != null && actor.getMoraleState() == ::Const.MoraleState.Ignore)
+        {
+            return [
+                {
+                    id = 1,
+                    type = "title",
+                    text = this.getName()
+                },
+                {
+                    id = 2,
+                    type = "description",
+                    text = "这个角色不受士气检定影响，绝不会动摇或溃逃。"
+                },
+                {
+                    id = 10,
+                    type = "text",
+                    icon = "ui/icons/morale.png",
+                    text = "免疫士气下降、动摇、崩溃与溃逃"
+                }
+            ];
+        }
+        return ret;
     };
 });

@@ -179,6 +179,8 @@
   - 修复「亡灵营地」按钮在战斗后或进出城镇后偶发打不开的问题：手动点击改走独立大地图安全检查 `S.canOpenManualEvent()`，绕开原版 `canFireEvent()` 的 400 像素非友方城镇/遗址/敌军阻挡、战后冷却与暂停态后台事件协程阻塞，并补齐过场动画期间短暂排队与残留 `S.Battle` 自动清理。
   - 修复锁魂者（全部 5 类）仅使用 13 特技固定模板且招募漏调 `fillTalentValues()` 导致技能树残缺与零天赋星的缺陷：注册 5 个 `DynamicPerks` 专属锁魂特技组（`pg.pale_sb_*`）并接入完整重铸动态特技树（44–51 特技），补齐招募天赋星掷骰并内置旧档读档自动修复；同时加固低阶常驻亡灵（先抽天赋与特质再重建技能树并清空重复升级队列）、活人转化与锁魂召返的天赋星逻辑。
   - 调整「尸弹」最大攻击距离由 4 格改为 3 格（同步判定与技能提示）。
+  - 清理战斗状态标记重复显示（`battle_art.nut`）：移除挂在单位头脸上的持久 `pale_mark_*` 贴图图层，仅保留血条上方标准状态栏图标（`IconMini`）与施加瞬间的短暂提示特效。
+  - 修复原版 `special.morale.check` 在士气免疫（`MoraleState.Ignore` /「坚不可摧」）状态下沿用默认白旗小图标（`status_effect_02_mini`）、缺失大图且悬停提示为空的问题：新增手绘石铁堡垒专属状态图标（`pale_unbreakable_status.png` / `_sw.png` 与 20×20 迷你刷子 `pale_unbreakable_mini`）及完整中文说明，其他士气状态保持原版不变。
   - 修复 `pale_sovereign/hooks.nut` 中 `WeakTableRef` 与原生表直接比较导致冠军/尸妖王进场时全部专属技能（冢王护持、号令亡魂、冢王威压、吞魂/名器/魂玉铭刻与镀金）被静默跳过的 Bug（并同步加固其余 3 处 `mainPet()` 比较）。
   - 修复 3 阶远程亡灵「箭雨编织者」技能 `pale_arrow_rain.getItem()` 返回原生武器表而非 `WeakTableRef`，导致打开角色界面或升级时触发 `the index 'isNull' does not exist` 崩溃。
   - 修复「魂玉统领」执念共鸣（`jade_ops.nut`）及肢体嫁接/亡灵事件/招募特质互斥检查对非 `character_trait` 特质直接调用 `isExcluded()` 导致战斗回合开始卡死的崩溃。
