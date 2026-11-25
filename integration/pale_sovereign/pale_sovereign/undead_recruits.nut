@@ -194,7 +194,7 @@ S.purgeNegativeUndeadTraits <- function( _bro )
     skills.collectGarbage();
     local kind = this.UndeadKinds[this.undeadKindOf(flags.get("PaleUndeadKind"))];
     local left = 0;
-    foreach (trait in skills.query(::Const.SkillType.Trait))
+    foreach (trait in this.pureTraits(_bro, false))
         if (!trait.isHidden())
             ++left;
     if (left == 0)
@@ -540,7 +540,7 @@ S.recruitCandidateText <- function( _bro, _index )
     }
     text += "\n天赋：" + this.joinRecruitText(stars);
     local traits = [];
-    foreach (trait in _bro.getSkills().query(::Const.SkillType.Trait))
+    foreach (trait in this.pureTraits(_bro, false))
         if (!trait.isHidden())
             traits.push(trait.getName());
     text += "\n特质：" + this.joinRecruitText(traits);

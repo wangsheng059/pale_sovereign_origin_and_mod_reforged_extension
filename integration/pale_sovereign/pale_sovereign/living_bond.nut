@@ -234,8 +234,10 @@ S.convertToUndead <- function( _rec, _tier2 )
     local kind = this.convertKind(_rec);
     local bro = this.createUndead(kind, null, true);
     local skills = bro.getSkills();
-    foreach (trait in skills.query(::Const.SkillType.Trait))
-        skills.removeByID(trait.getID());
+    // Clear pure Trait skills only so background/special skills are never stripped.
+    foreach (trait in this.pureTraits(bro, true))
+        if (trait.getID() != "trait.player_character")
+            skills.removeByID(trait.getID());
     skills.collectGarbage();
     local signature = this.signatureTrait(_rec, kind);
     if (signature != null)
@@ -375,6 +377,8 @@ S.ritualPanel <- function( _event, _screen )
         @(bro) bro.getName() + "（" + bro.getLevel() + " 级，永久伤势 " + bro.getSkills().query(::Const.SkillType.PermanentInjury).len() + " 处）",
         function( bro )
         {
+            if (bro == null || ::MSU.isNull(bro) || ::World.getPlayerRoster().getAll().find(bro) == null)
+                return "此人已不在队列之中。";
             local stash = ::World.Assets.getStash();
             local need = bro.getItems().getAllItems().len();
             if (stash.getNumberOfEmptySlots() < need)

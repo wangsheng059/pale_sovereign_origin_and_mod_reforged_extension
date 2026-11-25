@@ -178,6 +178,7 @@
   - 修复 `pale_sovereign/hooks.nut` 中 `WeakTableRef` 与原生表直接比较导致冠军/尸妖王进场时全部专属技能（冢王护持、号令亡魂、冢王威压、吞魂/名器/魂玉铭刻与镀金）被静默跳过的 Bug（并同步加固其余 3 处 `mainPet()` 比较）。
   - 修复 3 阶远程亡灵「箭雨编织者」技能 `pale_arrow_rain.getItem()` 返回原生武器表而非 `WeakTableRef`，导致打开角色界面或升级时触发 `the index 'isNull' does not exist` 崩溃。
   - 修复「魂玉统领」执念共鸣（`jade_ops.nut`）及肢体嫁接/亡灵事件/招募特质互斥检查对非 `character_trait` 特质直接调用 `isExcluded()` 导致战斗回合开始卡死的崩溃。
+  - 修复全量事件通测检出的 `SkillType.Trait` 过滤漏判（原版背景/特殊技能同样带有 `Trait` 标志位）：新增 `S.pureTraits()` 纯特质筛选，修复「生前契约仪式」（`living_bond.nut`）与「锁魂召返」（`chain_ops.nut`）误删新建亡灵背景导致 `setName()`/`buildDescription()` 触发 `getActor` 报错与二次点击硬闪退，同时修复特质剥离（`reserve_ops.nut`）误将背景列入可剥离项、以及净化负面特质/征召预览（`undead_recruits.nut`）误计背景的缺陷。
 - 大队伍经验原来对所有经验来源都按名册放大，改为只按本场实际出战人数放大战斗经验。
 - 著名 / 传奇武器在视野外损坏时不掉落。
 - 尸爆技能创建时覆盖了 MSU 的伤害类型对象，导致报错。

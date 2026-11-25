@@ -259,7 +259,8 @@ S.snapshotBro <- function( _bro )
     foreach (key in this.RecallStatKeys)
         stats.push(b[key]);
     local traits = [];
-    foreach (trait in _bro.getSkills().query(::Const.SkillType.Trait))
+    // Snapshot pure Trait skills only so background/special/status skills are excluded.
+    foreach (trait in this.pureTraits(_bro, true))
     {
         if (trait.isGarbage() || ("PaleShared" in trait.m))
             continue;
@@ -372,7 +373,8 @@ S.rebuildUndead <- function( _rec )
         flags.set(key, number != null && (number + "") == value ? number : value);
     }
     local skills = bro.getSkills();
-    foreach (trait in skills.query(::Const.SkillType.Trait))
+    // Clear pure Trait skills only so the rebuilt undead keeps its background intact.
+    foreach (trait in this.pureTraits(bro, true))
         if (trait.getID() != "trait.player_character")
             skills.removeByID(trait.getID());
     skills.collectGarbage();

@@ -71,6 +71,15 @@ S.isUndead <- function( _bro )
     return _bro.getFlags().has("PalePermanentUndead");
 };
 
+// Return pure Trait skills only, excluding backgrounds, special skills, racials, perks, injuries, and status effects.
+S.pureTraits <- function( _bro, _includeHidden = false )
+{
+    return _bro.getSkills().query(::Const.SkillType.Trait, _includeHidden).filter(@(_, s)
+        s.getType() == ::Const.SkillType.Trait
+        && !s.isType(::Const.SkillType.Background)
+        && !s.isType(::Const.SkillType.Special));
+};
+
 S.humans <- function()
 {
     return ::World.getPlayerRoster().getAll().filter(@(_, bro) !bro.getFlags().has("undead"));

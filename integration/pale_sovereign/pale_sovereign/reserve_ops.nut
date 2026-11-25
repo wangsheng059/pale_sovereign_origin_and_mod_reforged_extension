@@ -81,9 +81,10 @@ S.stripCount <- function( _bro )
 
 S.strippableTraits <- function( _bro )
 {
-    return _bro.getSkills().query(::Const.SkillType.Trait).filter(@(_, trait) !trait.isHidden()
+    // Query pure visible Trait skills only so backgrounds/specials/dynamic badges are never strippable.
+    return this.pureTraits(_bro, false).filter(@(_, trait) !trait.isHidden()
         && trait.getID() != "trait.pale_former_comrade" && trait.getID() != "trait.pale_soul_scar"
-        && trait.getID() != "trait.pale_gem_eyes");
+        && trait.getID() != "trait.pale_gem_eyes" && trait.getID() != "trait.legacy_top");
 };
 
 S.injuredUndead <- function()
