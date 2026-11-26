@@ -144,24 +144,25 @@ A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
         if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;
 
         local corpses = c.Behavior.targets(c, "Corpses");
-        foreach (corpse in corpses) if (corpse.getDistanceTo(t) <= 3) return 0;
+        // Avoid stacking a corpse right next to an existing corpse (<= 1), but DO allow seeding 2-3 spaced corpses across the frontline!
+        foreach (corpse in corpses) if (corpse.getDistanceTo(t) <= 1) return 0;
 
-        // Early corpse-seeding mode: when fewer than 2 corpses exist on the battlefield (especially vs heavy-ranged Goblins/Nobles/Ancient Dead),
-        // let a Polearm bro or distant unengaged bro seed 1-2 opening corpses without stealing 2H melee strike turns (nearest <= 2) or close Shieldbearer vanguard turns!
+        // Early corpse-seeding mode: seed up to maxShots (default 3) spaced corpses across Rounds 1-3 whenever fewer than 3 corpses exist
+        // so Mentor snowballs Raise Dead immediately, without stealing 2H strike turns (nearest <= 2) or engaged melee turns!
         local enemiesNear = A.countNear(c.Enemies, t);
         local myNearest = A.nearest(c.Enemies, c.Origin);
         local isPolearm = !::BGP.hasShield(c.Actor) && c.Actor.getIdealRange() >= 2;
-        if (corpses.len() < 2 && usedShots < ::Math.min(2, maxShots)) {
+        if (corpses.len() < 3 && usedShots < maxShots) {
             if (::BGP.hasShield(c.Actor)) {
-                if (myNearest <= 2 || c.Actor.getFatigueMax() - c.Actor.getFatigue() < 36) return 0;
-                if (::Time.getRound() > 2 && myNearest <= 4) return 0;
+                if (myNearest <= 2 || c.Actor.getFatigueMax() - c.Actor.getFatigue() < 34) return 0;
+                if (::Time.getRound() > 3 && myNearest <= 4) return 0;
             } else if (!isPolearm && myNearest <= 2) {
                 return 0;
             } else if (myNearest <= 1) {
                 return 0;
             }
             local isRangedTarget = t.IsOccupiedByActor && t.getEntity().isArmedWithRangedWeapon();
-            return 3.10 + 0.30 * A.weaponChance(s, t) + 0.25 * ::Math.min(3, enemiesNear) + (isRangedTarget ? 0.55 : 0.0);
+            return 3.20 + 0.30 * A.weaponChance(s, t) + 0.25 * ::Math.min(3, enemiesNear) + (isRangedTarget ? 0.55 : 0.0);
         }
 
         if (::BGP.hasShield(c.Actor) && myNearest <= 4) return 0;

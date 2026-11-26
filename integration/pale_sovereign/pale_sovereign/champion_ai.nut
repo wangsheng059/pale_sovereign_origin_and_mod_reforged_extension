@@ -216,8 +216,9 @@ S.planChampionEngagement <- function( _behavior, _actor )
     local routes = {};
     local smart = ::Autopilot.conf("bgpSmartFrontline");
     local isChamp = this.isChampionAI(_actor);
-    // Lich King plays smart anti-surround (<=2 ZoC when healthy, <=1 when hurt); disposable zombies/skeletons dive into up to 3 ZoC to tie down enemies & archers!
-    local maxZones = smart ? (isChamp ? (_actor.getHitpointsPct() < 0.50 ? 1 : 2) : 3) : 1;
+    // Lich King plays disciplined edge-tanking (maxZones=1) so our irreplaceable Lv 4 Shield Champion never gets surrounded & killed;
+    // disposable zombies/skeletons aggressively dive into up to 3 ZoC to pin enemies & archers!
+    local maxZones = smart ? (isChamp ? 1 : 3) : 1;
     local master = ::BGP.Necro.getMaster(_actor);
     if (master == null || ::MSU.isNull(master)) master = this.chief();
     local masterTile = (master != null && !::MSU.isNull(master) && master.isAlive() && master.isPlacedOnMap()) ? master.getTile() : null;

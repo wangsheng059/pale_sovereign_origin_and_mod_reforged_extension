@@ -115,15 +115,19 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
                 ++aliveUndead;
         }
         local totalCorpses = c.Behavior.targets(c, "Corpses").len();
+        // Never burn the last 1-2 corpses on non-lethal blasts before we have raised a real undead screen!
+        if (lethalCount == 0 && aliveUndead < 4 && totalCorpses <= 2)
+            return 0;
         // Against pure morale-immune Undead/Skeletons with no kills, preserve scarce corpses for Raise Dead meatshields!
         if (moraleVulnerableHits == 0 && lethalCount == 0) {
-            if (totalCorpses <= 2 || aliveUndead < 4)
+            if (totalCorpses <= 3 || aliveUndead < 5)
                 return 0;
-            if (totalCorpses <= 4 || aliveUndead < 6)
+            if (totalCorpses <= 5 || aliveUndead < 7)
                 value *= 0.45;
         }
-        if (hits >= 3 && aliveUndead >= 3 && (moraleVulnerableHits >= 2 || lethalCount >= 1)) {
-            value += (hits >= 4 ? 3.8 : 2.4) + (armoredHits >= 2 ? 1.0 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
+        // Only grant big armored-clump Corpse Explosion bonus once we have >= 5 alive undead (Lich + 2 summons + >= 2 raised) or >= 4 corpses on field!
+        if (hits >= 3 && (aliveUndead >= 5 || totalCorpses >= 4) && (moraleVulnerableHits >= 2 || lethalCount >= 1)) {
+            value += (hits >= 4 ? 3.6 : 2.2) + (armoredHits >= 2 ? 1.0 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
         }
     }
     return value;
@@ -783,14 +787,17 @@ local F = A.Frontline <- {
 
     function hasUnactedShieldAlly( _actor, _info )
     {
-        // Yield phase 1 during the opening clash (Rounds 1-2 while <= 1 bro engaged) so shieldbearers anchor first
-        // instead of unshielded flank 2H/1H brothers (e.g. Greatsword / 1H Mace) diving ahead and getting surrounded.
-        if (_info.EngagedBrothers > 1 || (_info.EngagedBrothers > 0 && ::Time.getRound() > 2))
+        // Only yield phase 1 to an unacted shieldbearer on Round 1 against non-charger, non-heavy-ranged foes
+        // AND ONLY if that shieldbearer has enough Initiative (>= 45) to act BEFORE the enemy army!
+        // Waiting for a heavy BF Sipar tank with Ini 4-33 hands the entire enemy army a free round of charges/nets/arrows!
+        if (::Time.getRound() > 1 || _info.EngagedBrothers > 0)
+            return false;
+        if (_info.EnemyProjectileRanged >= 3.0 || _info.EnemyChargers >= 3)
             return false;
         local myTile = _actor.getTile();
         foreach (foe in _info.Enemies)
         {
-            if (myTile.getDistanceTo(foe.getTile()) <= 1)
+            if (myTile.getDistanceTo(foe.getTile()) <= 2)
                 return false;
         }
         foreach (ally in _info.Brothers)
@@ -798,6 +805,8 @@ local F = A.Frontline <- {
             if (ally.getID() == _actor.getID())
                 continue;
             if (!::BGP.hasShield(ally) || ally.isTurnDone() || ally.getActionPoints() < 4)
+                continue;
+            if (ally.getInitiative() < 45)
                 continue;
             if (ally.getMoraleState() == ::Const.MoraleState.Fleeing || ally.getCurrentProperties().IsStunned
                 || ally.getCurrentProperties().IsRooted)
