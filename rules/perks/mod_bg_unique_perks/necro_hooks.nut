@@ -13,6 +13,8 @@
 	// 1.6.7 我方僵尸倒下后自己又爬起来时（不经过 markMinion），同样换成“恐惧”、决心 60
 	q.onResurrect = @(__original) function( _info, _force = false )
 	{
+		if (_info != null && ("BGP_Consumed" in _info) && _info.BGP_Consumed)
+			return null;
 		local e = __original(_info, _force);
 		try
 		{

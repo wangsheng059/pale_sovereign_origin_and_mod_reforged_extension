@@ -421,9 +421,7 @@
 
 ::BGP.Champion.isGraftableCorpse <- function( _corpse )
 {
-	if (_corpse == null)
-		return false;
-	if (::BGP.Necro.isPendingResurrection(_corpse) || ::BGP.Necro.isGuardCorpse(_corpse))
+	if (_corpse == null || ::BGP.Necro.isUnconsciousCorpse(_corpse))
 		return false;
 	return true;
 }

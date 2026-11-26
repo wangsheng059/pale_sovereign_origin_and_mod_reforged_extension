@@ -31,9 +31,9 @@ this.bgp_seal_vanguard_effect <- ::inherit("scripts/skills/skill", {
 			return ret;
 		}
 		ret.push({ id = 10, type = "text", icon = "ui/icons/fatigue.png", text = "移动消耗的疲劳 " + ::MSU.Text.colorPositive("-50%") });
-		ret.push({ id = 11, type = "text", icon = "ui/icons/action_points.png", text = "每回合第一次击杀回复 " + ::MSU.Text.colorPositive("4") + " 行动点，下一次移动免疫控制区" + (this.m.KillUsed ? "（本回合已用）" : "") });
+		ret.push({ id = 11, type = "text", icon = "ui/icons/action_points.png", text = "每回合第一次击杀回复 " + ::MSU.Text.colorPositive("4") + " 行动点，本回合内下一次移动免疫控制区" + (this.m.KillUsed ? "（本回合已用）" : "") });
 		if (this.m.HasZOC)
-			ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = ::MSU.Text.colorPositive("破阵已激活：下一次移动免疫控制区") });
+			ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = ::MSU.Text.colorPositive("破阵已激活：本回合内下一次移动免疫控制区") });
 		ret.push({ id = 13, type = "text", icon = "ui/icons/ranged_defense.png", text = ::MSU.Text.colorNegative("远程防御归零") });
 		return ret;
 	}

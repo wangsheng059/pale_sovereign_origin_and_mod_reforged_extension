@@ -27,8 +27,7 @@ this.bgp_seal_shadow_effect <- ::inherit("scripts/skills/skill", {
 		local ret = this.skill.getTooltip();
 		ret.push({ id = 10, type = "text", icon = "ui/icons/direct_damage.png", text = "攻击本场还没攻击过他的敌人时：穿甲伤害比例 " + ::MSU.Text.colorPositive("+20%") + "，近战攻击无视目标盾牌的近战防御（盾墙额外防御按一半计算）" });
 		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "已攻击过他的敌人：" + this.m.Attackers.len() + " 名" });
-		if (this.m.IsHidden)
-			ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "隐入阵中：敌人不太会把他当作目标，到下一回合开始" });
+		ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "隐入阵中：击杀敌人后至下一回合开始，敌人不太会把他当作目标" + (this.m.IsHidden ? ::MSU.Text.colorPositive("（当前已生效）") : "（未触发）") });
 		return ret;
 	}
 

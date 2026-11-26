@@ -178,7 +178,7 @@ this.bgp_command_link_effect <- ::inherit("scripts/skills/skill", {
 		if (this.m.Count >= 5)
 			this.m.Lines.push("苦痛转嫁：低阶成员生命跌破 25% 或阵亡时，高阶成员获得狂热");
 		if (this.m.Count >= 7)
-			this.m.Lines.push("深渊同体：回合开始时疲劳超过 80% 的部分转给 4 格内疲劳最低的队友；每场一次，受到致命伤时由相邻生命过半的队友分担一半伤害" + (this.m.ShareUsed ? "（已用）" : ""));
+			this.m.Lines.push("深渊同体：回合开始时疲劳超过 80% 的部分转给 4 格内疲劳比例最低的队友；每场一次，受到致命伤时由相邻生命过半的队友分担一半伤害" + (this.m.ShareUsed ? "（已用）" : ""));
 	}
 
 	// 深渊共鸣：决心、近战防御保底（放在 onAfterUpdate，按其他加成算完后的数值比较）

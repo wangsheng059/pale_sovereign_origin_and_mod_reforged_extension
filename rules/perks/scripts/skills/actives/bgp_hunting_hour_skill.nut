@@ -44,7 +44,7 @@ this.bgp_hunting_hour_skill <- ::inherit("scripts/skills/skill", {
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "你和场上所有友方野兽解除眩晕、网缚、蛛网、晕眩、踉跄、分神" },
 			{ id = 11, type = "text", icon = "ui/icons/fatigue.png", text = "恢复 " + ::MSU.Text.colorPositive("50%") + " 疲劳值上限" },
-			{ id = 12, type = "text", icon = "ui/icons/initiative.png", text = "持续 2 回合：主动值 " + ::MSU.Text.colorPositive("+50") + "，士气锁定为自信" }
+			{ id = 12, type = "text", icon = "ui/icons/initiative.png", text = "持续本回合和下一回合：主动值 " + ::MSU.Text.colorPositive("+50") + "，士气锁定为自信" }
 		]);
 		if (this.m.IsSpent)
 			ret.push({ id = 20, type = "text", icon = "ui/tooltips/warning.png", text = ::MSU.Text.colorNegative("本场战斗已经用过了") });

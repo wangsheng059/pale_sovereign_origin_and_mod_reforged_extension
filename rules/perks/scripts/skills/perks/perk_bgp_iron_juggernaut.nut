@@ -33,7 +33,7 @@ this.perk_bgp_iron_juggernaut <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getTooltip();
-		ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "下一次近战攻击附加 " + ::MSU.Text.colorPositive(this.getChargeDamage()) + " 点固定伤害，命中时 " + ::MSU.Text.colorPositive(this.m.StaggerChance + "%") + " 概率使目标踉跄" });
+		ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "下一次近战攻击基础伤害增加 " + ::MSU.Text.colorPositive(this.getChargeDamage()) + " 点（再次移动会打断蓄势），命中时 " + ::MSU.Text.colorPositive(this.m.StaggerChance + "%") + " 概率使目标踉跄" });
 		return ret;
 	}
 

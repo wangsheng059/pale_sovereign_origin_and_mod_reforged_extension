@@ -32,8 +32,8 @@
 			Description = [
 				"每击杀一名敌人，随机获得以下恩赐之一，本场战斗有效，可重复获得并叠加：",
 				"行动点数 " + ::MSU.Text.colorPositive("+2") + "。",
-				"每格移动消耗的行动点数 " + ::MSU.Text.colorPositive("-1") + "、疲劳 " + ::MSU.Text.colorPositive("-2") + "（每格最少仍消耗 1 点）。",
-				"立即获得头甲 " + ::MSU.Text.colorPositive("+20") + "、身甲 " + ::MSU.Text.colorPositive("+20") + "（可超过上限），生命值上限和当前生命值 " + ::MSU.Text.colorPositive("+20") + "。",
+				"每格移动消耗的行动点数 " + ::MSU.Text.colorPositive("-1") + "、疲劳 " + ::MSU.Text.colorPositive("-2") + "（每格最少仍消耗 1 点，减免总量受平地最低 1 点限制）。",
+				"立即获得头甲 " + ::MSU.Text.colorPositive("+20") + "、身甲 " + ::MSU.Text.colorPositive("+20") + "（可超过上限，需已穿戴对应部位护甲），生命值上限和当前生命值 " + ::MSU.Text.colorPositive("+20") + "。",
 				"下一次攻击命中时使目标眩晕（命中后消耗，免疫眩晕的目标不受影响）。"
 			]
 		}]
@@ -109,7 +109,7 @@
 			Description = [
 				"解锁“狩猎时刻”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("25") + " 疲劳，每场战斗限用 1 次。",
 				"场上所有友方野兽和你自己：立即解除眩晕、网缚、蛛网、晕眩、踉跄、分神等控制效果，恢复 " + ::MSU.Text.colorPositive("50%") + " 疲劳值上限，士气变为自信。",
-				"持续 2 回合：主动值 " + ::MSU.Text.colorPositive("+50") + "，士气锁定为自信，不会下降。"
+				"持续本回合和下一回合：主动值 " + ::MSU.Text.colorPositive("+50") + "，士气锁定为自信，不会下降。"
 			]
 		}]
 	}),

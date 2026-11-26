@@ -8,7 +8,7 @@ S.PetTag <- "\npale_id=";
 // Scripts 按脚本文件名精确匹配（不含路径）；4 号只由“第三面残旗”授予。
 S.Souls <- [
     null,
-    { Name = "荣誉卫队之魂", Icon = "skills/pale_honor", Desc = "昔日古帝国仪仗队至死未散的列阵本能。装备盾牌时，其近战防御和远程防御加成提高 25%。",
+    { Name = "荣誉卫队之魂", Icon = "skills/pale_honor", Desc = "昔日古帝国仪仗队至死未散的列阵本能。获得盾牌专精效果：装备盾牌时近防与远防 +25%，盾牌承受破盾伤害减半，盾牌技能消耗降低。",
       Scripts = ["rf_skeleton_heavy_elite", "rf_skeleton_heavy_elite_bodyguard", "rf_skeleton_medium_elite", "rf_skeleton_medium_elite_polearm", "skeleton_heavy_bodyguard", "rf_skeleton_centurion", "rf_skeleton_decanus"] },
     { Name = "堕落英雄之魂", Icon = "skills/pale_fallen", Desc = "旧日悍将死后留下的蛮劲，挥起兵器又沉又狠。近战技能 +5，近战伤害 +10%。",
       Scripts = ["zombie_knight", "zombie_knight_bodyguard", "rf_zombie_hero", "rf_zombie_hero_bodyguard", "zombie_betrayer", "zombie_boss", "rf_draugr_hero", "rf_draugr_huskarl", "rf_draugr_huskarl_bodyguard"] },
