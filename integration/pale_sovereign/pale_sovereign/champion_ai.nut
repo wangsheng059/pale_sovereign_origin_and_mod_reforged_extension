@@ -56,16 +56,22 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
                 break;
             }
         }
-        // High-value casters, Orc Berserkers, bannermen/drummers/warlords/officers, ranged shooters, and unshielded 2H/polearm killers.
+        // High-value casters, Banshees/Geists, Orc Berserkers, bannermen/drummers/warlords/officers, ranged shooters, Ancient polearms, and unshielded 2H killers.
         if (tSkills.hasSkill("actives.raise_undead") || tSkills.hasSkill("actives.root")
             || tSkills.hasSkill("actives.insect_swarm") || tSkills.hasSkill("actives.hex")
-            || tSkills.hasSkill("actives.horror") || tSkills.hasSkill("actives.miasma") || tSkills.hasSkill("actives.sleep"))
+            || tSkills.hasSkill("actives.horror") || tSkills.hasSkill("actives.miasma") || tSkills.hasSkill("actives.sleep")
+            || _target.ClassName == "rf_banshee" || _target.ClassName == "ghost" || tSkills.hasSkill("actives.ghastly_touch"))
             priority = ::Math.maxf(priority, 1.45);
-        else if (tSkills.hasSkill("effects.berserker_rage") || _target.ClassName == "orc_berserker")
+        else if (tSkills.hasSkill("effects.berserker_rage") || _target.ClassName == "orc_berserker"
+            || _target.ClassName == "desert_stalker" || _target.ClassName == "executioner")
             priority = ::Math.maxf(priority, 1.15);
         else if (tSkills.hasSkill("actives.rally_the_troops") || tSkills.hasSkill("actives.barbarian_drum")
-            || tSkills.hasSkill("actives.warcry") || _target.ClassName == "rf_skeleton_centurion" || _target.ClassName == "rf_skeleton_decanus")
-            priority = ::Math.maxf(priority, 1.00);
+            || tSkills.hasSkill("actives.warcry") || _target.ClassName == "rf_skeleton_legatus"
+            || _target.ClassName == "rf_skeleton_centurion" || _target.ClassName == "rf_skeleton_decanus"
+            || _target.ClassName == "rf_marshal")
+            priority = ::Math.maxf(priority, 1.10);
+        else if (_target.getFlags().has("skeleton") && !_target.isArmedWithShield() && _target.getIdealRange() >= 2)
+            priority = ::Math.maxf(priority, 0.95);
         else if (_target.isArmedWithRangedWeapon())
             priority = ::Math.maxf(priority, 0.85);
         else

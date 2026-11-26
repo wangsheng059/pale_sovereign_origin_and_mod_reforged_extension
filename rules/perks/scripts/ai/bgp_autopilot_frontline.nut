@@ -92,7 +92,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return 500.0;
         }
 
-        // 2b. Player brother Rotation rescue: pull Mentor or critically wounded/fragile ally out of enemy ZoC.
+        // 2b. Player brother Rotation rescue: pull Mentor, fragile backliners, or critically wounded unshielded frontliners out of danger.
         local rot = _entity.getSkills().getSkillByID("actives.rotation");
         if (rot != null && !rot.isHidden() && rot.isUsable() && rot.isAffordable()
             && _entity.getHitpointsPct() >= 0.40 && !_entity.getCurrentProperties().IsRooted)
@@ -109,13 +109,15 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 if (ally == null || ::MSU.isNull(ally) || !ally.isAlive() || ally.isDying() || !ally.isAlliedWith(_entity)) continue;
                 if (ally.getFaction() != ::Const.Faction.Player) continue;
                 local allyZone = nt.getZoneOfControlCountOtherThan(ally.getAlliedFactions());
-                if (allyZone <= myZone) continue;
                 local allyHP = ally.getHitpointsPct();
                 local isMentor = F.isCasterRole(ally);
                 local fragile = isMentor || F.isRangedRole(ally);
-                if (isMentor || (_entity.getHitpointsPct() >= 0.55 && (fragile || allyHP <= 0.50)))
+                local tankSwapDying = isShield && _entity.getHitpointsPct() >= 0.65 && myZone <= 1
+                    && !::BGP.hasShield(ally) && allyZone >= 1 && allyZone >= myZone && allyHP <= 0.45;
+                if (allyZone <= myZone && !tankSwapDying) continue;
+                if (isMentor || tankSwapDying || (_entity.getHitpointsPct() >= 0.55 && (fragile || allyHP <= 0.55)))
                 {
-                    local s = (isMentor ? 1250.0 : (fragile ? 940.0 : 880.0)) + (1.0 - allyHP) * 180.0;
+                    local s = (isMentor ? 1250.0 : (fragile ? 960.0 : 900.0)) + (1.0 - allyHP) * 180.0;
                     if (s > bestRotScore) { bestRotScore = s; bestRotTile = nt; }
                 }
             }
@@ -125,6 +127,20 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.Skill = rot;
                 this.m.TargetTile = bestRotTile;
                 return bestRotScore;
+            }
+        }
+
+        // 2b-2. Step out of Miasma / Fire / negative tile effects (2-3 AP) for unengaged living brothers before shooting/casting/attacking!
+        if (!inZoC && !_entity.getCurrentProperties().IsRooted
+            && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1
+            && this.hasNegativeTileEffect(myTile, _entity))
+        {
+            local cleanTile = F.findHazardEscapeTile(this, _entity, info);
+            if (cleanTile != null && cleanTile.ID != myTile.ID)
+            {
+                this.m.Mode = "hazard_step";
+                this.m.TargetTile = cleanTile;
+                return isCaster ? 1500.0 : (isRanged ? 950.0 : 890.0);
             }
         }
 
@@ -164,14 +180,16 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 2e. Crossbow Take Aim (仔细瞄准, 2 AP): ignore all zombie/ally cover & zero stray friendly fire when sniping HVT on a full 9 AP turn!
-        if (isRanged && !inZoC && _entity.getActionPoints() >= 9 && !_entity.getSkills().hasSkill("effects.rf_take_aim"))
+        // 2e. Crossbow Take Aim (仔细瞄准, 2 AP, 25 Fat): ignore cover & zero stray friendly fire ONLY when safe to stay put and we have fatigue to Shoot + Reload!
+        if (isRanged && !inZoC && _entity.getActionPoints() >= 9 && !_entity.getSkills().hasSkill("effects.rf_take_aim")
+            && F.nearestLiveBacklineThreatDist(_entity, info.Enemies) > 2)
         {
             local takeAim = _entity.getSkills().getSkillByID("actives.rf_take_aim");
             local shoot = _entity.getSkills().getSkillByID("actives.shoot_bolt");
             local availFat = _entity.getFatigueMax() - _entity.getFatigue();
             if (takeAim != null && shoot != null && !takeAim.isHidden() && takeAim.isUsable() && takeAim.isAffordable()
-                && !shoot.isHidden() && shoot.isUsable() && availFat >= 48)
+                && !shoot.isHidden() && shoot.isUsable() && shoot.isAffordable()
+                && availFat >= takeAim.getFatigueCost() + shoot.getFatigueCost() + 26)
             {
                 local needAim = false;
                 local maxRng = shoot.getMaxRange();
@@ -191,16 +209,22 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     }
                     if (!blocked) continue;
                     local fs = foe.getSkills();
-                    local isHVT = foe.isArmedWithRangedWeapon() || fs.hasSkill("racial.champion")
+                    local isPriest = fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma");
+                    // Don't spend 25 fatigue sniping armored regular skeletons that take reduced ranged damage.
+                    if (foe.getFlags().has("skeleton") && !isPriest && foe.getArmor(::Const.BodyPart.Body) >= 120) continue;
+                    local isHVT = isPriest || foe.isArmedWithRangedWeapon() || fs.hasSkill("racial.champion")
                         || fs.hasSkill("actives.raise_undead") || fs.hasSkill("actives.root")
-                        || fs.hasSkill("actives.rally_the_troops") || foe.getHitpointsPct() <= 0.55;
+                        || fs.hasSkill("actives.rally_the_troops") || foe.ClassName == "rf_banshee"
+                        || foe.ClassName == "orc_berserker" || foe.ClassName == "desert_stalker"
+                        || foe.ClassName == "rf_marshal" || foe.ClassName == "rf_skeleton_legatus"
+                        || foe.getHitpointsPct() <= 0.50;
                     if (isHVT) { needAim = true; break; }
                 }
                 if (needAim)
                 {
                     this.m.Mode = "take_aim";
                     this.m.Skill = takeAim;
-                    return 840.0;
+                    return 620.0;
                 }
             }
         }
@@ -263,6 +287,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     {
                         if (!F.isHeavyMeleeThreat(foe)) continue;
                         if (foe.getCurrentProperties().IsImmuneToDaze || foe.getSkills().hasSkill("effects.dazed")) continue;
+                        if (!foe.getSkills().hasSkill("racial.champion") && foe.getHitpointsPct() < 0.35) continue;
                         local ft = foe.getTile();
                         if (myTile.getDistanceTo(ft) != 1 || !bash.isUsableOn(ft, myTile)) continue;
                         local hit = 0;
@@ -300,9 +325,9 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 // Only raise Shieldwall while rooted under fire AFTER Break Free was attempted (<= 5 AP left) so we never block Break Free!
                 local rootedUnderFire = _entity.getCurrentProperties().IsRooted && meleeAdj == 0 && info.EnemyProjectileRanged >= 4.0 && _entity.getActionPoints() <= 5;
                 // Strict Shieldwall discipline: raise when >= 2 melee adjacent, OR 1 melee adjacent + low HP (<= 45%),
-                // OR opening Round 1-2 intercept facing >= 2 enemies within 2 tiles, OR holding line vs >= 2 approaching melee.
+                // OR Round 1-2 clash facing >= 2 enemies within 2 tiles, OR holding line vs >= 2 approaching melee.
                 local needSW = (meleeAdj >= 2)
-                    || (meleeAdj == 1 && (lowHP || (justIntercepted && ::Time.getRound() <= 2 && meleeWithin2 >= 2)))
+                    || (meleeAdj == 1 && (lowHP || (::Time.getRound() <= 2 && meleeWithin2 >= 2)))
                     || (zone == 0 && info.HoldLine && meleeWithin2 >= 2)
                     || rootedUnderFire;
                 if (needSW)
@@ -484,7 +509,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "vanguard_move" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite")
+        if (this.m.Mode == "vanguard_move" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
         {
             local navigator = ::Tactical.getNavigator();
             if (this.m.IsFirstExecuted)

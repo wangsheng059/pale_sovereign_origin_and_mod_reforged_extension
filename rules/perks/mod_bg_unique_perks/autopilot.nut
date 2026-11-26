@@ -90,19 +90,21 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
     local hits = 0;
     local armoredHits = 0;
     local lethalCount = 0;
+    local moraleVulnerableHits = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
         ++hits;
         if (enemy.getArmor(::Const.BodyPart.Body) >= 130) ++armoredHits;
+        if (!enemy.getFlags().has("undead")) ++moraleVulnerableHits;
         value += 1.1 + ::Math.minf(1.8, (blast.Blunt + blast.Cutting * 0.45) / 35.0);
         if (enemy.getHitpoints() <= blast.Blunt * 0.65) {
             value += 1.6;
             ++lethalCount;
         }
     }
-    // Under 4 AP (3 AP with Mastery), avoid burning a raisable corpse & 3 AP on a single healthy enemy,
-    // BUT reward blowing up dense 3+ enemy armored formations (Noble Footmen/Knights, Ancient Honor Guards, Orc clumps)!
+    // Under 4 AP (3 AP with Mastery), avoid destroying scarce corpses on morale-immune Undead/Ancient Dead
+    // before we have a meatshield screen, while still rewarding 3+ target blasts on living armored formations!
     if (smart) {
         if (hits < 2 && lethalCount == 0)
             return 0;
@@ -112,8 +114,16 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
             if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
                 ++aliveUndead;
         }
-        if (hits >= 3 && (aliveUndead >= 2 || armoredHits >= 2)) {
-            value += (hits >= 4 ? 4.2 : 2.6) + (armoredHits >= 2 ? 1.2 : 0.0);
+        local totalCorpses = c.Behavior.targets(c, "Corpses").len();
+        // Against pure morale-immune Undead/Skeletons with no kills, preserve scarce corpses for Raise Dead meatshields!
+        if (moraleVulnerableHits == 0 && lethalCount == 0) {
+            if (totalCorpses <= 2 || aliveUndead < 4)
+                return 0;
+            if (totalCorpses <= 4 || aliveUndead < 6)
+                value *= 0.45;
+        }
+        if (hits >= 3 && aliveUndead >= 3 && (moraleVulnerableHits >= 2 || lethalCount >= 1)) {
+            value += (hits >= 4 ? 3.8 : 2.4) + (armoredHits >= 2 ? 1.0 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
         }
     }
     return value;
@@ -762,7 +772,7 @@ local F = A.Frontline <- {
             return { Hold = false, Info = info, StrikePlan = null };
         if (info.EngagedBrothers > 0 || info.FrontlineMinDist <= 2)
             return { Hold = false, Info = info, StrikePlan = null };
-        if (!this.isRangedRole(_actor) && !this.isCasterRole(_actor))
+        if (!::BGP.hasShield(_actor) && !this.isRangedRole(_actor) && !this.isCasterRole(_actor))
         {
             local plan = this.findSameTurnStrikePlan(_actor, info.Enemies);
             if (plan != null)
@@ -1046,19 +1056,28 @@ local F = A.Frontline <- {
                 }
             } catch (e) {}
 
+            local isGhostOrBanshee = _target.ClassName == "ghost" || _target.ClassName == "rf_banshee" || tSkills.hasSkill("actives.ghastly_touch");
             if (isSquireWithLiveKnight)
                 mult *= 0.42;
             else if (isPriestOrNecro)
-                mult *= _skill.isRanged() ? 1.95 : 1.65;
+                mult *= _skill.isRanged() ? 2.30 : 1.75;
+            else if (isGhostOrBanshee)
+                mult *= _skill.isRanged() ? 1.50 : 1.75;
             else if (isCaster)
                 mult *= _skill.isRanged() ? 1.70 : 1.50;
             else if (tSkills.hasSkill("effects.berserker_rage") || _target.ClassName == "orc_berserker")
                 // Delete unarmored high-burst Orc Berserkers BEFORE Rage ramps up and one-shots frontliners!
                 mult *= _skill.isRanged() ? 1.70 : 1.55;
+            else if (_target.ClassName == "desert_stalker")
+                mult *= _skill.isRanged() ? 1.70 : 1.55;
             else if (_target.isArmedWithRangedWeapon())
                 mult *= _skill.isRanged() ? 1.45 : 1.30;
             else if (tSkills.hasSkill("actives.rally_the_troops") || tSkills.hasSkill("actives.barbarian_drum")
-                || tSkills.hasSkill("actives.warcry") || _target.ClassName == "rf_skeleton_centurion" || _target.ClassName == "rf_skeleton_decanus")
+                || tSkills.hasSkill("actives.warcry") || _target.ClassName == "rf_skeleton_legatus"
+                || _target.ClassName == "rf_skeleton_centurion" || _target.ClassName == "rf_skeleton_decanus"
+                || _target.ClassName == "rf_marshal")
+                mult *= 1.50;
+            else if (_target.ClassName == "executioner")
                 mult *= 1.45;
             else
             {
@@ -1067,13 +1086,22 @@ local F = A.Frontline <- {
                     mult *= _target.isArmedWithShield() ? 1.22 : 1.34;
             }
 
-            // Bows take massive piercing resistance against armored Ancient Dead skeletons (non-Priest): deprioritize armored skels so Bow snipes Priests/casters!
-            if (_skill.isRanged() && !isPriestOrNecro)
+            // Against Ancient Dead: deprioritize shielded high-armor skeletons for ranged weapons and prioritize unshielded 2-tile Ancient Polearms!
+            if (_target.getFlags().has("skeleton") && !isPriestOrNecro)
             {
-                local weapon = _actor.getMainhandItem();
-                if (weapon != null && weapon.isWeaponType(::Const.Items.WeaponType.Bow)
-                    && _target.getFlags().has("skeleton") && bodyArmor >= 90)
-                    mult *= 0.42;
+                if (!_target.isArmedWithShield() && _target.getIdealRange() >= 2)
+                {
+                    mult *= 1.38;
+                }
+                else if (_skill.isRanged() && bodyArmor >= 90)
+                {
+                    local weapon = _actor.getMainhandItem();
+                    local isBow = weapon != null && weapon.isWeaponType(::Const.Items.WeaponType.Bow);
+                    if (isBow)
+                        mult *= 0.38;
+                    else if (_target.isArmedWithShield())
+                        mult *= 0.55;
+                }
             }
 
             // 3b. Backline breach protection: prioritize any enemy within 2 tiles of our Mentor or archers!
@@ -1409,6 +1437,70 @@ local F = A.Frontline <- {
         return bestTile;
     },
 
+    // Find the safest adjacent clean tile to step out of Miasma / Fire / negative tile effects (2-3 AP, leaving AP to shoot/cast/strike).
+    function findHazardEscapeTile( _behavior, _actor, _info )
+    {
+        local myTile = _actor.getTile();
+        if (!_behavior.hasNegativeTileEffect(myTile, _actor))
+            return null;
+        if (_actor.getCurrentProperties().IsRooted || myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return null;
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local maxMoveAP = ::Math.min(ap, 3);
+        if (maxMoveAP < 2)
+            return null;
+
+        local isBackline = this.isCasterRole(_actor) || this.isRangedRole(_actor);
+        local isPolearm = !isBackline && _actor.getIdealRange() >= 2;
+        local navigator = ::Tactical.getNavigator();
+        local settings = this.navSettings(_actor, navigator);
+        local bestTile = null;
+        local bestScore = -9999.0;
+
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!myTile.hasNextTile(d)) continue;
+            local dest = myTile.getNextTile(d);
+            if (!dest.IsEmpty || _behavior.hasNegativeTileEffect(dest, _actor)) continue;
+            local zones = dest.getZoneOfControlCountOtherThan(_actor.getAlliedFactions());
+            if ((isBackline || isPolearm) && zones > 0) continue;
+            if (!isBackline && zones >= 2) continue;
+            if (!navigator.findPath(myTile, dest, settings, 0)) continue;
+            local cost = navigator.getCostForPath(_actor, settings, maxMoveAP, availFat);
+            if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.ActionPointsRequired > maxMoveAP) continue;
+
+            local minThreat = 99;
+            foreach (foe in _info.Enemies)
+            {
+                if (!this.isDangerousMeleeEnemy(foe)) continue;
+                local dist = dest.getDistanceTo(foe.getTile());
+                if (dist < minThreat) minThreat = dist;
+            }
+            local nearAllies = 0;
+            foreach (bro in _info.Brothers)
+            {
+                if (bro.getID() != _actor.getID() && dest.getDistanceTo(bro.getTile()) <= 2)
+                    ++nearAllies;
+            }
+            local score = 20.0 + ::Math.min(3, nearAllies) * 3.0 + (dest.Level - myTile.Level) * 2.0
+                - cost.ActionPointsRequired * 1.5 - (dest.IsBadTerrain ? 2.5 : 0.0) - zones * 8.0;
+            if (isBackline)
+                score += ::Math.min(5, minThreat) * 4.0 + (this.hasRangedCoverAt(dest, _actor, _info.Enemies) ? 5.0 : 0.0);
+            else if (isPolearm)
+                score += (minThreat == 2 ? 8.0 : (minThreat == 3 ? 4.0 : 0.0));
+            else
+                score += (minThreat <= 2 ? 5.0 : 0.0);
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestTile = dest;
+            }
+        }
+        return bestTile;
+    },
+
     // Check if an unshielded melee engage destination dives into dangerous surround without sufficient allied support.
     function isSuicidalSoloDive( _actor, _destTile )
     {
@@ -1437,8 +1529,11 @@ local F = A.Frontline <- {
         local skills = _actor.getSkills();
         local hasDefPerk = skills.hasSkill("perk.battle_forged") || skills.hasSkill("perk.nimble");
         local hasUnderdog = skills.hasSkill("perk.underdog");
-        // Only discourage TRUE solo dives with zero adjacent allies (never paralyze Underdog frontliners fighting alongside the line against tight shieldwalls!).
-        if (adjEnemies >= 3 && adjAllies == 0)
+        local mdef = _actor.getCurrentProperties().getMeleeDefense();
+        // Discourage unshielded medium-MDef bruisers from diving into 4+ enemies, solo 3+ dives, or unsupported 3+ pockets with no shieldbearer.
+        if (adjEnemies >= 4)
+            return true;
+        if (adjEnemies >= 3 && (adjAllies == 0 || (adjShieldAllies == 0 && mdef < 35)))
             return true;
         if (!hasDefPerk && !hasUnderdog && adjEnemies >= 3 && adjShieldAllies == 0)
             return true;
@@ -1685,7 +1780,9 @@ local F = A.Frontline <- {
             && _entity.getTile().getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0)
         {
             local enemies = F.collectEnemies(_entity, this.getAgent());
-            if (F.nearestDangerousMeleeDist(_entity, enemies) > 2)
+            local liveDist = F.nearestLiveBacklineThreatDist(_entity, enemies);
+            local onlyVines = _entity.getSkills().hasSkill("effects.rooted") && !_entity.getSkills().hasSkill("effects.net");
+            if (liveDist > (onlyVines ? 1 : 2))
                 return ::Const.AI.Behavior.Score.Zero;
         }
         return __original(_entity);
