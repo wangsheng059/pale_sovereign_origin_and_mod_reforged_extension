@@ -1158,8 +1158,13 @@ local F = A.Frontline <- {
                 mult *= 0.48;
             if (tSkills.hasSkill("effects.shieldwall") && _skill.getID() != "actives.split_shield" && hit < 65)
                 mult *= 0.52;
-            // Deprioritize ultra-heavy armored shield tanks (Orc Warriors / Noble Footmen) when unshielded killers (Berserkers / Billmen) are available.
-            if (bodyArmor >= 200 && _target.isArmedWithShield() && _skill.getID() != "actives.split_shield" && _skill.getID() != "actives.destroy_armor")
+            // Deprioritize ultra-heavy armored shield tanks for normal blades/spears, EXCEPT armor-shredding Hammers (smite/shatter/rf_pummel) which LOVE heavy armor!
+            local sid = _skill.getID();
+            local isArmorBreaker = sid == "actives.split_shield" || sid == "actives.destroy_armor" || sid == "actives.crush_armor"
+                || sid == "actives.smite" || sid == "actives.shatter" || sid == "actives.rf_pummel";
+            if (isArmorBreaker && bodyArmor >= 140)
+                mult *= 1.22;
+            else if (bodyArmor >= 200 && _target.isArmedWithShield() && !isArmorBreaker)
                 mult *= 0.72;
             if (_skill.getID() == "actives.knock_out")
             {
@@ -1353,14 +1358,16 @@ local F = A.Frontline <- {
         local meleeDanger = curMeleeDist <= 2;
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
         local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies) : true;
-        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= 7 && (!hasCoverNow || curArcherDist <= 6);
+        local sniperRange = _info.EnemyProjectileRanged >= 5.0 ? 8 : 7;
+        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || curArcherDist <= 6);
 
         if (!meleeDanger && !sniperDanger)
             return null;
 
-        // Mentor has MaxRange=99 on Raise Dead, so stepping 2 tiles out of Ambusher/Arbalester range still lets him raise corpses!
+        // Mentor has MaxRange=99 on Raise Dead, so stepping 1-2 tiles out of Ambusher/Arbalester range still lets him raise corpses!
+        // Bug fix: when Mentor has leftover 2 AP after Round 1 summons (cannot cast any 3-AP spell anyway), spend that 2 AP to step back into cover!
         // Ranged bros step at most 1 tile (2 AP) when they have >= 6 AP so they STILL fire their bow/crossbow this turn!
-        local maxMoveAP = isCaster ? (meleeDanger ? ::Math.min(ap, 4) : (ap >= 7 ? 4 : ::Math.min(ap - 3, 2)))
+        local maxMoveAP = isCaster ? (meleeDanger ? ::Math.min(ap, 4) : (ap >= 7 ? 4 : (ap <= 2 ? ap : ::Math.min(ap - 3, 2))))
                                    : (ap >= 6 ? 2 : 0);
         if (maxMoveAP < 2)
             return null;
