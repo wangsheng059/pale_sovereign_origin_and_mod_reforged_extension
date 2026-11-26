@@ -116,6 +116,15 @@ def exclusion_plan(manifest, sources):
             if winner != policy["winner"] or details[original] != details[winner]:
                 raise ValueError(f"Override order changed for {path}: {original} → {winner}")
         conflict_report[path] = {**policy, "source_member_sha256": details}
+    for rule in manifest.get("omissions", []):
+        src = rule["source"]
+        if src not in sources:
+            raise ValueError(f"Unknown omission source: {src}")
+        znames = {e.filename for e in sources[src][1].infolist() if not e.is_dir()}
+        for member in rule["members"]:
+            if member not in znames:
+                raise ValueError(f"Omitted member not found in {src}: {member}")
+            exclusions.add((src, member))
     return exclusions, conflict_report
 
 
