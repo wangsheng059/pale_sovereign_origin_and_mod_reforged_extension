@@ -125,6 +125,16 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
+        // 2b-1. Smart Throwing Net on high-threat elites, Mentor-breachers, or flanking melee threats.
+        local netPlan = F.findBestNetTarget(_entity, info);
+        if (netPlan != null)
+        {
+            this.m.Mode = "throw_net";
+            this.m.Skill = netPlan.Skill;
+            this.m.TargetTile = netPlan.Tile;
+            return 925.0;
+        }
+
         // 2b-2. Step out of Miasma / Fire / negative tile effects (2-3 AP) for unengaged living brothers before shooting/casting/attacking!
         if (!inZoC && !_entity.getCurrentProperties().IsRooted
             && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1
@@ -150,8 +160,12 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.TargetTile = safeTile;
                 if (isCaster)
                 {
-                    local acuteMelee = F.nearestLiveBacklineThreatDist(_entity, info.Enemies) <= 2;
-                    return acuteMelee ? 2600.0 : 1400.0;
+                    local threatDist = F.nearestLiveBacklineThreatDist(_entity, info.Enemies);
+                    if (threatDist <= 2)
+                        return 3600.0;
+                    if (threatDist == 3)
+                        return 2600.0;
+                    return 1400.0;
                 }
                 return 650.0;
             }
@@ -224,7 +238,26 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 3a. Early Spearwall opener against approaching non-charger melee enemies.
+        // 3. Shieldbearer vanguard intercept (prioritizes pinning enemy elites and screening Mentor/fragiles)
+        // arbitrated cleanly against early Spearwall.
+        local interceptPlan = null;
+        if (isShield && !inZoC && !_entity.getCurrentProperties().IsRooted
+            && !_entity.getSkills().hasSkill("effects.shieldwall")
+            && !_entity.getSkills().hasSkill("effects.spearwall")
+            && this.m.BlockedRound != ::Time.getRound())
+        {
+            interceptPlan = F.findShieldInterceptTile(this, _entity, info);
+        }
+
+        if (interceptPlan != null && interceptPlan.Urgent
+            && interceptPlan.Tile.ID != myTile.ID && interceptPlan.Tile.ID != this.m.MovedTileID)
+        {
+            this.m.Mode = "vanguard_move";
+            this.m.TargetTile = interceptPlan.Tile;
+            return 885.0;
+        }
+
+        // 3a. Early Spearwall opener against approaching non-charger melee enemies when no urgent elite/Mentor intercept is needed.
         if (isShield && !inZoC && !_entity.getSkills().hasSkill("effects.spearwall") && !_entity.getSkills().hasSkill("effects.shieldwall")
             && info.EnemyProjectileRanged < 3.0 && info.EnemyChargers < 3 && ::Time.getRound() <= 3)
         {
@@ -242,20 +275,11 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 3. Shieldbearer vanguard intercept MUST run before Shieldwall (moving cancels Shieldwall in BB).
-        // Never slow-crawl against enemy archers; advance full speed when HoldLine is off and no enemy is within 2 tiles!
-        if (isShield && !inZoC && !_entity.getCurrentProperties().IsRooted
-            && !_entity.getSkills().hasSkill("effects.shieldwall")
-            && !_entity.getSkills().hasSkill("effects.spearwall")
-            && this.m.BlockedRound != ::Time.getRound())
+        if (interceptPlan != null && interceptPlan.Tile.ID != myTile.ID && interceptPlan.Tile.ID != this.m.MovedTileID)
         {
-            local intercept = F.findShieldInterceptTile(this, _entity, info);
-            if (intercept != null && intercept.ID != myTile.ID && intercept.ID != this.m.MovedTileID)
-            {
-                this.m.Mode = "vanguard_move";
-                this.m.TargetTile = intercept;
-                return 850.0;
-            }
+            this.m.Mode = "vanguard_move";
+            this.m.TargetTile = interceptPlan.Tile;
+            return 850.0;
         }
 
         // 3c. Reforged Shield Bash on undazed heavy melee threats (once per round).
@@ -314,8 +338,19 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 local lowHP = _entity.getHitpointsPct() <= 0.45;
                 local justIntercepted = this.m.MovedTileID != -1;
                 local rootedUnderFire = _entity.getCurrentProperties().IsRooted && meleeAdj == 0 && info.EnemyProjectileRanged >= 4.0 && _entity.getActionPoints() <= 5;
+                local eliteAdj = false;
+                foreach (foe in info.Enemies)
+                {
+                    if (myTile.getDistanceTo(foe.getTile()) == 1 && ::Math.abs(myTile.Level - foe.getTile().Level) <= 1
+                        && F.enemyEliteScore(foe, info) >= 1.5)
+                    {
+                        eliteAdj = true;
+                        break;
+                    }
+                }
                 local needSW = (meleeAdj >= 2)
-                    || (meleeAdj == 1 && (lowHP || (::Time.getRound() <= 2 && meleeWithin2 >= 2)))
+                    || (meleeAdj == 1 && (lowHP || (::Time.getRound() <= 2 && meleeWithin2 >= 2)
+                        || (eliteAdj && (justIntercepted || _entity.getCurrentProperties().getMeleeDefense() < 35))))
                     || (zone == 0 && info.HoldLine && meleeWithin2 >= 2)
                     || rootedUnderFire;
                 if (needSW)
@@ -383,15 +418,35 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 5. Same-turn step-and-attack when holding line is active and this melee bro has a confirmed strike tile.
-        if (info.HoldLine && !isShield && !isRanged && !isCaster && !inZoC && !_entity.getCurrentProperties().IsRooted
-            && this.m.BlockedRound != ::Time.getRound() && decision.StrikePlan != null
-            && decision.StrikePlan.Tile != null && decision.StrikePlan.Tile.ID != myTile.ID
-            && decision.StrikePlan.Tile.ID != this.m.MovedTileID)
+        // 5. Dynamic safe melee routing for unshielded 1-tile DPS: prefer flanking weaker/pinned enemies with allies,
+        // and Wait in Phase 1 rather than diving solo into snow/surrounds with zero attacks left.
+        if (!isShield && !isRanged && !isCaster && !inZoC && !_entity.getCurrentProperties().IsRooted
+            && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
         {
-            this.m.Mode = "step_attack";
-            this.m.TargetTile = decision.StrikePlan.Tile;
-            return 320.0;
+            local smartTile = F.findSmartDpsMeleeTile(this, _entity, info);
+            if (smartTile != null && smartTile.ID != myTile.ID)
+            {
+                this.m.Mode = "dynamic_melee_move";
+                this.m.TargetTile = smartTile;
+                return 520.0;
+            }
+            if (info.HoldLine && decision.StrikePlan != null
+                && decision.StrikePlan.Tile != null && decision.StrikePlan.Tile.ID != myTile.ID
+                && !F.isSuicidalDiveV2(_entity, decision.StrikePlan.Tile, info, 4))
+            {
+                this.m.Mode = "step_attack";
+                this.m.TargetTile = decision.StrikePlan.Tile;
+                return 320.0;
+            }
+            // If fragile DPS has no safe same-turn strike tile and enemies are still closing, Wait instead of solo diving!
+            local chkAtk = F.cheapestMeleeSkill(_entity);
+            if (canWait && F.isFragileMelee(_entity) && _entity.getActionPoints() >= 4 && info.EnemyProjectileRanged < 3.0
+                && (chkAtk == null || !F.hasAdjacentTarget(_entity, chkAtk, info.Enemies))
+                && F.nearestDangerousMeleeDist(_entity, info.Enemies) <= 5)
+            {
+                this.m.Mode = "wait";
+                return 480.0;
+            }
         }
 
         return ::Const.AI.Behavior.Score.Zero;
@@ -447,6 +502,26 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
+        if (this.m.Mode == "throw_net")
+        {
+            local net = this.m.Skill;
+            local dest = this.m.TargetTile;
+            this.m.Mode = null;
+            this.m.Skill = null;
+            this.m.TargetTile = null;
+            if (net != null && dest != null && net.isUsable() && net.isAffordable() && net.isUsableOn(dest))
+            {
+                if (net.use(dest))
+                {
+                    if (!_entity.isHiddenToPlayer())
+                        this.getAgent().declareAction();
+                    if (net.getDelay() != 0)
+                        this.getAgent().declareEvaluationDelay(net.getDelay());
+                }
+            }
+            return true;
+        }
+
         if (this.m.Mode == "shield_bash")
         {
             local bash = this.m.Skill;
@@ -494,7 +569,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "vanguard_move" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
+        if (this.m.Mode == "vanguard_move" || this.m.Mode == "dynamic_melee_move" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
         {
             local navigator = ::Tactical.getNavigator();
             if (this.m.IsFirstExecuted)

@@ -23,10 +23,20 @@ local function screen(c, s, t) {
             formationPenalty = ::Math.minf(2.5, 0.75 * S.formationLead(t, c.Cache.OpeningThreats)
                 + 0.18 * t.getDistanceTo(c.Cache.OpeningGroup.Anchor));
     }
-    // Prefer spawning summons/Lich on the front tile directly facing enemies so Mentor gets immediate ranged cover & melee screen.
+    // Prefer spawning summons/Lich directly between Mentor and approaching threats for immediate melee screen & ranged cover.
     if (::Autopilot.conf("bgpSmartFrontline") && S.isChief(c.Actor) && distance < 99) {
         local originDist = A.nearest(c.Enemies, c.Origin);
         if (distance < originDist) coverBonus = 1.8;
+        local nearestThreat = null;
+        local nearestThreatD = 99;
+        foreach (et in c.Enemies) {
+            local foe = et.getEntity();
+            if (foe == null || foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            local od = c.Origin.getDistanceTo(et);
+            if (od < nearestThreatD) { nearestThreatD = od; nearestThreat = et; }
+        }
+        if (nearestThreat != null && nearestThreatD <= 4 && t.getDistanceTo(nearestThreat) < nearestThreatD)
+            coverBonus += 4.5;
     }
     return 4.7 - formationPenalty + coverBonus + (distance == 99 ? 0 : 1.4 / ::Math.maxf(1.0, distance))
         + 0.13 * (t.Level - c.Origin.Level) - (t.IsBadTerrain ? 0.32 : 0) - 0.45 * ::Math.max(0, zones - 1);

@@ -38,6 +38,11 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
             local threatened = chief.getHitpoints() * 2 <= chief.getHitpointsMax();
             priority = ::Math.maxf(priority, threatened ? (_champion ? 2.2 : 1.7) : (_champion ? 1.55 : 1.30));
         }
+        else if (smart && distance == 3 && tile.getZoneOfControlCountOtherThan(_target.getAlliedFactions()) == 0)
+        {
+            // Intercept unengaged melee threats closing in on Mentor before they enter strike range.
+            priority = ::Math.maxf(priority, _champion ? 1.30 : 1.05);
+        }
         else if (!smart && distance <= 2 && distance <= _target.getIdealRange() && ::Math.abs(tile.Level - chiefTile.Level) <= 1)
         {
             local threatened = chief.getHitpoints() * 2 <= chief.getHitpointsMax();

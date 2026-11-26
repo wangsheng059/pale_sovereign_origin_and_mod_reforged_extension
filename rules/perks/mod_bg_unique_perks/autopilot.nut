@@ -36,6 +36,7 @@ local A = ::BGP.Autopilot <- {
 local page = ::Autopilot.msu.ModSettings.addPage("背景与亡灵");
 page.addElement(::MSU.Class.BooleanSetting("bgpAutoBind", false, "自动收服敌方亡灵", "有空位时用驱役亡灵收服合格的濒死敌人。我方仆从始终由你决定是否收回。"));
 page.addElement(::MSU.Class.BooleanSetting("bgpSmartFrontline", true, "远程评估等待与盾卫前顶", "战斗前期敌人无远程或远程弱于我方时原地等待，敌人进入 2 格内或同回合移动后即可攻击时再接敌，并优先由盾卫顶上举盾。"));
+page.addElement(::MSU.Class.BooleanSetting("bgpAutoEquippedNet", true, "自动投掷已手持投网", "开启智能前线时，即使关闭自动掏网，已直接装备在副手的投网仍会择机投向精锐或高威胁敌人。"));
 
 A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
     local distance = A.nearest(c.Enemies, t);
@@ -516,6 +517,7 @@ local F = A.Frontline <- {
             EnemyRanged = enemyRanged,
             EnemyProjectileRanged = enemyProjectileRanged,
             EnemyChargers = enemyChargers,
+            EnemyUrgentCasters = enemyUrgentCasters,
             FrontlineMinDist = frontlineMinDist,
             EngagedBrothers = engagedBrothers,
             RangedAdvantage = rangedAdvantage,
@@ -808,7 +810,8 @@ local F = A.Frontline <- {
 
     function hasUnactedShieldAlly( _actor, _info )
     {
-        // Yield Round 1 only to nearby unacted shieldbearers fast enough to act before the enemy.
+        // Yield Round 1 to nearby unacted shieldbearers fast enough to act before the enemy,
+        // or to an unacted Pale Sovereign Mentor about to deploy frontline undead summons.
         if (::Time.getRound() > 1 || _info.EngagedBrothers > 0)
             return false;
         if (_info.EnemyProjectileRanged >= 3.0 || _info.EnemyChargers >= 3)
@@ -819,23 +822,200 @@ local F = A.Frontline <- {
             if (myTile.getDistanceTo(foe.getTile()) <= 2)
                 return false;
         }
+        local isFragile = this.isFragileMelee(_actor);
         foreach (ally in _info.Brothers)
         {
             if (ally.getID() == _actor.getID())
                 continue;
-            if (!::BGP.hasShield(ally) || ally.isTurnDone() || ally.getActionPoints() < 4)
-                continue;
-            if (ally.getInitiative() < 45)
+            if (ally.isTurnDone() || ally.getActionPoints() < 4)
                 continue;
             if (ally.getMoraleState() == ::Const.MoraleState.Fleeing || ally.getCurrentProperties().IsStunned
                 || ally.getCurrentProperties().IsRooted)
                 continue;
-            if (ally.getTile().getDistanceTo(myTile) > 4)
-                continue;
-            if (ally.getTile().getZoneOfControlCountOtherThan(ally.getAlliedFactions()) == 0)
+            local dist = ally.getTile().getDistanceTo(myTile);
+            if (::BGP.hasShield(ally) && ally.getInitiative() >= 45 && dist <= 5
+                && ally.getTile().getZoneOfControlCountOtherThan(ally.getAlliedFactions()) == 0)
                 return true;
+            // Fragile unshielded bros also wait for our unacted summoner Mentor to drop the opening undead screen.
+            if (isFragile && this.isCasterRole(ally) && ally.getInitiative() >= 45 && dist <= 5)
+            {
+                local sk = ally.getSkills();
+                local hasOpener = false;
+                foreach (sid in ["actives.unleash_companion", "actives.pale_summon_skeleton", "actives.pale_summon_zombie"])
+                {
+                    local s = sk.getSkillByID(sid);
+                    if (s != null && !s.isHidden() && s.isUsable() && s.isAffordable())
+                    {
+                        hasOpener = true;
+                        break;
+                    }
+                }
+                if (hasOpener)
+                    return true;
+            }
         }
         return false;
+    },
+
+    function isFragileMelee( _actor )
+    {
+        if (::BGP.hasShield(_actor))
+            return false;
+        local skills = _actor.getSkills();
+        local hasDefPerk = skills.hasSkill("perk.battle_forged") || skills.hasSkill("perk.nimble");
+        local mdef = _actor.getCurrentProperties().getMeleeDefense();
+        local bodyArm = _actor.getArmor(::Const.BodyPart.Body);
+        return mdef < 20 || !hasDefPerk || bodyArm < 80 || _actor.getHitpointsPct() <= 0.50;
+    },
+
+    // Continuous enemy elite threat rating (scales cleanly from Day 1 Lv1 fights to Day 100+ late-game camps).
+    function enemyEliteScore( _foe, _info = null )
+    {
+        if (!this.isDangerousMeleeEnemy(_foe))
+            return 0.0;
+        local score = 0.0;
+        local skills = _foe.getSkills();
+        if (skills.hasSkill("racial.champion"))
+            score += 2.5;
+        local w = _foe.getMainhandItem();
+        if (w != null && w.isItemType(::Const.Items.ItemType.TwoHanded) && w.isItemType(::Const.Items.ItemType.MeleeWeapon))
+            score += 1.4;
+        if (skills.hasSkill("actives.charge") || skills.hasSkill("actives.line_breaker")
+            || skills.hasSkill("actives.warcry") || skills.hasSkill("actives.adrenaline")
+            || skills.hasSkill("effects.berserker_rage"))
+            score += 0.9;
+        local cn = _foe.ClassName;
+        if (cn == "barbarian_marauder" || cn == "barbarian_chosen" || cn == "barbarian_champion"
+            || cn == "orc_warlord" || cn == "orc_warrior" || cn == "orc_berserker"
+            || cn == "knight" || cn == "rf_knight_anointed" || cn == "executioner"
+            || cn == "rf_skeleton_heavy_elite" || cn == "rf_skeleton_legatus"
+            || cn == "rf_zombie_hero" || cn == "zombie_knight"
+            || cn == "swordmaster" || cn == "blade_dancer" || cn == "rf_fencer"
+            || cn == "lindwurm" || cn == "unhold" || cn == "schrat")
+            score += 1.25;
+        // Relative durability tier compared to other enemies on the field.
+        local avgHP = 90.0;
+        local avgArm = 70.0;
+        if (_info != null && _info.Enemies.len() > 1)
+        {
+            local sumHP = 0.0, sumArm = 0.0, cnt = 0;
+            foreach (e in _info.Enemies)
+            {
+                if (e.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                sumHP += e.getHitpointsMax();
+                sumArm += e.getArmorMax(::Const.BodyPart.Body);
+                ++cnt;
+            }
+            if (cnt > 0)
+            {
+                avgHP = sumHP / cnt;
+                avgArm = sumArm / cnt;
+            }
+        }
+        if (_foe.getHitpointsMax() >= avgHP * 1.25 || _foe.getHitpointsMax() >= 140)
+            score += 1.1;
+        if (_foe.getArmorMax(::Const.BodyPart.Body) >= 60 && _foe.getArmorMax(::Const.BodyPart.Body) >= avgArm * 1.35)
+            score += 0.6;
+        return score;
+    },
+
+    // Identify weaker or fragile high-threat targets that unshielded DPS should focus down first.
+    function isFragileHighThreat( _foe, _info = null )
+    {
+        if (::MSU.isNull(_foe) || !_foe.isAlive() || _foe.isDying() || _foe.getMoraleState() == ::Const.MoraleState.Fleeing)
+            return false;
+        local bodyArm = _foe.getArmor(::Const.BodyPart.Body);
+        local hp = _foe.getHitpoints();
+        local skills = _foe.getSkills();
+        if (skills.hasSkill("effects.net") || _foe.getCurrentProperties().IsStunned)
+            return true;
+        if (skills.hasSkill("effects.berserker_rage") || _foe.ClassName == "orc_berserker"
+            || _foe.ClassName == "desert_stalker" || _foe.ClassName == "rf_banshee" || _foe.ClassName == "ghost")
+            return true;
+        if (skills.hasSkill("actives.raise_undead") || skills.hasSkill("actives.horror")
+            || skills.hasSkill("actives.miasma") || skills.hasSkill("actives.root") || skills.hasSkill("actives.hex"))
+            return true;
+        if (!_foe.isArmedWithShield() && (bodyArm <= 55 || hp <= 65 || _foe.getHitpointsPct() <= 0.55))
+            return true;
+        return false;
+    },
+
+    // Count friendly melee/shield/undead allies standing physically between _tile and _threatTile (providing ZoC screen).
+    function countScreenBlockersBetween( _tile, _actor, _threatTile )
+    {
+        local dist = _tile.getDistanceTo(_threatTile);
+        local blockers = 0;
+        local strongBlockers = 0;
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!_tile.hasNextTile(d)) continue;
+            local nt = _tile.getNextTile(d);
+            if (!nt.IsOccupiedByActor || ::Math.abs(nt.Level - _tile.Level) > 1) continue;
+            local occ = nt.getEntity();
+            if (occ.getID() == _actor.getID() || !occ.isAlive() || !occ.isAlliedWith(_actor)) continue;
+            if (this.isCasterRole(occ) || this.isRangedRole(occ)) continue;
+            if (nt.getDistanceTo(_threatTile) < dist)
+            {
+                ++blockers;
+                if (::BGP.hasShield(occ) || occ.getFaction() == ::Const.Faction.PlayerAnimals)
+                    ++strongBlockers;
+            }
+        }
+        return { Blockers = blockers, Strong = strongBlockers };
+    },
+
+    // Evaluate immediate and next-turn surround exposure at a candidate tile.
+    function evaluateTileExposure( _actor, _tile, _info )
+    {
+        local adjEnemies = 0;
+        local adjElites = 0;
+        local threatDist2 = 0;
+        local adjAllies = 0;
+        local adjShieldAllies = 0;
+        local nearAllies2 = 0;
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!_tile.hasNextTile(d)) continue;
+            local adj = _tile.getNextTile(d);
+            if (!adj.IsOccupiedByActor || ::Math.abs(adj.Level - _tile.Level) > 1) continue;
+            local occ = adj.getEntity();
+            if (occ.getID() == _actor.getID() || !occ.isAlive()) continue;
+            if (occ.isAlliedWith(_actor))
+            {
+                ++adjAllies;
+                if (::BGP.hasShield(occ) || occ.getFaction() == ::Const.Faction.PlayerAnimals)
+                    ++adjShieldAllies;
+            }
+            else if (this.isDangerousMeleeEnemy(occ))
+            {
+                ++adjEnemies;
+                if (this.enemyEliteScore(occ, _info) >= 1.5)
+                    ++adjElites;
+            }
+        }
+        foreach (foe in _info.Enemies)
+        {
+            if (!this.isDangerousMeleeEnemy(foe)) continue;
+            local ft = foe.getTile();
+            if (_tile.getDistanceTo(ft) == 2 && ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0)
+                ++threatDist2;
+        }
+        foreach (bro in _info.Brothers)
+        {
+            if (bro.getID() == _actor.getID()) continue;
+            local d = _tile.getDistanceTo(bro.getTile());
+            if (d <= 2 && !this.isCasterRole(bro) && !this.isRangedRole(bro))
+                ++nearAllies2;
+        }
+        return {
+            AdjEnemies = adjEnemies,
+            AdjElites = adjElites,
+            ThreatDist2 = threatDist2,
+            PotentialSurround = adjEnemies + ::Math.min(3, threatDist2),
+            AdjAllies = adjAllies,
+            AdjShieldAllies = adjShieldAllies,
+            NearAllies2 = nearAllies2
+        };
     },
 
     function findShieldInterceptTile( _behavior, _actor, _info )
@@ -855,24 +1035,33 @@ local F = A.Frontline <- {
         local navigator = ::Tactical.getNavigator();
         local settings = this.navSettings(_actor, navigator);
 
-        // Identify fragile allies we want to screen.
+        // Identify fragile allies & Mentor we want to screen.
         local squishies = [];
+        local chiefTile = null;
         foreach (bro in _info.Brothers)
         {
-            if (bro.getID() != _actor.getID() && (!::BGP.hasShield(bro) || this.isRangedRole(bro) || this.isCasterRole(bro)))
+            if (bro.getID() == _actor.getID()) continue;
+            if (this.isCasterRole(bro)) chiefTile = bro.getTile();
+            if (!::BGP.hasShield(bro) || this.isRangedRole(bro) || this.isCasterRole(bro))
                 squishies.push(bro.getTile());
         }
 
         local seen = {};
         local bestTile = null;
         local bestScore = 0.0;
+        local bestUrgent = false;
 
         foreach (foe in _info.Enemies)
         {
             if (foe.getMoraleState() == ::Const.MoraleState.Fleeing)
                 continue;
             local ft = foe.getTile();
-            if (myTile.getDistanceTo(ft) > maxSteps + 1)
+            local foeElite = this.enemyEliteScore(foe, _info);
+            local foeNearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 4);
+            local allowFullMove = (foeElite >= 1.5 || foeNearChief) && _actor.getHitpointsPct() >= 0.65;
+            local effAP = allowFullMove ? ::Math.max(moveAPBudget, ::Math.min(ap, 6)) : moveAPBudget;
+            local effSteps = ::Math.min(2, ::Math.max(maxSteps, (effAP / 2).tointeger()));
+            if (myTile.getDistanceTo(ft) > effSteps + 1)
                 continue;
             for (local dir = 0; dir < 6; ++dir)
             {
@@ -891,14 +1080,16 @@ local F = A.Frontline <- {
                 local cost = navigator.getCostForPath(_actor, settings, ap, availFat);
                 if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.Tiles > 2)
                     continue;
-                if (ap - cost.ActionPointsRequired < reserveAP)
-                    continue;
-                if (reserveFat > 0 && availFat - cost.FatigueRequired < reserveFat)
+                local canSWAfter = (ap - cost.ActionPointsRequired >= reserveAP)
+                    && (reserveFat <= 0 || availFat - cost.FatigueRequired >= reserveFat);
+                if (!canSWAfter && !allowFullMove)
                     continue;
 
-                // Evaluate enemy exposure vs allied line cohesion (Shieldwall adjacency & anti-surround).
+                // Evaluate enemy exposure, elite pinning, and allied line cohesion.
                 local adjEnemies = 0;
                 local unengagedEnemies = 0;
+                local unengagedEliteSum = 0.0;
+                local pinsChiefThreat = false;
                 local adjAllies = 0;
                 local adjShieldAllies = 0;
                 for (local d2 = 0; d2 < 6; ++d2)
@@ -914,8 +1105,14 @@ local F = A.Frontline <- {
                     if (!occ.isAlliedWith(_actor) && occ.getMoraleState() != ::Const.MoraleState.Fleeing)
                     {
                         ++adjEnemies;
-                        if (adj.getZoneOfControlCountOtherThan(occ.getAlliedFactions()) == 0)
+                        local isUneng = adj.getZoneOfControlCountOtherThan(occ.getAlliedFactions()) == 0;
+                        if (isUneng)
+                        {
                             ++unengagedEnemies;
+                            unengagedEliteSum += this.enemyEliteScore(occ, _info);
+                        }
+                        if (chiefTile != null && adj.getDistanceTo(chiefTile) <= 4 && dest.getDistanceTo(chiefTile) < adj.getDistanceTo(chiefTile))
+                            pinsChiefThreat = true;
                     }
                     else if (occ.isAlliedWith(_actor))
                     {
@@ -925,11 +1122,17 @@ local F = A.Frontline <- {
                     }
                 }
 
-                // Never dive solo into 3+ enemies with zero adjacent allies.
+                // Never dive solo into 3+ enemies with zero adjacent allies, or without Shieldwall AP into 2+ enemies.
                 if (adjEnemies >= 3 && adjAllies == 0)
                     continue;
+                if (!canSWAfter && adjEnemies >= 2)
+                    continue;
 
-                local score = 8.0 + ::Math.min(2, unengagedEnemies) * 5.0;
+                local score = 8.0 + ::Math.min(2, unengagedEnemies) * 5.0 + unengagedEliteSum * 8.5;
+                if (pinsChiefThreat)
+                    score += 14.0;
+                if (!canSWAfter)
+                    score -= 4.0;
                 // Reward staying connected to the allied line and adjacent to fellow shieldbearers!
                 score += ::Math.min(2, adjAllies) * 4.5 + ::Math.min(2, adjShieldAllies) * 3.5;
                 // Penalize taking 3+ enemies at once (heavy surround penalty).
@@ -940,7 +1143,7 @@ local F = A.Frontline <- {
                     local sqDist = sq.getDistanceTo(ft);
                     if (dest.getDistanceTo(sq) <= 2 && dest.getDistanceTo(ft) < sqDist)
                     {
-                        score += 3.5;
+                        score += 4.5;
                         break;
                     }
                 }
@@ -949,10 +1152,265 @@ local F = A.Frontline <- {
                 {
                     bestScore = score;
                     bestTile = dest;
+                    bestUrgent = (unengagedEliteSum >= 1.5 || pinsChiefThreat);
+                }
+            }
+        }
+        if (bestTile != null)
+            return { Tile = bestTile, Urgent = bestUrgent, Score = bestScore };
+
+        // Secondary: if an unengaged Enemy Elite or Mentor-breacher is 3-4 tiles away (just outside direct contact, e.g. snow),
+        // step 1 tile into a blocking lane directly between that threat and our Mentor/fragiles with AP left for Shieldwall/Spearwall!
+        if (moveAPBudget >= 2 && _info.EnemyProjectileRanged < 3.0)
+        {
+            local laneThreat = null;
+            local laneThreatScore = 0.0;
+            foreach (foe in _info.Enemies)
+            {
+                if (!this.isDangerousMeleeEnemy(foe)) continue;
+                local ft = foe.getTile();
+                if (ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) > 0) continue;
+                local dMe = myTile.getDistanceTo(ft);
+                if (dMe < 3 || dMe > 5) continue;
+                local es = this.enemyEliteScore(foe, _info);
+                local nearCh = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 5);
+                if (es < 1.4 && !nearCh) continue;
+                local sc = es * 10.0 + (nearCh ? 12.0 : 0.0) - dMe * 2.0;
+                if (sc > laneThreatScore) { laneThreatScore = sc; laneThreat = foe; }
+            }
+            if (laneThreat != null)
+            {
+                local lft = laneThreat.getTile();
+                local curDist = myTile.getDistanceTo(lft);
+                local bestLaneTile = null;
+                local bestLaneScore = 0.0;
+                for (local d = 0; d < 6; ++d)
+                {
+                    if (!myTile.hasNextTile(d)) continue;
+                    local step = myTile.getNextTile(d);
+                    if (!step.IsEmpty || _behavior.hasNegativeTileEffect(step, _actor)) continue;
+                    if (step.getDistanceTo(lft) >= curDist) continue;
+                    if (!navigator.findPath(myTile, step, settings, 0)) continue;
+                    local cost = navigator.getCostForPath(_actor, settings, moveAPBudget, availFat);
+                    if (!cost.IsComplete || cost.End == null || cost.End.ID != step.ID) continue;
+                    if (ap - cost.ActionPointsRequired < reserveAP) continue;
+                    if (reserveFat > 0 && availFat - cost.FatigueRequired < reserveFat) continue;
+                    local adjAllies = 0;
+                    for (local d2 = 0; d2 < 6; ++d2)
+                    {
+                        if (!step.hasNextTile(d2)) continue;
+                        local nt = step.getNextTile(d2);
+                        if (nt.IsOccupiedByActor && nt.getEntity().isAlliedWith(_actor) && nt.getEntity().getID() != _actor.getID())
+                            ++adjAllies;
+                    }
+                    local ls = 10.0 + (curDist - step.getDistanceTo(lft)) * 6.0 + ::Math.min(2, adjAllies) * 4.0 + (step.Level - myTile.Level) * 2.0;
+                    if (chiefTile != null && step.getDistanceTo(chiefTile) <= 4 && step.getDistanceTo(lft) < chiefTile.getDistanceTo(lft))
+                        ls += 8.0;
+                    if (ls > bestLaneScore) { bestLaneScore = ls; bestLaneTile = step; }
+                }
+                if (bestLaneTile != null)
+                    return { Tile = bestLaneTile, Urgent = true, Score = bestLaneScore };
+            }
+        }
+        return null;
+    },
+
+    // Dynamic safe melee routing for unshielded DPS: flank weaker/fragile/already-engaged enemies with allies,
+    // avoid suicidal solo snow-dives into 3+ enemy convergence traps, and peel threats closing on Mentor.
+    function findSmartDpsMeleeTile( _behavior, _actor, _info )
+    {
+        if (::BGP.hasShield(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
+            return null;
+        if (_actor.getCurrentProperties().IsRooted)
+            return null;
+        local myTile = _actor.getTile();
+        if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return null;
+        local atk = this.cheapestMeleeSkill(_actor);
+        if (atk == null)
+            return null;
+
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local atkAP = atk.getActionPointCost();
+        local atkFat = atk.getFatigueCost();
+        local minRange = atk.getMinRange();
+        local maxRange = atk.getMaxRange();
+        // Polearm / 2-tile weapons are already handled cleanly by autopilot_step_n_hit.
+        if (maxRange >= 2)
+            return null;
+        // Already in melee attack range without moving.
+        if (this.hasAdjacentTarget(_actor, atk, _info.Enemies))
+            return null;
+
+        local hasTeamTank = false;
+        local chiefTile = null;
+        foreach (bro in _info.Brothers)
+        {
+            if (bro.getID() == _actor.getID()) continue;
+            if (::BGP.hasShield(bro)) hasTeamTank = true;
+            if (this.isCasterRole(bro)) chiefTile = bro.getTile();
+        }
+        if (!hasTeamTank)
+        {
+            foreach (u in ::Tactical.Entities.getInstancesOfFaction(::Const.Faction.PlayerAnimals))
+            {
+                if (u != null && !::MSU.isNull(u) && u.isAlive() && u.isPlacedOnMap() && u.getFlags().has("undead"))
+                {
+                    hasTeamTank = true;
+                    break;
+                }
+            }
+        }
+
+        local netSkill = _actor.getSkills().getSkillByID("actives.throw_net");
+        local canUseNet = netSkill != null && !netSkill.isHidden() && netSkill.isUsable() && netSkill.isAffordable()
+            && (::Autopilot.conf("nets") || ::Autopilot.conf("bgpAutoEquippedNet"));
+        local isFragile = this.isFragileMelee(_actor);
+        local navigator = ::Tactical.getNavigator();
+        local settings = this.navSettings(_actor, navigator);
+        local seen = {};
+        local bestTile = null;
+        local bestScore = 0.0;
+
+        foreach (foe in _info.Enemies)
+        {
+            local ft = foe.getTile();
+            if (myTile.getDistanceTo(ft) > 4)
+                continue;
+            local fleeing = foe.getMoraleState() == ::Const.MoraleState.Fleeing;
+            local foeElite = this.enemyEliteScore(foe, _info);
+            local foeFragile = this.isFragileHighThreat(foe, _info);
+            local foeEngaged = ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) > 0;
+            local foeNearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3 && !fleeing);
+
+            for (local dir = 0; dir < 6; ++dir)
+            {
+                if (!ft.hasNextTile(dir)) continue;
+                local dest = ft.getNextTile(dir);
+                if (!dest.IsEmpty || dest.ID == myTile.ID || (dest.ID in seen)) continue;
+                seen[dest.ID] <- true;
+                if (::Math.abs(dest.Level - ft.Level) > 1) continue;
+                if (_behavior.hasNegativeTileEffect(dest, _actor)) continue;
+                if (!atk.isUsableOn(ft, dest)) continue;
+                if (!navigator.findPath(myTile, dest, settings, 0)) continue;
+                local cost = navigator.getCostForPath(_actor, settings, ap, availFat);
+                if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID) continue;
+
+                local apLeft = ap - cost.ActionPointsRequired;
+                local fatLeft = availFat - cost.FatigueRequired;
+                local canStrike = (apLeft >= atkAP && fatLeft >= atkFat);
+
+                // Hard anti-surround veto: never step into suicidal solo or 3+ surround pockets.
+                if (!fleeing && this.isSuicidalDiveV2(_actor, dest, _info, apLeft))
+                    continue;
+                // Fragile bros should not burn their turn walking into melee with zero attack left unless peeling for Mentor with ally support.
+                if (isFragile && !canStrike && !fleeing && !foeNearChief)
+                    continue;
+
+                local exp = this.evaluateTileExposure(_actor, dest, _info);
+                local score = 12.0;
+                if (canStrike)
+                {
+                    score += 22.0;
+                    try {
+                        local hit = atk.getHitchance(foe);
+                        local dmg = atk.getExpectedDamage(foe);
+                        if (hit >= 40 && dmg.HitpointDamage + dmg.DirectDamage >= foe.getHitpoints())
+                            score += 18.0;
+                    } catch (e) {}
+                }
+                if (foeEngaged) score += 14.0;
+                if (foe.getSkills().hasSkill("effects.net") || foe.getCurrentProperties().IsStunned) score += 12.0;
+                if (foeFragile) score += 11.0;
+                if (!fleeing && foe.getHitpointsPct() <= 0.60) score += (0.65 - foe.getHitpointsPct()) * 16.0;
+                if (foeNearChief) score += 18.0;
+                // Discourage fragile unshielded DPS from solo-engaging full-HP unengaged elites when our tank/undead can pin them.
+                if (isFragile && hasTeamTank && !foeEngaged && foeElite >= 1.5 && foe.getHitpointsPct() >= 0.70)
+                    score -= 16.0;
+                // Bonus if moving here also lets us throw our held net at an elite/high-threat target this turn.
+                if (canUseNet && apLeft >= netSkill.getActionPointCost() && !fleeing && foeElite >= 1.2
+                    && !foe.getSkills().hasSkill("effects.net") && !foe.getCurrentProperties().IsRooted)
+                    score += 10.0;
+
+                // Cohesion & anti-surround scoring.
+                score += ::Math.min(2, exp.AdjAllies) * 10.0 + ::Math.min(2, exp.AdjShieldAllies) * 8.0 + ::Math.min(2, exp.NearAllies2) * 3.0;
+                if (exp.PotentialSurround >= 3)
+                    score -= (exp.PotentialSurround - 2) * 14.0;
+                if (isFragile && exp.AdjEnemies >= 2)
+                    score -= 12.0;
+                score += (dest.Level - ft.Level) * 3.0 - cost.ActionPointsRequired * 0.8 - (dest.IsBadTerrain ? 2.0 : 0.0);
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestTile = dest;
                 }
             }
         }
         return bestTile;
+    },
+
+    // Smart target selection for equipped Throwing Nets (prioritizes enemy elites, Mentor-breachers, and high-MDef threats).
+    function findBestNetTarget( _actor, _info )
+    {
+        if (!::Autopilot.conf("nets") && !::Autopilot.conf("bgpAutoEquippedNet"))
+            return null;
+        local skill = _actor.getSkills().getSkillByID("actives.throw_net");
+        if (skill == null || skill.isHidden() || !skill.isUsable() || !skill.isAffordable())
+            return null;
+
+        local myTile = _actor.getTile();
+        local maxRng = skill.getMaxRange();
+        local chiefTile = null;
+        foreach (bro in _info.Brothers)
+        {
+            if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+        }
+
+        local bestTile = null;
+        local bestScore = 0.0;
+        foreach (foe in _info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            if (foe.getCurrentProperties().IsRooted || foe.getCurrentProperties().IsStunned) continue;
+            if (foe.getSkills().hasSkill("effects.net")) continue;
+            local ft = foe.getTile();
+            if (myTile.getDistanceTo(ft) > maxRng || !skill.isUsableOn(ft, myTile)) continue;
+
+            local elite = this.enemyEliteScore(foe, _info);
+            // Never waste a net on a nearly dead non-elite trash mob.
+            if (foe.getHitpoints() <= 22 && elite < 1.0)
+                continue;
+
+            local unengaged = ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0;
+            local nearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3);
+            local mdef = foe.getCurrentProperties().getMeleeDefense();
+            local sc = 15.0 + elite * 24.0;
+            if (nearChief) sc += 22.0;
+            if (unengaged) sc += 14.0;
+            if (mdef >= 18) sc += 12.0;
+            if (foe.getHitpointsPct() >= 0.60) sc += 8.0;
+            if (foe.getArmor(::Const.BodyPart.Body) >= 70) sc += 6.0;
+            // Bonus if netting stops an enemy currently adjacent to a fragile ally.
+            for (local d = 0; d < 6; ++d)
+            {
+                if (!ft.hasNextTile(d)) continue;
+                local nt = ft.getNextTile(d);
+                if (nt.IsOccupiedByActor && nt.getEntity().isAlliedWith(_actor) && nt.getEntity().getFaction() == ::Const.Faction.Player
+                    && !::BGP.hasShield(nt.getEntity()))
+                {
+                    sc += 10.0;
+                    break;
+                }
+            }
+            if (sc > bestScore)
+            {
+                bestScore = sc;
+                bestTile = ft;
+            }
+        }
+        return bestTile != null ? { Skill = skill, Tile = bestTile, Score = bestScore } : null;
     },
 
     function shouldSuppressEngageMelee( _actor, _agent )
@@ -987,19 +1445,47 @@ local F = A.Frontline <- {
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Info.Enemies.len() == 0)
             return false;
-        // Never allow Mentor (caster) to walk forward into enemy archer sniper range (<= 7) or into unengaged melee range (<= 2)!
+        // Never allow Mentor (caster) to walk forward into enemy archer sniper range (<= 7) or into unscreened melee range (<= 3)!
         if (this.isCasterRole(_actor))
         {
             local curArch = this.nearestEnemyArcherDist(myTile, decision.Info.Enemies);
             local newArch = this.nearestEnemyArcherDist(_targetTile, decision.Info.Enemies);
             if (decision.Info.EnemyProjectileRanged >= 3.0 && newArch <= 7 && newArch < curArch)
                 return true;
+            local curMelee = 99;
             local newMelee = 99;
+            local nearestThreatTile = null;
             foreach (foe in decision.Info.Enemies)
-                if (this.isLiveBacklineThreat(foe))
-                    newMelee = ::Math.min(newMelee, _targetTile.getDistanceTo(foe.getTile()));
+            {
+                if (!this.isLiveBacklineThreat(foe)) continue;
+                local ft = foe.getTile();
+                local cd = myTile.getDistanceTo(ft);
+                local nd = _targetTile.getDistanceTo(ft);
+                if (cd < curMelee) curMelee = cd;
+                if (nd < newMelee) { newMelee = nd; nearestThreatTile = ft; }
+            }
             if (newMelee <= 2)
                 return true;
+            if (newMelee <= 4 && newMelee < curMelee && nearestThreatTile != null)
+            {
+                local scr = this.countScreenBlockersBetween(_targetTile, _actor, nearestThreatTile);
+                if (scr.Blockers == 0)
+                    return true;
+            }
+            // Never walk Mentor onto an isolated tile with zero adjacent allies while live melee threats exist within 6 tiles.
+            if (newMelee <= 6)
+            {
+                local adjAllies = 0;
+                for (local d = 0; d < 6; ++d)
+                {
+                    if (!_targetTile.hasNextTile(d)) continue;
+                    local nt = _targetTile.getNextTile(d);
+                    if (nt.IsOccupiedByActor && nt.getEntity().isAlliedWith(_actor) && nt.getEntity().getID() != _actor.getID())
+                        ++adjAllies;
+                }
+                if (adjAllies == 0)
+                    return true;
+            }
         }
         if (!decision.Hold)
             return false;
@@ -1194,6 +1680,28 @@ local F = A.Frontline <- {
                 mult *= 1.22;
             else if (bodyArmor >= 200 && _target.isArmedWithShield() && !isArmorBreaker)
                 mult *= 0.72;
+            if (tSkills.hasSkill("effects.net") && !fleeing)
+                mult *= 1.28;
+            // Avoid wasting -15% hitchance Puncture on low-armor enemies where normal Stab deals more reliable damage.
+            if (sid == "actives.puncture" && bodyArmor < 80)
+                mult *= 0.22;
+            // Role-differentiated focus: shieldbearers pin heavy elites; unshielded DPS melt fragile/weaker targets first.
+            if (!fleeing)
+            {
+                local targetElite = this.enemyEliteScore(_target, null);
+                if (::BGP.hasShield(_actor))
+                {
+                    if (targetElite >= 1.5)
+                        mult *= 1.24;
+                }
+                else
+                {
+                    if (this.isFragileHighThreat(_target, null) && targetElite < 1.8)
+                        mult *= 1.22;
+                    else if (targetElite >= 1.8 && hp >= 100 && bodyArmor >= 75)
+                        mult *= 0.86;
+                }
+            }
             if (_skill.getID() == "actives.knock_out")
             {
                 if (!fleeing && !_target.getCurrentProperties().IsImmuneToStun && !_target.getCurrentProperties().IsStunned)
@@ -1369,7 +1877,7 @@ local F = A.Frontline <- {
         return false;
     },
 
-    // Find a safe kiting tile for backline casters and ranged units under melee or sniper pressure.
+    // Find a safe kiting/ally-screened tile for backline casters and ranged units under melee or sniper pressure.
     function findBacklineSafeTile( _behavior, _actor, _info )
     {
         local myTile = _actor.getTile();
@@ -1379,8 +1887,20 @@ local F = A.Frontline <- {
         if (_actor.getCurrentProperties().IsRooted)
             return null;
 
-        local curMeleeDist = this.nearestLiveBacklineThreatDist(_actor, _info.Enemies);
-        local meleeDanger = curMeleeDist <= 2;
+        local curMeleeDist = 99;
+        local nearestThreatTile = null;
+        foreach (foe in _info.Enemies)
+        {
+            if (!this.isLiveBacklineThreat(foe)) continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (d < curMeleeDist) { curMeleeDist = d; nearestThreatTile = ft; }
+        }
+        local curScreen = (isCaster && nearestThreatTile != null)
+            ? this.countScreenBlockersBetween(myTile, _actor, nearestThreatTile)
+            : { Blockers = 1, Strong = 0 };
+        local meleeDanger = curMeleeDist <= 2
+            || (isCaster && curMeleeDist == 3 && curScreen.Blockers == 0);
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
         local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies) : true;
         local hurtMentor = isCaster && _actor.getHitpointsPct() <= 0.75;
@@ -1390,7 +1910,8 @@ local F = A.Frontline <- {
         if (!meleeDanger && !sniperDanger)
             return null;
 
-        local maxMoveAP = isCaster ? (meleeDanger ? ::Math.min(ap, 4) : (ap >= 7 ? 4 : (ap <= 2 ? ap : ::Math.min(ap - 3, 2))))
+        // Allow up to 6 AP in acute melee danger so Mentor can move 1-2 tiles even on 3-AP snow/swamp terrain.
+        local maxMoveAP = isCaster ? (meleeDanger ? ::Math.min(ap, 6) : (ap >= 7 ? 4 : (ap <= 2 ? ap : ::Math.min(ap - 3, 2))))
                                    : (ap >= 6 ? 2 : 0);
         if (maxMoveAP < 2)
             return null;
@@ -1416,18 +1937,25 @@ local F = A.Frontline <- {
                 continue;
 
             local minMeleeDist = 99;
+            local destNearestThreat = null;
             foreach (foe in _info.Enemies)
             {
                 if (!this.isLiveBacklineThreat(foe))
                     continue;
-                local d = dest.getDistanceTo(foe.getTile());
-                if (d < minMeleeDist)
-                    minMeleeDist = d;
+                local ft = foe.getTile();
+                local d = dest.getDistanceTo(ft);
+                if (d < minMeleeDist) { minMeleeDist = d; destNearestThreat = ft; }
             }
             local newArcherDist = isCaster ? this.nearestEnemyArcherDist(dest, _info.Enemies) : 99;
             local newCover = isCaster ? this.hasRangedCoverAt(dest, _actor, _info.Enemies) : false;
+            local newScreen = (isCaster && destNearestThreat != null)
+                ? this.countScreenBlockersBetween(dest, _actor, destNearestThreat)
+                : { Blockers = 0, Strong = 0 };
 
-            if (meleeDanger && minMeleeDist <= curMeleeDist)
+            // Allow stepping behind a friendly blocker at same distance if we were unscreened at dist 3, otherwise require more distance.
+            if (meleeDanger && minMeleeDist < curMeleeDist)
+                continue;
+            if (meleeDanger && minMeleeDist == curMeleeDist && !(newScreen.Blockers > curScreen.Blockers && minMeleeDist >= 3))
                 continue;
             if (!meleeDanger && sniperDanger)
             {
@@ -1435,7 +1963,7 @@ local F = A.Frontline <- {
                 if (newArcherDist <= curArcherDist && !(newCover && !hasCoverNow)) continue;
             }
 
-            // Prefer staying near friendly melee screens so we don't isolate ourselves into a corner.
+            // Strongly prefer staying behind friendly melee/shield/undead blockers rather than isolating into an open corner.
             local nearAllies = 0;
             local openExits = 0;
             foreach (bro in _info.Brothers)
@@ -1443,6 +1971,11 @@ local F = A.Frontline <- {
                 if (bro.getID() == _actor.getID()) continue;
                 local d = dest.getDistanceTo(bro.getTile());
                 if (d <= 2 && !this.isRangedRole(bro) && !this.isCasterRole(bro))
+                    ++nearAllies;
+            }
+            foreach (u in ::Tactical.Entities.getInstancesOfFaction(::Const.Faction.PlayerAnimals))
+            {
+                if (u != null && !::MSU.isNull(u) && u.isAlive() && u.isPlacedOnMap() && dest.getDistanceTo(u.getTile()) <= 2)
                     ++nearAllies;
             }
             for (local dir = 0; dir < 6; ++dir)
@@ -1453,11 +1986,17 @@ local F = A.Frontline <- {
 
             local score = 0.0;
             if (meleeDanger)
+            {
                 score += (minMeleeDist - curMeleeDist) * 12.0;
+                if (newScreen.Blockers > 0)
+                    score += 18.0 + (newScreen.Strong > 0 ? 8.0 : 0.0);
+                if (nearAllies == 0)
+                    score -= 14.0;
+            }
             if (sniperDanger)
                 score += ::Math.max(0, newArcherDist - curArcherDist) * 8.0 + (newArcherDist >= 8 ? 10.0 : 0.0) + (newCover ? 7.0 : 0.0);
-            score += ::Math.min(3, nearAllies) * 3.5 + ::Math.min(3, openExits) * 1.2 + (dest.Level - myTile.Level) * 2.0
-                - cost.ActionPointsRequired * 1.1 - (dest.IsBadTerrain ? 2.5 : 0.0);
+            score += ::Math.min(3, nearAllies) * 4.0 + ::Math.min(3, openExits) * 1.2 + (dest.Level - myTile.Level) * 2.0
+                - cost.ActionPointsRequired * 1.0 - (dest.IsBadTerrain ? 2.5 : 0.0);
             if (score > bestScore)
             {
                 bestScore = score;
@@ -1531,43 +2070,60 @@ local F = A.Frontline <- {
         return bestTile;
     },
 
-    // Check if an unshielded melee engage destination dives into dangerous surround without sufficient allied support.
-    function isSuicidalSoloDive( _actor, _destTile )
+    // Strict anti-surround check: catches immediate 3+ surrounds, next-turn 2-tile convergence traps,
+    // zero-attack solo snow-dives by fragile unshielded bros, and critically wounded suicides.
+    function isSuicidalDiveV2( _actor, _destTile, _info, _apAfter = 9 )
     {
         if (_destTile == null || ::BGP.hasShield(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
             return false;
         if (_actor.getTile().ID == _destTile.ID || _actor.getSkills().hasSkill("effects.indomitable"))
             return false;
-        local adjEnemies = 0;
-        local adjAllies = 0;
-        local adjShieldAllies = 0;
-        for (local d = 0; d < 6; ++d)
-        {
-            if (!_destTile.hasNextTile(d)) continue;
-            local adj = _destTile.getNextTile(d);
-            if (!adj.IsOccupiedByActor || ::Math.abs(adj.Level - _destTile.Level) > 1) continue;
-            local occ = adj.getEntity();
-            if (occ.getID() == _actor.getID() || !occ.isAlive()) continue;
-            if (occ.isAlliedWith(_actor))
-            {
-                ++adjAllies;
-                if (::BGP.hasShield(occ)) ++adjShieldAllies;
-            }
-            else if (this.isDangerousMeleeEnemy(occ))
-                ++adjEnemies;
-        }
+        local exp = this.evaluateTileExposure(_actor, _destTile, _info);
         local skills = _actor.getSkills();
         local hasDefPerk = skills.hasSkill("perk.battle_forged") || skills.hasSkill("perk.nimble");
         local hasUnderdog = skills.hasSkill("perk.underdog");
         local mdef = _actor.getCurrentProperties().getMeleeDefense();
-        // Discourage unshielded medium-MDef bruisers from diving into 4+ enemies, solo 3+ dives, or unsupported 3+ pockets with no shieldbearer.
-        if (adjEnemies >= 4)
+        local isFragile = this.isFragileMelee(_actor);
+        local atk = this.cheapestMeleeSkill(_actor);
+        local minAtkAP = atk != null ? atk.getActionPointCost() : 4;
+        local hpPct = _actor.getHitpointsPct();
+
+        if (exp.AdjEnemies >= 4)
             return true;
-        if (adjEnemies >= 3 && (adjAllies == 0 || (adjShieldAllies == 0 && mdef < 35)))
+        if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || (exp.AdjShieldAllies == 0 && (mdef < 35 || isFragile))))
             return true;
-        if (!hasDefPerk && !hasUnderdog && adjEnemies >= 3 && adjShieldAllies == 0)
+        if (!hasDefPerk && !hasUnderdog && exp.AdjEnemies >= 3 && exp.AdjShieldAllies == 0)
             return true;
-        if (!hasDefPerk && adjEnemies >= 2 && adjAllies == 0)
+        if (isFragile && exp.AdjAllies == 0 && exp.AdjEnemies >= 2)
+            return true;
+        if (isFragile && exp.AdjAllies == 0 && exp.AdjEnemies >= 1 && exp.ThreatDist2 >= 2)
+            return true;
+        // Prevent fragile unshielded bros from burning AP walking into melee contact with zero AP left to strike
+        // against non-ranged/non-caster melee waves (handing enemies free double-swings in snow/rough terrain!).
+        if (isFragile && _apAfter < minAtkAP)
+        {
+            if (exp.AdjAllies == 0 && (exp.AdjEnemies >= 1 || exp.ThreatDist2 >= 2))
+                return true;
+            if (exp.PotentialSurround >= 3 && exp.AdjShieldAllies == 0)
+                return true;
+            local urgentAdvance = _info.EnemyProjectileRanged >= 3.0 || _info.EnemyUrgentCasters > 0;
+            if (!urgentAdvance && exp.AdjEnemies >= 1 && exp.AdjShieldAllies == 0)
+            {
+                // Still allow peeling an enemy standing within 2 tiles of our Mentor.
+                local peelingChief = false;
+                foreach (bro in _info.Brothers)
+                {
+                    if (this.isCasterRole(bro) && _destTile.getDistanceTo(bro.getTile()) <= 2)
+                    {
+                        peelingChief = true;
+                        break;
+                    }
+                }
+                if (!peelingChief)
+                    return true;
+            }
+        }
+        if (hpPct <= 0.30 && (exp.AdjEnemies >= 2 || (exp.AdjEnemies >= 1 && exp.AdjAllies == 0)))
             return true;
         return false;
     },
@@ -1635,11 +2191,15 @@ local F = A.Frontline <- {
             }
         }
 
-        // Trigger 1: Emergency survival / peel (stricter on Rounds 1-2 so healthy owners don't feed pets into full enemy waves).
-        local emergencySurvival = (round <= 2)
+        // Trigger 1: Emergency survival / peel (stricter on Round 1; on Round 2 allow fragile unshielded owners in 2+ melee to peel early).
+        local emergencySurvival = (round <= 1)
             ? ((meleeAdj >= 3 && (!isShield || hpPct <= 0.60))
-                || (meleeAdj >= 1 && hpPct <= 0.50)
-                || (fragileThreatTile != null && round >= 2))
+                || (meleeAdj >= 1 && hpPct <= 0.50))
+            : (round == 2)
+                ? ((meleeAdj >= 3 && (!isShield || hpPct <= 0.60))
+                    || (meleeAdj >= 2 && this.isFragileMelee(_entity))
+                    || (meleeAdj >= 1 && hpPct <= 0.55)
+                    || (fragileThreatTile != null))
             : ((meleeAdj >= 3)
                 || (meleeAdj >= 2 && (!isShield || hpPct <= 0.60 || alliesAdj == 0))
                 || (meleeAdj >= 1 && (hpPct <= 0.50 || (hasInjury && hpPct <= 0.65)))
@@ -1832,7 +2392,7 @@ local F = A.Frontline <- {
     };
 });
 
-// Gate ai_engage_melee during hold-line, shieldbearer yield, or suicidal unshielded solo dives into 3+ enemies.
+// Gate ai_engage_melee during hold-line, shieldbearer yield, or suicidal unshielded dives into 3+ enemy surrounds.
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_engage_melee", function(q) {
     q.evaluate = @(__original) function( _entity ) {
         if (F.shouldSuppressEngageMelee(_entity, this.getAgent()))
@@ -1845,12 +2405,65 @@ local F = A.Frontline <- {
         }
         local done = __original(_entity);
         if (done && this.m.Score > 0 && ::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")
-            && this.m.TargetTile != null && !this.m.IsWaitingBeforeMove && F.isSuicidalSoloDive(_entity, this.m.TargetTile))
+            && this.m.TargetTile != null && !this.m.IsWaitingBeforeMove)
         {
-            // Discourage unshielded bros from diving completely solo into 3+ melee enemies without paralyzing normal line contact.
-            this.m.Score *= 0.35;
+            local info = F.assessBattle(_entity, this.getAgent());
+            local myTile = _entity.getTile();
+            local ap = _entity.getActionPoints();
+            local approxApAfter = ap;
+            try {
+                local nav = ::Tactical.getNavigator();
+                local st = F.navSettings(_entity, nav);
+                if (nav.findPath(myTile, this.m.TargetTile, st, 0))
+                {
+                    local cost = nav.getCostForPath(_entity, st, ap, _entity.getFatigueMax() - _entity.getFatigue());
+                    if (cost.Tiles > 0)
+                        approxApAfter = ap - cost.ActionPointsRequired;
+                }
+                else
+                {
+                    local stepCost = _entity.getActionPointCosts()[this.m.TargetTile.Type];
+                    if (stepCost < 2) stepCost = 2;
+                    approxApAfter = ap - myTile.getDistanceTo(this.m.TargetTile) * stepCost;
+                }
+            } catch (e) {
+                local stepCost = this.m.TargetTile.IsBadTerrain ? 3 : 2;
+                approxApAfter = ap - myTile.getDistanceTo(this.m.TargetTile) * stepCost;
+            }
+            local veto = F.isSuicidalDiveV2(_entity, this.m.TargetTile, info, approxApAfter);
+            // Also stop shieldbearers from being dragged by vanilla EngageMelee into 3+ enemy surrounds without Shieldwall AP.
+            if (!veto && ::BGP.hasShield(_entity) && this.m.TargetTile.ID != myTile.ID)
+            {
+                local exp = F.evaluateTileExposure(_entity, this.m.TargetTile, info);
+                local sw = _entity.getSkills().getSkillByID("actives.shieldwall");
+                local swAP = (sw != null && !sw.isHidden() && sw.isUsable()) ? sw.getActionPointCost() : 4;
+                if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || (approxApAfter < swAP && _entity.getCurrentProperties().getMeleeDefense() < 40)))
+                    veto = true;
+            }
+            if (veto)
+            {
+                // Hard veto suicidal solo/3+ surround dives so BGP_Frontline dynamic routing or Wait takes over.
+                this.m.TargetTile = null;
+                this.m.TargetActor = null;
+                this.m.Score = 0;
+            }
         }
         return done;
+    };
+});
+
+// Let BGP_Frontline handle smart Throwing Net targeting when bgpSmartFrontline is enabled so nets are not wasted on trash.
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_throw_net", function(q) {
+    q.evaluate = @(__original) function( _entity ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
+        {
+            this.m.Thread = null;
+            this.m.TargetTile = null;
+            this.m.Skill = null;
+            this.m.Score = 0;
+            return true;
+        }
+        return __original(_entity);
     };
 });
 
