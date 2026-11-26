@@ -205,16 +205,17 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 3a. Spearwall opener for Spear Shieldbearers when >= 2 melee enemies approach at distance 2-3 (blocks Barbarian/Orc/Undead charges; never stalls vs heavy enemy archers!).
+        // 3a. Spearwall opener for Spear Shieldbearers when >= 2 non-Orc-charger melee enemies approach at distance 2-3
+        // AND tank has ample usable fatigue (>= spw + 24) so Sipar tanks never gas out before Shieldwall!
         if (isShield && !inZoC && !_entity.getSkills().hasSkill("effects.spearwall") && !_entity.getSkills().hasSkill("effects.shieldwall")
-            && info.EnemyProjectileRanged < 3.0 && ::Time.getRound() <= 3)
+            && info.EnemyProjectileRanged < 3.0 && info.EnemyChargers < 3 && ::Time.getRound() <= 3)
         {
             local spw = _entity.getSkills().getSkillByID("actives.spearwall");
             if (spw != null && !spw.isHidden() && spw.isUsable() && spw.isAffordable())
             {
                 local meleeDist23 = F.countDangerousMeleeWithin(_entity, info.Enemies, 3);
                 local availFat = _entity.getFatigueMax() - _entity.getFatigue();
-                if (meleeDist23 >= 2 && availFat >= spw.getFatigueCost() + 18)
+                if (meleeDist23 >= 2 && availFat >= spw.getFatigueCost() + 24)
                 {
                     this.m.Mode = "spearwall";
                     this.m.Skill = spw;
@@ -249,9 +250,11 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 local hasSW = _entity.getSkills().hasSkill("effects.shieldwall");
                 local meleeAdj = F.countDangerousMeleeAdjacent(_entity, info.Enemies);
                 local availFat = _entity.getFatigueMax() - _entity.getFatigue();
-                local canFollowSW = hasSW || meleeAdj <= 1 || (sw != null && !sw.isHidden() && sw.isUsable()
-                    && _entity.getActionPoints() >= bash.getActionPointCost() + sw.getActionPointCost()
-                    && availFat >= bash.getFatigueCost() + sw.getFatigueCost() + 8);
+                local canFollowSW = hasSW
+                    || (meleeAdj <= 1 && availFat >= bash.getFatigueCost() + 18)
+                    || (sw != null && !sw.isHidden() && sw.isUsable()
+                        && _entity.getActionPoints() >= bash.getActionPointCost() + sw.getActionPointCost()
+                        && availFat >= bash.getFatigueCost() + sw.getFatigueCost() + 14);
                 if (canFollowSW)
                 {
                     local bestBashTile = null;

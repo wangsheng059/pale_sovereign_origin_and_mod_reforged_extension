@@ -97,23 +97,45 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
 });
 A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
     local smart = ::Autopilot.conf("bgpSmartFrontline");
+    local alreadyCursed = 0;
+    if (smart) {
+        foreach (tile in c.Enemies) {
+            if (tile.getEntity().getSkills().hasSkill("effects.bgp_curse_of_ages"))
+                ++alreadyCursed;
+        }
+    }
     local value = 0.0;
     local hits = 0;
+    local armoredHits = 0;
+    local nonGoblinHits = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
         if (enemy.getMoraleState() == ::Const.MoraleState.Fleeing || enemy.getSkills().hasSkill("effects.bgp_curse_of_ages")) continue;
         ++hits;
+        local isGoblin = enemy.getFlags().has("goblin");
+        if (!isGoblin) ++nonGoblinHits;
         local w = 1.45 + ::Math.minf(0.9, enemy.getHitpointsMax() / 140.0);
         if (smart) {
-            // High synergy with Hex-Eater (嗜咒) & armor decay (-30/hit) against Champions and armored melee elites!
-            if (enemy.getSkills().hasSkill("racial.champion") || enemy.getArmor(::Const.BodyPart.Body) >= 150 || enemy.getHitpointsMax() >= 140)
-                w += 0.95;
+            if (isGoblin) w *= 0.55;
+            else if (enemy.getSkills().hasSkill("racial.champion") || enemy.getArmor(::Const.BodyPart.Body) >= 150 || enemy.getHitpointsMax() >= 140) {
+                w += 0.65;
+                ++armoredHits;
+            }
         }
         value += w;
     }
-    if (smart && hits >= 3 && ::Time.getRound() >= 2)
-        value += 2.2 + 0.6 * ::Math.min(3, hits - 2);
+    if (smart) {
+        if (hits < 2) return 0;
+        // Against Goblins, raising zombies / weakening Shamans beats 5-AP Curse unless 4+ goblins are stacked with no corpses to raise.
+        if (nonGoblinHits == 0 && (hits < 4 || c.Behavior.targets(c, "Corpses").len() > 0)) return 0;
+        // Once >= 3 active enemies are already cursed, switch back to Raise Dead / Weaken / Corpse Explosion instead of spamming Curse!
+        if (alreadyCursed >= 3) value *= 0.40;
+        else if (hits >= 3 && armoredHits >= 2 && ::Time.getRound() >= 2)
+            value = ::Math.minf(10.2, value + 1.4);
+        // Cap Curse peak score below urgent Raise Dead (~11-13) so Mentor keeps building the undead frontline first!
+        value = ::Math.minf(10.2, value);
+    }
     return value;
 });
 A.add("possess_undead", "Allies", function(c, s, t) {
@@ -447,6 +469,7 @@ local F = A.Frontline <- {
             PlayerRanged = playerRanged,
             EnemyRanged = enemyRanged,
             EnemyProjectileRanged = enemyProjectileRanged,
+            EnemyChargers = enemyChargers,
             FrontlineMinDist = frontlineMinDist,
             EngagedBrothers = engagedBrothers,
             RangedAdvantage = rangedAdvantage,
@@ -598,12 +621,12 @@ local F = A.Frontline <- {
             // Case 1: Lethal finish on wounded enemy (generates a corpse for Mentor immediately!).
             if (expectedHP >= foe.getHitpoints() && hit >= 40)
                 return true;
-            // Case 2: Good hit chance with healthy fatigue buffer (never into Riposte).
+            // Case 2: Good hit chance with healthy fatigue buffer (never into Riposte; tighter buffer for heavy Sipar tanks).
             if (!foe.getSkills().hasSkill("effects.riposte"))
             {
-                if (_zone == 1 && hit >= 58 && fatLeft >= 20)
+                if (_zone == 1 && hit >= 60 && fatLeft >= 22)
                     return true;
-                if (_zone <= 2 && hit >= 65 && fatLeft >= 15)
+                if (_zone <= 2 && hit >= 68 && fatLeft >= 18)
                     return true;
             }
         }
@@ -1424,11 +1447,15 @@ local F = A.Frontline <- {
             }
         }
 
-        // Trigger 1: Emergency survival / peel (surrounded, hurt in melee, or rescuing trapped Mentor/fragile ally).
-        local emergencySurvival = (meleeAdj >= 3)
-            || (meleeAdj >= 2 && (!isShield || hpPct <= 0.65 || alliesAdj == 0))
-            || (meleeAdj >= 1 && (hpPct <= 0.50 || (hasInjury && hpPct <= 0.65)))
-            || (fragileThreatTile != null && round >= 2);
+        // Trigger 1: Emergency survival / peel (stricter on Rounds 1-2 so healthy owners don't feed pets into full enemy waves).
+        local emergencySurvival = (round <= 2)
+            ? ((meleeAdj >= 3 && (!isShield || hpPct <= 0.60))
+                || (meleeAdj >= 1 && hpPct <= 0.50)
+                || (fragileThreatTile != null && round >= 2))
+            : ((meleeAdj >= 3)
+                || (meleeAdj >= 2 && (!isShield || hpPct <= 0.60 || alliesAdj == 0))
+                || (meleeAdj >= 1 && (hpPct <= 0.50 || (hasInjury && hpPct <= 0.65)))
+                || (fragileThreatTile != null));
 
         // Trigger 2: Surround hit-chance bonus against a tough/evasive/high-value engaged enemy (mid-battle, Round >= 2, melee joined).
         local surroundTarget = null;

@@ -133,13 +133,29 @@ A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
     local usedShots = (S.Battle != null && "CorpseShots" in S.Battle) ? S.Battle.CorpseShots : 0;
     if (maxShots <= 0 || usedShots >= maxShots) return 0;
     if (::Autopilot.conf("bgpSmartFrontline")) {
-        // Dedicated archers/crossbowmen, engaged melee units, frontline shieldbearers near contact, and fatigued bros must use their real weapons/defenses instead of 20-30 dmg corpse throws.
-        if (c.Actor.isArmedWithRangedWeapon() || c.Engaged) return 0;
-        if (::BGP.hasShield(c.Actor) && A.nearest(c.Enemies, c.Origin) <= 2) return 0;
-        if (c.Actor.getFatigue() > c.Actor.getFatigueMax() * 0.50) return 0;
-        foreach (corpse in c.Behavior.targets(c, "Corpses")) if (corpse.getDistanceTo(t) <= 3) return 0;
+        // Dedicated archers/crossbowmen, Mentor (who must summon/raise), engaged melee units, and heavily fatigued bros stick to their core roles.
+        if (c.Actor.isArmedWithRangedWeapon() || S.isChief(c.Actor) || c.Engaged) return 0;
+        if (c.Actor.getFatigue() > c.Actor.getFatigueMax() * 0.45) return 0;
         if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;
-        return 0.70 + 0.15 * A.weaponChance(s, t) + 0.10 * ::Math.min(3, A.countNear(c.Enemies, t));
+
+        local corpses = c.Behavior.targets(c, "Corpses");
+        foreach (corpse in corpses) if (corpse.getDistanceTo(t) <= 3) return 0;
+
+        // Early corpse-seeding mode: when fewer than 2 corpses exist on the battlefield (especially vs kiting Goblins/Bandits),
+        // let an unengaged non-shield bro (or shieldbearer at distance > 2 with plenty of fatigue) seed 1-2 corpses into an enemy clump
+        // so Mentor immediately snowballs Raise Dead from Round 2 onwards!
+        local enemiesNear = A.countNear(c.Enemies, t);
+        if (corpses.len() < 2 && usedShots < ::Math.min(2, maxShots)) {
+            if (::BGP.hasShield(c.Actor) && (A.nearest(c.Enemies, c.Origin) <= 2 || c.Actor.getFatigueMax() - c.Actor.getFatigue() < 36))
+                return 0;
+            // Don't interrupt a brother who already has a melee enemy adjacent or within 1-step kill range.
+            if (A.nearest(c.Enemies, c.Origin) <= 1) return 0;
+            local isRangedTarget = t.IsOccupiedByActor && t.getEntity().isArmedWithRangedWeapon();
+            return 2.60 + 0.30 * A.weaponChance(s, t) + 0.25 * ::Math.min(3, enemiesNear) + (isRangedTarget ? 0.55 : 0.0);
+        }
+
+        if (::BGP.hasShield(c.Actor) && A.nearest(c.Enemies, c.Origin) <= 2) return 0;
+        return 0.70 + 0.15 * A.weaponChance(s, t) + 0.10 * ::Math.min(3, enemiesNear);
     }
     foreach (corpse in c.Behavior.targets(c, "Corpses")) if (corpse.getDistanceTo(t) <= 1) return 0;
     if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;
