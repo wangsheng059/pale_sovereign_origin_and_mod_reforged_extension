@@ -1540,6 +1540,13 @@
     "patches/pandora/cn_barb_king_potion_attribs.json",
     "patches/pandora/cn_personal_training.json",
     "patches/pandora/cn_apotheosis_potion.json",
-    "patches/pandora/cn_ethereal_log.json"
+    "patches/pandora/cn_ethereal_log.json",
+    "patches/north_expansion/feral_trait_cn_titles.json",
+    "patches/north_expansion/feral_trait_cn_tooltip.json",
+    "patches/north_expansion/feral_trait_cn_log.json",
+    "patches/swordmaster/ai_weak_effect_create.json",
+    "patches/swordmaster/ai_weak_effect_refresh.json",
+    "patches/swordmaster/sb_blessing_effect_b.json",
+    "patches/swordmaster/sb_snow_effect.json"
   ]
 }

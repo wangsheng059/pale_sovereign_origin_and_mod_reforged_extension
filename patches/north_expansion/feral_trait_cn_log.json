@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/skills/traits/feral_trait.nut",
+  "before": "1c1f49bbbe4150a90c9c7bf05a853be592b379e5c766038f5c2ea34f33ff0562",
+  "after": "f47c22b2d737a87feff6492d19c3fb9bfe214922c4c17e7495295c0d05b8b9fd",
+  "old": "this.Const.UI.getColorizedEntityName(actor) + \" heals for \" + healthAdded + \" points\"",
+  "new": "this.Const.UI.getColorizedEntityName(actor) + \" 恢复了 \" + healthAdded + \" 点生命值\""
+}

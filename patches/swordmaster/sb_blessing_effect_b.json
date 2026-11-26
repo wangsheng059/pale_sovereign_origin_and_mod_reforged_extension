@@ -1,0 +1,8 @@
+{
+  "source": "mod_剑宗首徒起源2.0 (重铸专用).zip",
+  "member": "scripts/skills/effects/sb_blessing_effect_b.nut",
+  "before": "1b4fd2808f006d8fe1e53d1ae5c5f579e9c8167c792d8929b7b85203c5fb8519",
+  "after": "22fff03d80364d1c2ff354b5318c4fc8288bd9769157fe342a2e932030b0fdcf",
+  "old": "this.m.Name = \"Blessing\";\r\n\t\tthis.m.Description = \"Take [color=\" + this.Const.UI.Color.PositiveValue + \"]30%[/color] less damage next time.\";",
+  "new": "this.m.Name = \"祝福\";\r\n\t\tthis.m.Description = \"下一次受到的伤害减少 [color=\" + this.Const.UI.Color.PositiveValue + \"]30%[/color]。\";"
+}

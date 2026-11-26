@@ -1,0 +1,8 @@
+{
+  "source": "mod_剑宗首徒起源2.0 (重铸专用).zip",
+  "member": "scripts/skills/effects/ai_weak_effect.nut",
+  "before": "d73af2d09bedc93c6a2cb17917bccf179cc94388fa09197a0b13c1254e4afa7e",
+  "after": "e1d986251aad8f762ee2bbe6bc8e917ae9d06202ba9dc57d7d49c37383991d10",
+  "old": "this.m.Name = \"洞察弱点 (\" + this.m.Count + \" Stack)\";",
+  "new": "this.m.Name = \"洞察弱点（\" + this.m.Count + \" 层）\";"
+}

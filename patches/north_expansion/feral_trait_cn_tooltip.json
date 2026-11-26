@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/skills/traits/feral_trait.nut",
+  "before": "f993d0e5580a603d7ffcd1963efee18f9e98de93b655549dd00d113537928a75",
+  "after": "1c1f49bbbe4150a90c9c7bf05a853be592b379e5c766038f5c2ea34f33ff0562",
+  "old": "text = \"Heals [color=\" + this.Const.UI.Color.PositiveValue + \"]\" + this.m.Ferocity.Regeneration + \"[/color] 每回合生命值\"",
+  "new": "text = \"每回合恢复 [color=\" + this.Const.UI.Color.PositiveValue + \"]\" + this.m.Ferocity.Regeneration + \"[/color] 点生命值\""
+}

@@ -1,0 +1,8 @@
+{
+  "source": "mod_剑宗首徒起源2.0 (重铸专用).zip",
+  "member": "scripts/skills/effects/sb_snow_effect.nut",
+  "before": "b3e07dd13b55fe7992c164b37d8b8a0cc50d91d4a919137536bd4fca61dbfc53",
+  "after": "5276aadad10880bf3fd78ec5b02092cb640ec170d6945493507fe4f2e4c920e8",
+  "old": "this.m.Name = \"In the heavy snow\";\r\n\t\tthis.m.Description = \"+1 Additional Action Point per tile moved, -20 Melee Skill\";",
+  "new": "this.m.Name = \"暴雪之中\";\r\n\t\tthis.m.Description = \"每移动 1 格额外消耗 1 点行动点数，近战技能 -20。\";"
+}

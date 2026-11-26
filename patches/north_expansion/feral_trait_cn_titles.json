@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/skills/traits/feral_trait.nut",
+  "before": "06ef9fb018e35d7474d2e6b393c61e79d3afeeef6c6e87551e27b44b0e727528",
+  "after": "f993d0e5580a603d7ffcd1963efee18f9e98de93b655549dd00d113537928a75",
+  "old": "\"the Mad\",\r\n\t\t\t\"the Odd\",\r\n\t\t\t\"the Fearless\"",
+  "new": "\"狂徒\",\r\n\t\t\t\"怪人\",\r\n\t\t\t\"无畏者\""
+}
