@@ -1,4 +1,4 @@
-// 1.7.0 急救骨髓膏：亡灵营地里用 2 点防腐尸骸制作，放进背包后战斗中可对相邻的常驻亡灵或冠军使用
+// 1.7.0 急救骨髓膏：亡灵营地里用 2 点防腐尸骸制作，放进背包后战斗中可对相邻的常驻亡灵或勇士使用
 this.pale_marrow_paste_item <- ::inherit("scripts/items/item", {
     m = {},
     function create()
@@ -22,7 +22,7 @@ this.pale_marrow_paste_item <- ::inherit("scripts/items/item", {
             { id = 2, type = "description", text = this.getDescription() },
             { id = 66, type = "text", text = this.getValueString() },
             { id = 3, type = "image", image = this.getIcon() },
-            { id = 10, type = "text", icon = "ui/icons/health.png", text = "放进背包后，战斗中花 4 行动点对相邻的常驻亡灵或冠军使用：恢复 25% 最大生命，清除流血、酸液、燃烧" },
+            { id = 10, type = "text", icon = "ui/icons/health.png", text = "放进背包后，战斗中花 4 行动点对相邻的常驻亡灵或勇士使用：恢复 25% 最大生命，清除流血、酸液、燃烧" },
             { id = 11, type = "text", icon = "ui/icons/special.png", text = "盗墓贼、解剖师、死灵法师、亡灵法师导师使用时行动点 −1，治疗量 +25%" }
         ];
         return ret;

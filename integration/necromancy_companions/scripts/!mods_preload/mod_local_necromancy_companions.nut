@@ -1,4 +1,4 @@
-::LocalNecroAC <- ::Hooks.register("mod_local_necromancy_companions", "1.6.3", "死灵法师 × 配件兄弟");
+::LocalNecroAC <- ::Hooks.register("mod_local_necromancy_companions", "1.6.4", "死灵法师 × 配件兄弟");
 ::LocalNecroAC.require("mod_local_rules");
 ::LocalNecroAC.queue([">mod_local_rules", ">mod_AC"], function()
 {

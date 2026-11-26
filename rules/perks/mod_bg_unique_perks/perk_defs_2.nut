@@ -16,7 +16,7 @@
 		Type = ::UPD.EffectType.Passive,
 		Description = [
 			"本场战斗中，对每个目标的第一次攻击伤害 " + ::MSU.Text.colorPositive("+30%") + "；目标本回合还没行动时再 " + ::MSU.Text.colorPositive("+20%") + "。",
-			"第一次攻击无论命中与否都算用掉：没命中的话，之后对这个目标的攻击不再有加成。"
+			"无论是否命中，仅对每个目标的首次攻击生效。"
 		]
 	}]
 });
@@ -105,7 +105,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"把决心的 " + ::MSU.Text.colorPositive("15%") + " 转化为受到伤害的减免百分比（例：120 点决心减免 18%），最多减免 " + ::MSU.Text.colorPositive("80%") + "。",
+			"把决心的 " + ::MSU.Text.colorPositive("15%") + " 转化为受到伤害的减免百分比，最多减免 " + ::MSU.Text.colorPositive("80%") + "。",
 			"每场战斗一次：受到致命伤害时不会死亡，保留 1 点生命值，进入持续 2 回合的“不死狂热”：不受任何生命值伤害，也不会受伤。"
 		]
 	}]

@@ -31,7 +31,7 @@ this.pale_soul_bind <- ::inherit("scripts/skills/skill", {
     {
         local s = ::PaleSovereign;
         local ret = this.skill.getDefaultUtilityTooltip();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "目标为亡灵强敌的尸体（古帝军团、堕落骑士、墓穴恶鬼、禁咒师、血族）。复活后保留生前的精英属性，冠军仍是冠军" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "全场可用、无需视野，目标格须为空。目标为亡灵强敌的尸体（古帝军团、堕落骑士、墓穴恶鬼、禁咒师、血族），复活后保留生前的精英属性，冠军仍是冠军" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "消耗 1 条缚魂锁链，每场战斗限 1 次。它活到战斗胜利，战后即可收编为锁魂者" });
         ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "战团还有 " + s.countItems("misc.pale_chain") + " 条缚魂锁链" });
         if (s.Battle != null && s.Battle.SoulUsed)

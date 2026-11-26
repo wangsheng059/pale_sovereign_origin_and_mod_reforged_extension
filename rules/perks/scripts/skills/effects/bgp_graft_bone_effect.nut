@@ -31,7 +31,7 @@ this.bgp_graft_bone_effect <- ::inherit("scripts/skills/skill", {
 		local ret = this.skill.getTooltip();
 		ret.push({ id = 10, type = "text", icon = "ui/icons/armor_body.png", text = "骨甲 " + ::MSU.Text.colorPositive(this.m.Pool) + " / " + this.m.PoolMax + "：先于护甲吸收伤害" });
 		if (this.m.Pool > 0)
-			ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "被敌人近战攻击时，对攻击者造成 " + ::MSU.Text.colorNegative(this.m.Thorns) + " 点穿刺伤害（无视护甲）" });
+			ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "被敌人近战攻击时，对攻击者造成 " + ::MSU.Text.colorPositive(this.m.Thorns) + " 点穿刺伤害（无视护甲）" });
 		else
 			ret.push({ id = 11, type = "text", icon = "ui/icons/warning.png", text = "骨甲已碎，骨刺不再生效" });
 		return ret;

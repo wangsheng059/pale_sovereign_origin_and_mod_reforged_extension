@@ -1,12 +1,20 @@
-// 1.6.1 腐毒蝇群（亡灵天灾 5 层）挂在活体敌人身上的效果：
-//   每有 1 只相邻的“召唤亡灵”（主人有腐毒蝇群的死灵仆从，含死灵宠物和永恒禁卫），近战技能、近战防御、决心各 -3；
-//   处在召唤亡灵的控制区内（相邻且它没被击晕）时，每次攻击、每次开始移动额外 +4 疲劳。
+// 1.6.1 腐毒蝇群（亡灵天灾 5 层）挂在非亡灵敌人身上的效果：
+//   每有 1 只相邻的“召唤亡灵”（主人有腐毒蝇群的死灵仆从，含亡灵宠物和永恒禁卫），近战技能、近战防御、决心各 -3；
+//   与召唤亡灵相邻时（含被击晕的亡灵），每次攻击、每次发起移动（含步伐、换位等位移技能）额外 +4 疲劳。
 // 没有相邻的召唤亡灵时效果隐藏、不生效。效果由特技在开战 / 每轮 / 死灵法师回合开始时挂到敌人身上（::BGP.Necro.spreadFlySwarm）。
 this.bgp_fly_swarm_effect <- ::inherit("scripts/skills/skill", {
 	m = {
 		Count = 0,
 		PerMinion = 3,
-		Fatigue = 4
+		Fatigue = 4,
+		MovementSkillIDs = [
+			"actives.footwork",
+			"actives.rotation",
+			"actives.rf_passing_step",
+			"actives.rf_move_under_cover",
+			"actives.bgp_feint",
+			"actives.serpent_boss_rotation"
+		]
 	},
 	function create()
 	{
@@ -32,7 +40,7 @@ this.bgp_fly_swarm_effect <- ::inherit("scripts/skills/skill", {
 			{ id = 11, type = "text", icon = "ui/icons/melee_skill.png", text = ::MSU.Text.colorNegative("-" + d) + " 近战技能" },
 			{ id = 12, type = "text", icon = "ui/icons/melee_defense.png", text = ::MSU.Text.colorNegative("-" + d) + " 近战防御" },
 			{ id = 13, type = "text", icon = "ui/icons/bravery.png", text = ::MSU.Text.colorNegative("-" + d) + " 决心" },
-			{ id = 14, type = "text", icon = "ui/icons/fatigue.png", text = "每次攻击、每次移动额外 " + ::MSU.Text.colorNegative("+" + this.m.Fatigue) + " 疲劳" }
+			{ id = 14, type = "text", icon = "ui/icons/fatigue.png", text = "每次攻击、每次发起移动（含步伐、换位等位移技能）额外 " + ::MSU.Text.colorNegative("+" + this.m.Fatigue) + " 疲劳" }
 		]);
 		return ret;
 	}
@@ -102,17 +110,35 @@ this.bgp_fly_swarm_effect <- ::inherit("scripts/skills/skill", {
 		_properties.Bravery -= d;
 	}
 
+	function isMovementSkill( _skill )
+	{
+		if (_skill == null)
+			return false;
+		try
+		{
+			local id = _skill.getID();
+			if (this.m.MovementSkillIDs.find(id) != null)
+				return true;
+			if (::isKindOf(_skill, "rotation") || ::isKindOf(_skill, "footwork"))
+				return true;
+		}
+		catch (e)
+		{
+		}
+		return false;
+	}
+
 	function onBeforeAnySkillExecuted( _skill, _targetTile, _targetEntity, _forFree )
 	{
-		if (_skill == null || !_skill.isAttack())
+		if (_skill == null || (!_skill.isAttack() && !this.isMovementSkill(_skill)))
 			return;
-		if (this.countMinions(true) > 0)
+		if (this.countMinions(false) > 0)
 			this.addFatigue();
 	}
 
 	function onMovementStarted( _tile, _numTiles )
 	{
-		if (this.countMinions(true) > 0)
+		if (this.countMinions(false) > 0)
 			this.addFatigue();
 	}
 });

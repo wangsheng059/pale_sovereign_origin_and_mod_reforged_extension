@@ -25,6 +25,7 @@ this.pale_chant_effect <- ::inherit("scripts/skills/skill", {
     {
         local ret = this.skill.getTooltip();
         ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "士气每低于稳定一级，造成的伤害 " + ::MSU.Text.colorNegative("-10%") });
+        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "还剩 " + this.m.Turns + " 回合" });
         return ret;
     }
 

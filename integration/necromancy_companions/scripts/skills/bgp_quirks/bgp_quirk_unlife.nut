@@ -23,7 +23,7 @@ this.bgp_quirk_unlife <- ::inherit("scripts/skills/skill", {
 		local ret = [
 			{ id = 1, type = "title", text = this.getName() },
 			{ id = 2, type = "description", text = this.getDescription() },
-			{ id = 10, type = "text", icon = "ui/icons/health.png", text = "每场战斗一次：受到致命伤害时不死，生命回到上限的 " + ::MSU.Text.colorPositive("30%") }
+			{ id = 10, type = "text", icon = "ui/icons/health.png", text = "每场战斗一次：受到致命伤害时不死，生命回到上限的 " + ::MSU.Text.colorPositive("30%") + "，并清除所有持续伤害效果（如流血、中毒）" }
 		];
 		if (this.m.IsSpent)
 			ret.push({ id = 11, type = "text", icon = "ui/icons/warning.png", text = ::MSU.Text.colorNegative("本场已经用过") });

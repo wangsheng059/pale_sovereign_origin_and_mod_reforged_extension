@@ -5,10 +5,10 @@ local S = ::PaleSovereign;
 // ---------------- 冠军：魂玉铭刻 ----------------
 S.InscriptionOrder <- ["dread", "resonance", "pact", "edge"];
 S.Inscriptions <- {
-    dread = { Name = "玉骨威压", Desc = "冠军出棺或击杀敌人时，2 格内的非亡灵敌人做一次 −10 的士气检定（导师在 4 格内时 −15），失败者 2 回合内造成的伤害 −50%。" },
-    resonance = { Name = "苍白共鸣", Desc = "冠军每回合第一次攻击猎物时命中 +15、穿甲 +15 个百分点，命中后返还 2 行动点。" },
-    pact = { Name = "守墓死契", Desc = "冠军在导师 2 格内时，导师受到的生命伤害有 35% 转由冠军承受；每替导师分担一次，冠军获得 1 层护主之怒（伤害 +10%、近战技能 +5，最多 3 层，持续到战斗结束）。" },
-    edge = { Name = "裂魂锋芒", Desc = "冠军攻击生命不高于 50% 或带猎物标记的目标时穿甲 +15 个百分点；击杀敌人时恢复 15% 最大生命，头、身护甲各修复 25 点。" }
+    dread = { Name = "玉骨威压", Desc = "勇士出棺或击杀敌人时，2 格内的非亡灵敌人做一次 −10 的士气检定（导师在 4 格内时 −15），失败者 2 回合内造成的伤害 −50%。" },
+    resonance = { Name = "苍白共鸣", Desc = "勇士每回合第一次攻击猎物时命中 +15、穿甲 +15 个百分点，命中后返还 2 行动点。" },
+    pact = { Name = "守墓死契", Desc = "勇士在导师 2 格内时，导师受到的生命伤害有 35% 转由勇士承受；每替导师分担一次，勇士获得 1 层护主之怒（伤害 +10%、近战技能 +5，最多 3 层，持续到战斗结束）。" },
+    edge = { Name = "裂魂锋芒", Desc = "勇士攻击生命不高于 50% 或带猎物标记的目标时穿甲 +15 个百分点；击杀敌人时恢复 15% 最大生命，头、身护甲各修复 25 点。" }
 };
 S.inscriptionCap <- @() this.isAscended() ? 4 : 3;
 S.inscriptionCount <- function( _pet )
@@ -31,10 +31,10 @@ S.jadeChampionPanel <- function( _event, _screen )
     local jade = this.countItems("misc.pale_jade");
     if (pet == null)
     {
-        _screen.Text = "先把冠军的棺椁装进导师的饰品栏。";
+        _screen.Text = "先把勇士的棺椁装进导师的饰品栏。";
         return;
     }
-    _screen.Text = "魂玉不再只是磨成粉抹进骨缝。把它刻进冠军的骨头，它会记住一种杀戮的方式；把它熔进骨髓，它会跨过生前的极限。\n\n"
+    _screen.Text = "魂玉不再只是磨成粉抹进骨缝。把它刻进勇士的骨头，它会记住一种杀戮的方式；把它熔进骨髓，它会跨过生前的极限。\n\n"
         + pet.m.Name + "　铭刻 " + this.inscriptionCount(pet) + " / " + this.inscriptionCap()
         + "　玉髓重铸 " + this.petGet(pet, "Breakthrough") + " / " + this.BreakCost.MarrowLimit
         + "　不朽玉壳 " + (this.petGet(pet, "JadeShell") != 0 ? "已成" : "未成") + "\n" + this.resourceLine();
@@ -52,11 +52,11 @@ S.jadeChampionPanel <- function( _event, _screen )
                     if (S.inscriptionCount(pet) >= S.inscriptionCap() || !S.removeMaterial("jade"))
                         return null;
                     S.petSet(pet, "Inscribe." + inscription, 1);
-                    return "你用骨针把魂玉的碎屑一点点刻进冠军的颅骨。碧光沿着刻痕亮了一夜才慢慢沉下去。\n\n（" + pet.m.Name + " 获得铭刻【" + S.Inscriptions[inscription].Name + "】）";
+                    return "你用骨针把魂玉的碎屑一点点刻进勇士的颅骨。碧光沿着刻痕亮了一夜才慢慢沉下去。\n\n（" + pet.m.Name + " 获得铭刻【" + S.Inscriptions[inscription].Name + "】）";
                 });
         }
     if (!this.canBreakthrough(pet))
-        _screen.Text += "\n\n灵阶突破需要冠军已晋升尸妖王，或至少吞魂 1 次。";
+        _screen.Text += "\n\n灵阶突破需要勇士已晋升尸妖王，或至少吞魂 1 次。";
     else
     {
         local marrow = this.petGet(pet, "Breakthrough");
@@ -70,12 +70,12 @@ S.jadeChampionPanel <- function( _event, _screen )
                 S.petSet(pet, "Breakthrough", S.petGet(pet, "Breakthrough") + 1);
                 pet.m.Attributes.Hitpoints += 20;
                 pet.updateCompanion();
-                return "两枚魂玉在铁钵里熔成碧色的浆，顺着骨缝灌进冠军的髓腔。它的骨头发出一阵低沉的鸣响。\n\n（永久生命 +20、伤害 +10%、行动点 +1，已重铸 " + S.petGet(pet, "Breakthrough") + " / 5 次）";
+                return "两枚魂玉在铁钵里熔成碧色的浆，顺着骨缝灌进勇士的髓腔。它的骨头发出一阵低沉的鸣响。\n\n（永久生命 +20、伤害 +10%、行动点 +1，已重铸 " + S.petGet(pet, "Breakthrough") + " / 5 次）";
             });
         if (this.petGet(pet, "JadeShell") == 0)
         {
             if (!this.canJadeShell(pet))
-                _screen.Text += "\n\n二阶·不朽玉壳需要冠军至少吞魂 2 次，或导师已飞升。";
+                _screen.Text += "\n\n二阶·不朽玉壳需要勇士至少吞魂 2 次，或导师已飞升。";
             else if (jade >= this.BreakCost.Shell)
                 this.option(_screen, "二阶·不朽玉壳 · 3 枚魂玉：每场第一次致命伤改为锁定 20% 生命", function()
                 {
@@ -84,7 +84,7 @@ S.jadeChampionPanel <- function( _event, _screen )
                     for (local i = 0; i < S.BreakCost.Shell; ++i)
                         S.removeMaterial("jade");
                     S.petSet(pet, "JadeShell", 1);
-                    return "魂玉碾成的碧粉在冠军的骨架外结了一层薄壳，摸上去像冷玉。\n\n（每场战斗第一次受到致命伤害时免于死亡，生命锁定为 20%，清除眩晕、定身、流血，并在 1 回合内受到的伤害 −50%）";
+                    return "魂玉碾成的碧粉在勇士的骨架外结了一层薄壳，摸上去像冷玉。\n\n（每场战斗第一次受到致命伤害时免于死亡，生命锁定为 20%，清除眩晕、定身、流血，并在 1 回合内受到的伤害 −50%）";
                 });
         }
     }
@@ -300,7 +300,7 @@ S.refineUndead = function( _bro )
         local chief = this.chief();
         if (chief != null)
             chief.getSkills().update();
-        result += "\n\n（抽取魂火耗尽了导师的心神：2 天内决心与疲劳上限 −15%，虚弱消退前不能再次炼化。飞升后不再有这个代价）";
+        result += "\n\n（抽取魂火耗尽了导师的心神：2 天内决心与疲劳值上限 −15%，虚弱消退前不能再次炼化。飞升后不再有这个代价）";
     }
     return result;
 };

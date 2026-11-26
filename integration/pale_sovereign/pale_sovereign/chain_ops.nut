@@ -24,7 +24,7 @@ S.soulBodyText <- function()
     local names = "";
     foreach (i, key in this.soulBodyKeys(this.get("SoulSpecies")))
         names += (i == 0 ? "" : "、") + this.AttributeNames[key];
-    return names + " 各 +" + this.soulBodyGain() + (this.get("SoulChampionKill") != 0 ? "（冠军亲手斩杀，+1）" : "");
+    return names + " 各 +" + this.soulBodyGain() + (this.get("SoulChampionKill") != 0 ? "（勇士亲手斩杀，+1）" : "");
 };
 
 S.SoulJadeNote <- false;
@@ -67,7 +67,7 @@ S.resolveSoul = function( _choice )
     return ok;
 };
 
-// ---------------- 标记牵制；冠军亲手斩杀被标记者 ----------------
+// ---------------- 标记牵制；勇士亲手斩杀被标记者 ----------------
 local markSoulChain = S.markSoul;
 S.markSoul = function( _target )
 {
@@ -104,7 +104,7 @@ S.petSouls <- function( _pet )
 S.stripSoulPanel <- function( _event, _screen )
 {
     local pet = this.mainPet();
-    _screen.Text = "锁链缠住冠军体内的一缕残魂，硬生生把它扯出来，腾出位置给更好的灵魂。\n\n（消耗 1 条缚魂锁链，移除 1 个吞魂特质并返还 1 次吞魂次数。" + this.resourceLine() + "）";
+    _screen.Text = "锁链缠住勇士体内的一缕残魂，硬生生把它扯出来，腾出位置给更好的灵魂。\n\n（消耗 1 条缚魂锁链，移除 1 个吞魂特质并返还 1 次吞魂次数。" + this.resourceLine() + "）";
     if (pet == null)
         return;
     foreach (species in this.petSouls(pet))
@@ -120,7 +120,7 @@ S.stripSoulPanel <- function( _event, _screen )
             S.petSet(pet, "Species." + index, 0);
             S.petSet(pet, "Devours", ::Math.max(0, S.petGet(pet, "Devours") - 1));
             pet.updateCompanion();
-            return "黑铁锁链从冠军的胸腔里拖出一缕挣扎的残魂，在火光里散成了灰。\n\n（" + pet.m.Name + " 失去【" + soul.Name + "】，吞魂 " + S.petGet(pet, "Devours") + " / " + S.devourCap(pet) + "）";
+            return "黑铁锁链从勇士的胸腔里拖出一缕挣扎的残魂，在火光里散成了灰。\n\n（" + pet.m.Name + " 失去【" + soul.Name + "】，吞魂 " + S.petGet(pet, "Devours") + " / " + S.devourCap(pet) + "）";
         });
     }
 };
@@ -142,12 +142,12 @@ S.twinPanel <- function( _event, _screen )
     local chains = this.countItems("misc.pale_chain");
     local twin = this.twinPet();
     local mode = this.get("TwinMode");
-    _screen.Text = "两口棺椁之间缠上一条锁链，候补冠军的残魂便能借给主冠军，或在主冠军倒下时立刻接替它。\n\n"
-        + "【借魂】主冠军额外获得候补棺椁的第 1 个吞魂特质，不占吞魂上限。\n【替战】主冠军阵亡后，候补棺椁立刻挂上导师的饰品栏，导师可以当场放出它接战（每场 1 次）。\n\n"
+    _screen.Text = "两口棺椁之间缠上一条锁链，候补勇士的残魂便能借给主勇士，或在主勇士倒下时立刻接替它。\n\n"
+        + "【借魂】主勇士额外获得候补棺椁的第 1 个吞魂特质，不占吞魂上限。\n【替战】主勇士阵亡后，候补棺椁立刻挂上导师的饰品栏，导师可以当场放出它接战（每场 1 次）。\n\n"
         + "锚定消耗 2 条锁链；切换效果或改换候补消耗 1 条。\n" + this.resourceLine();
     if (pet == null || reserve == null)
     {
-        _screen.Text += "\n\n需要主冠军装在导师饰品栏，并在营地账簿登记 1 口候补棺椁。";
+        _screen.Text += "\n\n需要主勇士装在导师饰品栏，并在营地账簿登记 1 口候补棺椁。";
         return;
     }
     if (twin != null)
@@ -172,7 +172,7 @@ S.twinPanel <- function( _event, _screen )
     }
 };
 
-// 借魂：放出主冠军时加上候补的第 1 个吞魂特质（不写进存档）
+// 借魂：放出主勇士时加上候补的第 1 个吞魂特质（不写进存档）
 local applyJadePetChain = S.applyJadePet;
 S.applyJadePet = function( _pet, _entity )
 {
@@ -193,7 +193,7 @@ S.applyJadePet = function( _pet, _entity )
     }
 };
 
-// 替战：主冠军阵亡后把候补棺椁挂到导师身上
+// 替战：主勇士阵亡后把候补棺椁挂到导师身上
 local releaseItemChain = ::BGP.NecroPet.releaseItem;
 ::BGP.NecroPet.releaseItem = function( _e )
 {
@@ -575,7 +575,9 @@ S.worldEvent = function()
 S.inheritPreview <- function( _actor )
 {
     local parts = [];
-    if (_actor.getSkills().hasSkill("racial.champion"))
+    local pet = this.mainPet();
+    local hasChamp = pet != null && this.petGet(pet, "ChampionRacial") != 0;
+    if (_actor.getSkills().hasSkill("racial.champion") && !hasChamp)
         parts.push("冠军加成");
     local weapon = _actor.getItems().getItemAtSlot(::Const.ItemSlot.Mainhand);
     if (weapon != null && weapon.isItemType(::Const.Items.ItemType.Named))

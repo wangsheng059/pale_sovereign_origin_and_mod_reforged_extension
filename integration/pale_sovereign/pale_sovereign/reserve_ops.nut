@@ -123,7 +123,7 @@ S.reserveWorkshopPanel <- function( _event, _screen )
                 return null;
             pet.m.Wounds = ::Math.max(0, pet.m.Wounds - 50);
             pet.updateCompanion();
-            return "你撬开棺盖，把熬好的骨髓膏一层层抹进冠军的裂骨。\n\n（" + pet.m.Name + " 的伤势降到 " + pet.m.Wounds + "%）";
+            return "你撬开棺盖，把熬好的骨髓膏一层层抹进勇士的裂骨。\n\n（" + pet.m.Name + " 的伤势降到 " + pet.m.Wounds + "%）";
         });
     if (this.undead().filter(@(_, bro) S.stripCount(bro) < S.StripLimit && S.strippableTraits(bro).len() > 0).len() > 0 && reserve >= this.StripCost)
         this.option(_screen, "拆解重组 · " + this.StripCost + " 点，移除常驻亡灵的 1 个特质", function() { S.EmbalmPage = 0; return "@x_strip"; });

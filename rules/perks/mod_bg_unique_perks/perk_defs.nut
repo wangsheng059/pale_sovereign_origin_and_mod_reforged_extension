@@ -21,8 +21,7 @@
 		Effects = [{
 			Type = ::UPD.EffectType.Passive,
 			Description = [
-				"每击杀一名敌人，本场战斗中造成的伤害永久提高 " + ::MSU.Text.colorPositive("15%") + "，可无限叠加（加算）。",
-				"战斗结束后清空。"
+				"每击杀一名敌人，本场战斗造成的伤害提高 " + ::MSU.Text.colorPositive("15%") + "（加算，可无限叠加，战后清空）。"
 			]
 		}]
 	}),
@@ -99,7 +98,7 @@
 			Description = [
 				"你或你的宠物每击杀一名敌人，你和你的宠物各获得 1 层“同仇”，最多 " + ::MSU.Text.colorPositive("3") + " 层，本场战斗有效；每层伤害 " + ::MSU.Text.colorPositive("+8%") + "。",
 				"你的宠物站在你旁边时，你和这只宠物受到的伤害都 " + ::MSU.Text.colorPositive("-20%") + "。",
-				"“你的宠物”指装在你饰品栏里的配件兄弟宠物或战犬。"
+				"“你的宠物”指装备在饰品栏的宠物或战犬。"
 			]
 		}]
 	}),
@@ -109,7 +108,7 @@
 			Type = ::UPD.EffectType.Active,
 			Description = [
 				"解锁“狩猎时刻”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("25") + " 疲劳，每场战斗限用 1 次。",
-				"场上所有友方野兽和你自己：立即解除眩晕、网缚、蛛网、晕眩、踉跄、分神等控制效果，恢复 " + ::MSU.Text.colorPositive("50%") + " 最大疲劳值，士气变为自信。",
+				"场上所有友方野兽和你自己：立即解除眩晕、网缚、蛛网、晕眩、踉跄、分神等控制效果，恢复 " + ::MSU.Text.colorPositive("50%") + " 疲劳值上限，士气变为自信。",
 				"持续 2 回合：主动值 " + ::MSU.Text.colorPositive("+50") + "，士气锁定为自信，不会下降。"
 			]
 		}]

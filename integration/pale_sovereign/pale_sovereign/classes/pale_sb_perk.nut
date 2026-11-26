@@ -21,7 +21,7 @@ this.pale_sb_perk <- ::inherit("scripts/skills/skill", {
     {
         local ret = this.skill.getTooltip();
         if (this.m.PaleKey == "blood_feast" && this.m.Stacks > 0)
-            ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "本场已叠加 " + this.m.Stacks + " 层：伤害 +" + (this.m.Stacks * 5) + "%，主动性 +" + (this.m.Stacks * 20) });
+            ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "本场已叠加 " + this.m.Stacks + " 层：伤害 +" + (this.m.Stacks * 5) + "%，主动值 +" + (this.m.Stacks * 20) });
         return ret;
     }
 

@@ -223,7 +223,7 @@ C.getGarrisonUpkeep = function()
 local getGarrison = C.getGarrisonLevel;
 local maxGarrison = C.Garrison.len() - 1;
 local championGarrison = clone C.Garrison[maxGarrison];
-championGarrison.Name = "冠军统领的亡灵驻军";
+championGarrison.Name = "勇士统领的亡灵驻军";
 championGarrison.En = championGarrison.Name;
 championGarrison.Resources += C.Garrison[maxGarrison].Resources - C.Garrison[maxGarrison - 1].Resources;
 championGarrison.HoldChance = ::Math.min(95, championGarrison.HoldChance + 15);
@@ -516,7 +516,7 @@ S.Mod.hook("scripts/events/events/conquest_manage_event", function(q)
                     }
                 this.Text = "[img]gfx/ui/events/pale/" + art + ".jpg[/img]基础亡灵驻军 " + level + " 级";
                 if (strength > level)
-                    this.Text += "，计入冠军坐镇为 " + strength + " 级";
+                    this.Text += "，计入勇士坐镇为 " + strength + " 级";
                 this.Text += "。防腐尸骸储备 " + S.get("Reserve") + " 点。驻军每周消耗 3 点防腐尸骸。";
                 this.Options = [];
                 if (mode > 0 && level < maxGarrison)
@@ -551,7 +551,7 @@ S.Mod.hook("scripts/events/events/conquest_manage_event", function(q)
                 if (mode > 0 && S.oath() == S.Oath.Champion)
                 {
                     this.Options.push({
-                        Text = "冠军坐镇",
+                        Text = "勇士坐镇",
                         function getResult( _event )
                         {
                             S.CastlePage = "conquest_governor";

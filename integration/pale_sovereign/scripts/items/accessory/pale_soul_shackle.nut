@@ -7,7 +7,7 @@ this.pale_soul_shackle <- ::inherit("scripts/items/accessory/accessory", {
         this.accessory.create();
         this.m.ID = "accessory.pale_soul_shackle";
         this.m.Name = "缚魂镣铐";
-        this.m.Description = "以缚魂锁链锻成的符文镣铐。只对常驻亡灵生效：生命 +10、疲劳上限 +10，每场战斗首次被击倒时以 30% 生命站起。锁魂者第一次戴上时额外获得 1 个特技点（每名锁魂者限 1 次）。";
+        this.m.Description = "以缚魂锁链锻成的符文镣铐。只对常驻亡灵生效：生命 +10、疲劳值上限 +10，每场战斗首次被击倒时以 30% 生命站起。锁魂者第一次戴上时额外获得 1 个特技点（每名锁魂者限 1 次）。";
         this.m.Icon = "pale/shackle.png";
         this.m.IconLarge = this.m.Icon;
         this.m.Value = 600;

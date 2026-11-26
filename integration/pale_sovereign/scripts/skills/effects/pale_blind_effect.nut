@@ -19,6 +19,7 @@ this.pale_blind_effect <- ::inherit("scripts/skills/skill", {
         local ret = this.skill.getTooltip();
         ret.push({ id = 10, type = "text", icon = "ui/icons/melee_skill.png", text = ::MSU.Text.colorNegative("-15") + " 近战技能" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/ranged_skill.png", text = ::MSU.Text.colorNegative("-15") + " 远程技能" });
+        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "还剩 " + this.m.Turns + " 回合" });
         return ret;
     }
 

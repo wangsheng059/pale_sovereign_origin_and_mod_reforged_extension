@@ -43,7 +43,7 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 		local turns = 2 + ::BGP.Necro.spellDurationBonus(this.getContainer().getActor());
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "目标为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格内的一名友方亡灵（不需要视野）" },
-			{ id = 11, type = "text", icon = "ui/icons/health.png", text = "立刻回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionHeal(w)) + " 点生命" + ::BGP.Necro.willText(w) },
+			{ id = 11, type = "text", icon = "ui/icons/health.png", text = "立刻回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionHeal(w)) + " 点生命" },
 			{ id = 12, type = "text", icon = "ui/icons/fatigue.png", text = "立刻减少 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionFatigue(w)) + " 点疲劳" + ::BGP.Necro.willText(w) },
 			{ id = 13, type = "text", icon = "ui/icons/action_points.png", text = "在接下来的 " + ::MSU.Text.colorPositive(turns) + " 个回合里，行动点数 " + ::MSU.Text.colorPositive("+4") + "、主动值 " + ::MSU.Text.colorPositive("+75") + "、移动时行动点消耗 " + ::MSU.Text.colorPositive("-1") + "（最少 1；再次施放会刷新持续时间，不叠加）" }
 		]);

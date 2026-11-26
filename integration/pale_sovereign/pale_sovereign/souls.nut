@@ -10,13 +10,13 @@ S.Souls <- [
     null,
     { Name = "荣誉卫队之魂", Icon = "skills/pale_honor", Desc = "昔日古帝国仪仗队至死未散的列阵本能。装备盾牌时，其近战防御和远程防御加成提高 25%。",
       Scripts = ["rf_skeleton_heavy_elite", "rf_skeleton_heavy_elite_bodyguard", "rf_skeleton_medium_elite", "rf_skeleton_medium_elite_polearm", "skeleton_heavy_bodyguard", "rf_skeleton_centurion", "rf_skeleton_decanus"] },
-    { Name = "堕落英雄之魂", Icon = "skills/pale_fallen", Desc = "残存着旧日悍将的暴戾杀意与蛮力。近战技能 +5，近战伤害 +10%。",
+    { Name = "堕落英雄之魂", Icon = "skills/pale_fallen", Desc = "旧日悍将死后留下的蛮劲，挥起兵器又沉又狠。近战技能 +5，近战伤害 +10%。",
       Scripts = ["zombie_knight", "zombie_knight_bodyguard", "rf_zombie_hero", "rf_zombie_hero_bodyguard", "zombie_betrayer", "zombie_boss", "rf_draugr_hero", "rf_draugr_huskarl", "rf_draugr_huskarl_bodyguard"] },
-    { Name = "血族之魂", Icon = "skills/pale_vampire", Desc = "源自暗夜捕食者的无尽饥渴，以生者鲜血滋养枯骨。攻击造成生命伤害时，恢复相当于该生命伤害 25% 的生命。",
+    { Name = "血族之魂", Icon = "skills/pale_vampire", Desc = "暗夜猎手对鲜血的渴求渗进枯骨，见血就能续命。攻击造成生命伤害时，恢复相当于该生命伤害 25% 的生命。",
       Scripts = ["vampire", "vampire_low", "rf_vampire_lord"] },
     { Name = "护驾遗志", Icon = "skills/pale_banner", Desc = "哪怕身躯化作枯骨，它依然记得自己曾立在君王身前。每场战斗首次在导师身旁遭受敌方攻击时，生命与护甲伤害减半。",
       Scripts = [] },
-    { Name = "军团统帅之魂", Icon = "skills/pale_soul_legate", Desc = "旧日军团统帅的战吼仍在枯骨间回响，举手投足皆带临阵威仪。近战技能 +5，近战防御 +5，决心 +10。",
+    { Name = "军团统帅之魂", Icon = "skills/pale_soul_legate", Desc = "旧帝国军团长临阵的章法还在骨头里，进退都稳。近战技能 +5，近战防御 +5，决心 +10。",
       Scripts = ["rf_skeleton_legatus", "skeleton_boss"] },
     { Name = "古帝祭司之魂", Icon = "skills/pale_soul_priest", Desc = "古帝祭司与巫妖的失明禁咒仍烙在骨铭之中，落刃处总裹着阴寒咒雾。决心 +15；攻击命中后，目标陷入致盲（近战技能、远程技能 −15，持续到它的下一回合结束）。",
       Scripts = ["skeleton_priest", "skeleton_lich", "rf_draugr_shaman"] },
@@ -40,7 +40,7 @@ S.Souls <- [
       Scripts = ["knight", "hedge_knight", "rf_knight_anointed", "rf_marshal"] },
     { Name = "狼王之魂", Icon = "skills/pale_soul_wolf", Desc = "狂暴兽王扑杀猎物时的凌厉迅捷融入了肢节，动若奔雷。主动值 +20，近战技能 +3。",
       Scripts = ["direwolf_high", "rf_hollenhund", "hyena_high"] },
-    { Name = "上古神兽之魂", Icon = "skills/pale_soul_ancient", Desc = "太古神兽残存的一缕顽强神性护住枯骨，凡铁与术法皆难尽其威。受到的所有伤害 −15%。",
+    { Name = "上古神兽之魂", Icon = "skills/pale_soul_ancient", Desc = "上古巨兽的筋骨残意护住这具身躯，刀剑术法都难伤其根本。受到的所有伤害 −15%。",
       Scripts = ["trickster_god", "kraken"] }
 ];
 
@@ -423,7 +423,7 @@ S.isLich <- function( _pet )
     return _pet != null && _pet.m.PaleID != 0 && this.petGet(_pet, "Promoted") != 0;
 };
 
-S.AttributeNames <- { Hitpoints = "生命", Stamina = "体力", Bravery = "决心", Initiative = "主动性",
+S.AttributeNames <- { Hitpoints = "生命", Stamina = "疲劳值", Bravery = "决心", Initiative = "主动值",
     MeleeSkill = "近战技能", RangedSkill = "远程技能", MeleeDefense = "近战防御", RangedDefense = "远程防御" };
 
 // 从 8 项属性里随机抽 _count 项各加 _gain，返回抽中的属性名（中文，顿号分隔）

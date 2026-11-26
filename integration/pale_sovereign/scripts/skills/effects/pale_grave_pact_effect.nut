@@ -1,11 +1,11 @@
-// 1.7.0 守墓死契（挂在导师身上）：冠军在 2 格内时，导师受到的生命伤害有 35% 转给冠军
+// 1.7.0 守墓死契（挂在导师身上）：勇士在 2 格内时，导师受到的生命伤害有 35% 转给冠军
 this.pale_grave_pact_effect <- ::inherit("scripts/skills/skill", {
     m = { Champion = null, Pending = false },
     function create()
     {
         this.m.ID = "effects.pale_grave_pact";
         this.m.Name = "守墓死契";
-        this.m.Description = "冠军以骨为盾，替导师分担了一部分死亡。冠军在 2 格内时，导师受到的生命伤害有 35% 由冠军承受。";
+        this.m.Description = "勇士以骨为盾，替导师分担了一部分死亡。勇士在 2 格内时，导师受到的生命伤害有 35% 由勇士承受。";
         this.m.Icon = "skills/pale_grave_pact_status.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;

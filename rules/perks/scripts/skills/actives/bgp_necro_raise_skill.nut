@@ -11,7 +11,7 @@ this.bgp_necro_raise_skill <- ::inherit("scripts/skills/skill", {
 	{
 		this.m.ID = "actives.bgp_necro_raise";
 		this.m.Name = "复活死者";
-		this.m.Description = "以死灵法术唤起一具尸体，让它为你而战。复活的单位听从自己的本能行动，不能直接操控。";
+		this.m.Description = "以死灵法术唤起一具尸体，让它为你而战。";
 		this.m.Icon = "skills/bgp_necro_raise_skill.png";
 		this.m.IconDisabled = "skills/bgp_necro_raise_skill_sw.png";
 		this.m.Overlay = "";

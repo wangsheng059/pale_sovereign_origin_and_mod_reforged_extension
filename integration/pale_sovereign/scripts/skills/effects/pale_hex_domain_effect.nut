@@ -19,6 +19,7 @@ this.pale_hex_domain_effect <- ::inherit("scripts/skills/skill", {
         ret.push({ id = 10, type = "text", icon = "ui/icons/melee_skill.png", text = ::MSU.Text.colorNegative("-10") + " 近战技能" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/ranged_skill.png", text = ::MSU.Text.colorNegative("-10") + " 远程技能" });
         ret.push({ id = 12, type = "text", icon = "ui/icons/bravery.png", text = ::MSU.Text.colorNegative("-10") + " 决心" });
+        ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "还剩 " + this.m.Turns + " 回合" });
         return ret;
     }
 

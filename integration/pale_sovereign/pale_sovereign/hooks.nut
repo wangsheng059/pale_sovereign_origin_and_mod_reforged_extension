@@ -25,7 +25,7 @@ foreach (id in ::BGP.Necro.ScourgePerks)
     {
         if (::PaleSovereign.isChief(_bro) && ::PaleSovereign.oath() == ::PaleSovereign.Oath.Champion)
         {
-            _tooltip.push({ id = 3, type = "hint", icon = "ui/icons/icon_locked.png", text = "誓约已定：本战役已立下亡灵冠军誓约。" });
+            _tooltip.push({ id = 3, type = "hint", icon = "ui/icons/icon_locked.png", text = "誓约已定：本战役已立下亡灵勇士誓约。" });
             return false;
         }
         return original(_bro, _tooltip);
@@ -372,7 +372,7 @@ mod.hook("scripts/items/item_container", function(q)
     {
         local tame = S.TameStash;
         if (tame != null && _item != null && tame.Item == null && this.m.Actor != null && !::MSU.isNull(this.m.Actor)
-            && this.m.Actor.getID() == tame.Actor.getID() && ("getType" in _item) && ::BGP.NecroPet.isOwnType(_item.getType())
+            && this.m.Actor.getID() == tame.Actor.getID() && ("getType" in _item) && ("setType" in _item)
             && this.getItemAtSlot(::Const.ItemSlot.Accessory) != null && ::World.Assets.getStash().hasEmptySlot())
         {
             ::World.Assets.getStash().add(_item);
@@ -769,7 +769,7 @@ S.canStashPet <- function( _actor )
     local acc = _actor.getItems().getItemAtSlot(::Const.ItemSlot.Accessory);
     return acc != null && ::BGP.NecroPet.isOwnItem(acc) && ::World.Assets.getStash().hasEmptySlot();
 };
-S.StashRule <- "亡灵法师导师：饰品栏已有死灵宠物时仍可使用，收服的亡灵放进仓库";
+S.StashRule <- "亡灵法师导师：饰品栏已有亡灵宠物时仍可使用，收服的宠物放进仓库";
 
 mod.hook("scripts/skills/actives/bgp_necro_bind_skill", function(q)
 {
@@ -791,7 +791,7 @@ mod.hook("scripts/skills/actives/bgp_necro_bind_skill", function(q)
                 if (!("id" in row))
                     continue;
                 if (row.id == 11)
-                    row.text = "饰品栏空着时收服并直接装备（本场不能再放出）；饰品栏已有死灵宠物时可继续收服并放进仓库；属性、名字、伤势沿用这个单位";
+                    row.text = "饰品栏空着时收服并直接装备（本场不能再放出）；饰品栏已有亡灵宠物时可继续收服并放进仓库；属性、名字、伤势沿用这个单位";
                 else if (row.id == 20 && stashFull)
                     row.text = ::MSU.Text.colorNegative("仓库已满，无法收进仓库");
             }
@@ -809,25 +809,10 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
             && S.canStashPet(actor);
     };
 
-    // 亡灵法师导师学会“亡灵法术大师”后可在双路线驯服亡灵，但仍不能驯服野兽；未学前隐藏且不可用
+    // Mentor can tame beasts normally and unlocks undead taming with Grandmaster; when holding an undead pet, tamed pets go to stash.
     q.isHidden = @(__original) function()
     {
-        local actor = this.getContainer().getActor();
-        if (S.isActive() && S.isChief(actor))
-        {
-            if (!actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"))
-                return true;
-            return __original() && !this.isStashMode();
-        }
         return __original() && !this.isStashMode();
-    };
-
-    q.isUsable = @(__original) function()
-    {
-        local actor = this.getContainer().getActor();
-        if (S.isActive() && S.isChief(actor) && !actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"))
-            return false;
-        return __original();
     };
 
     q.getTooltip = @(__original) function()
@@ -840,28 +825,12 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
             {
                 if ("id" in row && row.id == 2)
                 {
-                    row.text = "以亡灵法术驯服敌方亡灵（导师无法驯服野兽）。饰品栏空着时收服并直接装备；饰品栏已有死灵宠物时可继续收服并放进仓库。";
+                    row.text = "可驯服敌方野兽或亡灵。饰品栏空着时收服并直接装备；饰品栏已有亡灵宠物时可继续收服并放进仓库。";
                     break;
                 }
             }
         }
         return ret;
-    };
-
-    q.onVerifyTarget = @(__original) function( _originTile, _targetTile )
-    {
-        if (!__original(_originTile, _targetTile))
-            return false;
-        local actor = this.getContainer().getActor();
-        local chiefOnlyUndead = S.isActive() && S.isChief(actor);
-        if (!chiefOnlyUndead && !this.isStashMode())
-            return true;
-        local prev = ::BGP.NecroPet.TamingActor;
-        ::BGP.NecroPet.TamingActor = actor;
-        local type = null;
-        try { type = ::Const.Companions.resolveTameType(_targetTile.getEntity()); } catch (e) { type = null; }
-        ::BGP.NecroPet.TamingActor = prev;
-        return type != null && ::BGP.NecroPet.isOwnType(type);
     };
 
     q.onUse = @(__original) function( _user, _targetTile )
@@ -900,10 +869,15 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
         }
         if (item != null)
         {
-            try { ::BGP.NecroPet.fillFromEntity(item, target); } catch (e) { ::logError("[PaleSovereign] 驯服入库: " + e); }
-            if (elite)
-                S.petSet(item, "Elite", 1);
-            ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(actor) + "把" + item.m.Name + "封进棺椁，放进了仓库");
+            if (::BGP.NecroPet.isOwnItem(item))
+            {
+                try { ::BGP.NecroPet.fillFromEntity(item, target); } catch (e) { ::logError("[PaleSovereign] 驯服入库: " + e); }
+                if (elite)
+                    S.petSet(item, "Elite", 1);
+                ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(actor) + "把" + item.m.Name + "封进棺椁，放进了仓库");
+            }
+            else
+                ::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(actor) + "驯服了" + item.m.Name + "，放进了仓库");
         }
         return ret;
     };

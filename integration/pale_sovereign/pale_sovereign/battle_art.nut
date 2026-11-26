@@ -254,13 +254,13 @@ S.Mod.hook("scripts/skills/special/morale_check", function(q) {
                 {
                     id = 2,
                     type = "description",
-                    text = "这个角色不受士气检定影响，绝不会动摇或溃逃。"
+                    text = "无畏的躯体不再受恐惧左右。"
                 },
                 {
                     id = 10,
                     type = "text",
                     icon = "ui/icons/morale.png",
-                    text = "免疫士气下降、动摇、崩溃与溃逃"
+                    text = "免疫所有士气检定与士气下降"
                 }
             ];
         }

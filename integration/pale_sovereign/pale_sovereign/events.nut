@@ -361,7 +361,7 @@ S.campPanel <- function( _event, _screen )
     local jade = this.countItems("misc.pale_jade");
     local opening = [
         "旧棺静静停在火光之外，盐袋与锁链各安其位。两条道路尚未落定，账簿上还留着大片空白。",
-        "铜箍紧锁的旧棺里传来低沉的共鸣。你翻开染血的账簿，清点着为铸就不朽冠军而筹备的一切。",
+        "铜箍紧锁的旧棺里传来低沉的共鸣。你翻开染血的账簿，清点着为铸就不朽勇士而筹备的一切。",
         "营地边缘弥漫着粗盐与防腐药草的刺鼻气味。你翻开厚重的名册，清点着随时准备淹没战场的亡者储备。"
     ][oath];
     _screen.Text = opening + "\n\n誓约　" + this.OathNames[oath] + "\n防腐尸骸　" + this.get("Reserve") + " / " + this.reserveLimit()
@@ -419,7 +419,7 @@ S.campPanel <- function( _event, _screen )
                 for (local i = 0; i < 3; ++i)
                     S.removeMaterial("jade");
                 S.promoteGuard(pet);
-                return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：基础生命 150、决心 150、主动性 150、近战技能 80、近战防御 30，之前的成长保留；获得【号令亡魂】【冢王威压】和换位，在场时导师每回合首次受击生命与护甲伤害各 −20，并免疫爆头额外伤害与击退、抓取）";
+                return "导师将三枚魂玉依次推入守卫的胸腔。碧光沿着肋骨爬满全身，它稳稳立起长矛，向你致礼。\n\n（晋升为尸妖王：基础生命 150、决心 150、主动值 150、近战技能 80、近战防御 30，之前的成长保留；获得【号令亡魂】【冢王威压】和换位，在场时导师每回合首次受击生命与护甲伤害各 −20，并免疫爆头额外伤害与击退、抓取）";
             });
         if (this.get("BannerReward") != 0 && pet != null && pet.m.PaleID == this.get("StarterID"))
             this.option(_screen, "授予荒坟守卫第三面残旗", function()
@@ -568,7 +568,7 @@ S.renderEvent <- function( _event, _screen )
             break;
 
         case "conquest_governor":
-            title = "冠军坐镇";
+            title = "勇士坐镇";
             art = "conquest_governor";
             this.governorPanel(_screen);
             break;
@@ -583,17 +583,17 @@ S.renderEvent <- function( _event, _screen )
             closing = false;
             if (this.oath() == this.Oath.Champion)
             {
-                title = "冠军之誓";
+                title = "勇士之誓";
                 art = "oath_champion";
-                _screen.Text = "你在篝火旁坐到了后半夜。法杖横放在膝上，杖头的魂火一明一灭，像在等你开口。马车里那口旧棺比平日更安静，安静得近乎恭顺。\n\n你终于念出了那句誓词。不是向任何神祇，而是向棺中那具不肯腐朽的枯骨：从今往后，你不再驱使成群的死者，只锻造一尊冠军。你会用锁链去捕捉强者濒死时的残魂，把它们一缕缕抹进它的骨缝，直到它强得足以替你挡下世间所有的刀剑。誓言落定的一刻，另一条路在你心里无声地塌了下去，再也回不去了。"
-                    + "\n\n（立下【亡灵冠军】誓约，另一条路线的独有特技永久封闭，亡灵法术精通与亡灵法术大师仍可学习。缚魂锁链可在战场标记濒死强敌，胜利后为冠军注魂、吞魂或承誓；常驻亡灵数量只受名册限制，冠军路线每场最多部署 9 人；古代魂玉可为冠军铭刻、灵阶突破、晋升荒坟守卫；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为骸骨权杖。）";
+                _screen.Text = "你在篝火旁坐到了后半夜。法杖横放在膝上，杖头的魂火一明一灭，像在等你开口。马车里那口旧棺比平日更安静，安静得近乎恭顺。\n\n你终于念出了那句誓词。不是向任何神祇，而是向棺中那具不肯腐朽的枯骨：从今往后，你不再驱使成群的死者，只锻造一尊勇士。你会用锁链去捕捉强者濒死时的残魂，把它们一缕缕抹进它的骨缝，直到它强得足以替你挡下世间所有的刀剑。誓言落定的一刻，另一条路在你心里无声地塌了下去，再也回不去了。"
+                    + "\n\n（立下【亡灵勇士】誓约，另一条路线的独有特技永久封闭，亡灵法术精通与亡灵法术大师仍可学习。缚魂锁链可在战场标记濒死强敌，胜利后为勇士注魂、吞魂或承誓；常驻亡灵数量只受名册限制，勇士路线每场最多部署 9 人；古代魂玉可为勇士铭刻、灵阶突破、晋升荒坟守卫；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为骸骨权杖。）";
                 this.option(_screen, "“它会是我唯一的剑。”", @() null);
             }
             else
             {
                 title = "天灾之誓";
                 art = "oath_scourge";
-                _screen.Text = "你把法杖插进营地边的冻土，对着荒野里看不见尽头的黑暗低声立誓。没有冠军，没有王座，也不需要谁来替你挡刀——你要的是数量，是潮水，是让每一片战场都在你身后重新站起来的死者。\n\n誓词出口时，四周的风忽然停了。盗墓贼放下铲子，不安地望向远处的坟岗；马车里的盐封裹尸布轻轻鼓动，像是底下有什么东西翻了个身。你知道，从这一夜起，你走过的每一处战场都会成为你的兵源，而另一条路已经永远关上了门。"
+                _screen.Text = "你把法杖插进营地边的冻土，对着荒野里看不见尽头的黑暗低声立誓。没有勇士，没有王座，也不需要谁来替你挡刀——你要的是数量，是潮水，是让每一片战场都在你身后重新站起来的死者。\n\n誓词出口时，四周的风忽然停了。盗墓贼放下铲子，不安地望向远处的坟岗；马车里的盐封裹尸布轻轻鼓动，像是底下有什么东西翻了个身。你知道，从这一夜起，你走过的每一处战场都会成为你的兵源，而另一条路已经永远关上了门。"
                     + "\n\n（立下【亡灵天灾】誓约，另一条路线的独有特技永久封闭，亡灵法术精通与亡灵法术大师仍可学习。名册上限 " + ::World.Assets.getBrothersMax() + " 人、每场部署 " + ::World.Assets.getBrothersMaxInCombat() + " 人；全队可投掷防腐尸骸作尸弹；常驻亡灵数量只受名册限制；古代魂玉可册封魂玉统领、为锁魂者破限，营地可炼化 6 级以上常驻亡灵换取魂玉；学会第 6 阶路线特技后，初生骷髅法杖将蜕变为千魂法杖。）";
                 this.option(_screen, "“让死者涨潮。”", @() null);
             }
@@ -624,24 +624,24 @@ S.renderEvent <- function( _event, _screen )
             closing = false;
             local species = this.get("SoulSpecies");
             local soul = species > 0 && species < this.Souls.len() ? this.Souls[species] : null;
-            _screen.Text = "硝烟尚未散尽，" + flags.get("Pale.SoulName") + " 残破的遗骸仍躺在血泊之中，缠绕其上的黑铁锁链正发出急促而尖锐的嗡鸣。马车里的旧棺随之剧烈震颤，" + pet.m.Name + " 仿佛闻到了某种令它渴望已久的古老气息。\n\n趁这缕残魂尚未彻底消散，你握紧法杖，决定如何将其彻底榨干并注入冠军体内。（选定注魂方式后消耗 1 条缚魂锁链）";
-            this.option(_screen, "强化躯体 · " + S.soulBodyText(), @() S.resolveSoul("body") ? "冠军的骸骨又紧实了几分。" : "这次注魂未完成。");
+            _screen.Text = "硝烟尚未散尽，" + flags.get("Pale.SoulName") + " 残破的遗骸仍躺在血泊之中，缠绕其上的黑铁锁链正发出急促而尖锐的嗡鸣。马车里的旧棺随之剧烈震颤，" + pet.m.Name + " 仿佛闻到了某种令它渴望已久的古老气息。\n\n趁这缕残魂尚未彻底消散，你握紧法杖，决定如何将其彻底榨干并注入勇士体内。（选定注魂方式后消耗 1 条缚魂锁链）";
+            this.option(_screen, "强化躯体 · " + S.soulBodyText(), @() S.resolveSoul("body") ? "勇士的骸骨又紧实了几分。" : "这次注魂未完成。");
             if (soul != null && this.canDevour(pet))
-                this.option(_screen, "吞魂 · 获得【" + soul.Name + "】：" + soul.Desc, @() S.resolveSoul("soul") ? "一缕残魂沉入冠军的躯体。（获得【" + soul.Name + "】）" + S.soulJadeText() : "这次注魂未完成。");
+                this.option(_screen, "吞魂 · 获得【" + soul.Name + "】：" + soul.Desc, @() S.resolveSoul("soul") ? "一缕残魂沉入勇士的躯体。（获得【" + soul.Name + "】）" + S.soulJadeText() : "这次注魂未完成。");
             else if (soul != null && this.petGet(pet, "Species." + species) != 0)
-                _screen.Text += "\n\n该冠军已拥有【" + soul.Name + "】。";
+                _screen.Text += "\n\n该勇士已拥有【" + soul.Name + "】。";
             else
-                _screen.Text += "\n\n该冠军的吞魂次数已满（" + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）。";
+                _screen.Text += "\n\n该勇士的吞魂次数已满（" + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "）。";
             local inherit = S.inheritParts(pet);
             if (inherit.len() > 0)
             {
                 local inheritText = "";
                 foreach (i, part in inherit)
                     inheritText += (i == 0 ? "" : "、") + part;
-                this.option(_screen, "承誓 · 继承" + inheritText, @() S.resolveSoul("inherit") ? "冠军接过亡者的誓言与武艺。（继承" + inheritText + "）" + S.soulJadeText() : "这次注魂未完成。");
+                this.option(_screen, "承誓 · 继承" + inheritText, @() S.resolveSoul("inherit") ? "勇士接过亡者的誓言与武艺。（继承" + inheritText + "）" + S.soulJadeText() : "这次注魂未完成。");
             }
             else
-                _screen.Text += "\n\n它既没有冠军加成可传（或冠军已经有了），也没有具名武器，无可承誓。";
+                _screen.Text += "\n\n它既没有冠军加成可传（或勇士已经有了），也没有具名武器，无可承誓。";
             this.option(_screen, "放走残魂，保留锁链", function() { S.set("PendingSoul", 0); return null; });
             break;
 
@@ -672,8 +672,8 @@ S.renderEvent <- function( _event, _screen )
             if (this.oath() == this.Oath.Champion)
             {
                 art = "evolve_champion";
-                _screen.Text = "夜深人静，你将初生骷髅法杖横架在渐渐转暗的篝火之上。跳动的橘红火焰并未灼伤枯骨，反而像是遇见了天敌般剧烈蜷缩，随即被杖头那缕愈发炽烈的幽蓝魂火尽数吞没。\n\n随着你低声重申亡灵冠军的誓约，车厢里那具钉满铜箍的旧棺猛然一震，卫士的兵刃在棺内发出低沉而狂热的金属共鸣。法杖表面原本纵横交错的裂纹在魂火中寸寸弥合，粗糙的铁箍融化成暗沉的镀铜，那颗苍白的颅骨缓缓睁开空洞的眼眶，一股令人窒息的君王威压顺着杖身涌入你的掌心。它不再是荒冢里拼凑出的简陋法器，而是足以加冕并号令不朽冠军的【骸骨权杖】。";
-                this.option(_screen, "“以此权杖，加冕我的冠军。”", @() S.evolveStaff() ? "初生骷髅法杖蜕变为【骸骨权杖】。" : "法杖仍在原处。");
+                _screen.Text = "夜深人静，你将初生骷髅法杖横架在渐渐转暗的篝火之上。跳动的橘红火焰并未灼伤枯骨，反而像是遇见了天敌般剧烈蜷缩，随即被杖头那缕愈发炽烈的幽蓝魂火尽数吞没。\n\n随着你低声重申亡灵勇士的誓约，车厢里那具钉满铜箍的旧棺猛然一震，卫士的兵刃在棺内发出低沉而狂热的金属共鸣。法杖表面原本纵横交错的裂纹在魂火中寸寸弥合，粗糙的铁箍融化成暗沉的镀铜，那颗苍白的颅骨缓缓睁开空洞的眼眶，一股令人窒息的君王威压顺着杖身涌入你的掌心。它不再是荒冢里拼凑出的简陋法器，而是足以加冕并号令不朽勇士的【骸骨权杖】。";
+                this.option(_screen, "“以此权杖，加冕我的勇士。”", @() S.evolveStaff() ? "初生骷髅法杖蜕变为【骸骨权杖】。" : "法杖仍在原处。");
             }
             else
             {
@@ -720,7 +720,7 @@ S.renderEvent <- function( _event, _screen )
                     S.petSet(pet, "Mastery", 1);
                     pet.updateCompanion();
                     chief.getSkills().update();
-                    return "你咬破指尖，将昂贵的死灵秘药与自身魂火一并灌入 " + pet.m.Name + " 的躯体。漫长的仪式几乎榨干了你的精力，但当它重新抬起头时，每一寸骨骼都散发着令人胆寒的锋芒。\n\n（冠军获得专属称号，永久 +4 近战技能、+4 近战防御，并获得主手武器专精；导师 2 天内全属性 −15%）";
+                    return "你咬破指尖，将昂贵的死灵秘药与自身魂火一并灌入 " + pet.m.Name + " 的躯体。漫长的仪式几乎榨干了你的精力，但当它重新抬起头时，每一寸骨骼都散发着令人胆寒的锋芒。\n\n（勇士获得专属称号，永久 +4 近战技能、+4 近战防御，并获得主手武器专精；导师 2 天内全属性 −15%）";
                 });
             this.option(_screen, "“把你的本能交给我，我比你更需要它。”（永久牺牲 " + pet.m.Name + "，" + pet.m.Level + " 级）", function()
             {
@@ -741,7 +741,7 @@ S.renderEvent <- function( _event, _screen )
 
         case "empty":
             title = "空棺回营";
-            _screen.Text = "两名盗墓贼垂头丧气地把那具沉重的旧棺抬回了营地。棺盖大敞着，里面空空如也，只剩下几片碎裂的骨渣和一缕尚未散尽的青烟。\n\n曾经替你挡下无数刀锋的冠军已经彻底化作尘埃。矮个子盗墓贼抹了把脸上的灰，小心翼翼地问你：是花钱去黑市打听另一处藏着古代精锐的古墓，还是干脆就地唤醒一具普通的卫士，先填上身边的空缺。";
+            _screen.Text = "两名盗墓贼垂头丧气地把那具沉重的旧棺抬回了营地。棺盖大敞着，里面空空如也，只剩下几片碎裂的骨渣和一缕尚未散尽的青烟。\n\n曾经替你挡下无数刀锋的勇士已经彻底化作尘埃。矮个子盗墓贼抹了把脸上的灰，小心翼翼地问你：是花钱去黑市打听另一处藏着古代精锐的古墓，还是干脆就地唤醒一具普通的卫士，先填上身边的空缺。";
             if (assets.getMoney() >= 250)
                 this.option(_screen, "“花 250 金，去买一处古墓精锐的线索。”", function()
                 {
@@ -803,7 +803,7 @@ S.renderEvent <- function( _event, _screen )
                 pet.m.Attributes.MeleeSkill += 1;
                 pet.m.Attributes.Stamina += 1;
                 pet.updateCompanion();
-                return "你将法杖重重顿在棺盖上，倾泻而出的冰冷意志如重锤般砸进棺内。凄厉的嘶吼戛然而止，残魂在你的威压下彻底驯服，你的心神经此一役愈发坚不可摧，只是短期内难免有些力竭。\n\n（导师 2 天内全属性 −10%，导师永久 +3 决心；冠军永久 +1 近战技能、+1 疲劳）";
+                return "你将法杖重重顿在棺盖上，倾泻而出的冰冷意志如重锤般砸进棺内。凄厉的嘶吼戛然而止，残魂在你的威压下彻底驯服，你的心神经此一役愈发坚不可摧，只是短期内难免有些力竭。\n\n（导师 2 天内全属性 −10%，导师永久 +3 决心；勇士永久 +1 近战技能、+1 疲劳）";
             });
             this.option(_screen, "“随它们去，让更强的那个吞掉弱者。”", function()
             {
@@ -816,7 +816,7 @@ S.renderEvent <- function( _event, _screen )
                 S.setPetTitle(pet, ::Math.rand(0, 1) != 0 ? "暴骨" : "冷魂");
                 S.petSet(pet, "WhispersDone", 1);
                 pet.updateCompanion();
-                return "棺内的撞击声持续了整整半个时辰，最终只剩下一声充满暴戾气息的低吼。弱小的残魂已被彻底咀嚼殆尽，留下的意志变得前所未有地极端而凶悍。\n\n（冠军获得专属称号，" + names[up] + " +10，" + names[down] + " −5）";
+                return "棺内的撞击声持续了整整半个时辰，最终只剩下一声充满暴戾气息的低吼。弱小的残魂已被彻底咀嚼殆尽，留下的意志变得前所未有地极端而凶悍。\n\n（勇士获得专属称号，" + names[up] + " +10，" + names[down] + " −5）";
             });
             if (assets.getArmorParts() >= 5)
                 this.option(_screen, "“拿工具来，把铜箍再钉死几寸。”（5 点工具）", function()
@@ -904,7 +904,7 @@ S.renderEvent <- function( _event, _screen )
                     else
                     {
                         bro.getBaseProperties().Stamina += 3;
-                        lines.push(bro.getName() + " 永久 +3 疲劳上限");
+                        lines.push(bro.getName() + " 永久 +3 疲劳值上限");
                     }
                     bro.getSkills().update();
                 }
@@ -1021,7 +1021,7 @@ S.renderEvent <- function( _event, _screen )
                 chief.getBaseProperties().Bravery += 10;
                 chief.getSkills().update();
                 local route = S.oath() == S.Oath.Champion
-                    ? "冠军吞魂上限 +1、魂玉铭刻上限 +1，缚魂锁链可标记生命不高于 50% 的目标，“强化躯体”改为固定 3 项属性各 +4"
+                    ? "勇士吞魂上限 +1、魂玉铭刻上限 +1，缚魂锁链可标记生命不高于 50% 的目标，“强化躯体”改为固定 3 项属性各 +4"
                     : S.oath() == S.Oath.Scourge
                         ? "所有常驻亡灵与复活单位 +20 生命、+10% 伤害，防腐尸骸上限提至 " + S.reserveLimit() + "，每场最多部署 16 人；魂玉统领上限 4 名，术法淬玉可同时 2 种，炼化不再虚弱"
                         : "尚未立誓，路线加成在立誓后生效";

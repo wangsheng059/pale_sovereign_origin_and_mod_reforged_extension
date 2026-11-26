@@ -7,7 +7,7 @@ this.bgp_hunting_hour_effect <- ::inherit("scripts/skills/skill", {
 	function create()
 	{
 		this.m.ID = "effects.bgp_hunting_hour";
-		this.m.Name = "狂热";
+		this.m.Name = "狂猎时刻";
 		this.m.Icon = "ui/perks/perk_bgp_hunting_hour.png";
 		this.m.Type = ::Const.SkillType.StatusEffect;
 		this.m.Order = ::Const.SkillOrder.Perk;

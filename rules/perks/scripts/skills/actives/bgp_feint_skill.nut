@@ -6,7 +6,7 @@ this.bgp_feint_skill <- ::inherit("scripts/skills/actives/rotation", {
 		this.rotation.create();
 		this.m.ID = "actives.bgp_feint";
 		this.m.Name = ::BGP.PerkNames.Feint;
-		this.m.Description = "与 2 格内的一只友方野兽瞬间交换位置。交换后野兽获得防御姿态，你获得主动值加成。";
+		this.m.Description = "与 2 格内的友方野兽瞬间换位，趁敌人失神抢占先机。";
 		this.m.Icon = "skills/bgp_feint_skill.png";
 		this.m.IconDisabled = "skills/bgp_feint_skill_sw.png";
 		this.m.IsSerialized = false;

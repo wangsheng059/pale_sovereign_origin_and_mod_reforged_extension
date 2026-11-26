@@ -115,7 +115,7 @@ S.TierTalents <- {
     death_burst = { Flavor = "就算倒下，也要把围攻者一起拖进坟墓。", Name = "死亡自爆", Description = "死亡时引爆自己的尸体。判定同尸爆，伤害为两倍，波及 2 格内的敌人，不伤友军。", Script = "effects/pale_tier_body_effect" },
     unyielding = { Flavor = "黑线越绷越紧，这具残躯就越难倒下。", Name = "不屈残躯", Description = "生命低于 50% 时受到的伤害降低 15%。", Script = "effects/pale_tier_body_effect" },
     flesh_frenzy = { Flavor = "流出的血越多，它就越疯狂。", Name = "血肉狂热", Description = "每损失 10% 最大生命，攻击伤害 +5%，最多 +30%。", Script = "effects/pale_tier_attack_effect" },
-    heavy_stomp = { Flavor = "一脚下去，盾牌和骨头一起碎裂。", Name = "沉重践踏", Description = "重踏相邻敌人，钝击伤害为最大生命 ÷ 4 加头甲与身甲的疲劳惩罚，穿甲 45%、破甲 140%，无视一半盾防。命中时使其眩晕 1 回合，并波及它身旁的一名敌人。", Script = "actives/pale_heavy_stomp" },
+    heavy_stomp = { Flavor = "一脚下去，盾牌和骨头一起碎裂。", Name = "沉重践踏", Description = "沉重一脚踏向身前敌人，震晕主目标并波及旁人。", Script = "actives/pale_heavy_stomp" },
     stench_aura = { Flavor = "离得太近的人，很快就会喘不过气。", Name = "腐臭光环", Description = "相邻敌人在回合开始时获得 8 点疲劳，本回合决心 −5。", Script = "effects/pale_tier_aura" },
     rending_pounce = { Flavor = "它总能越过挡路的人，扑向真正的猎物。", Name = "撕裂扑击", Description = "跃至 2 格内敌人身旁的空格并连续砍击，每次命中叠加流血。", Script = "actives/pale_rending_pounce" }
 };

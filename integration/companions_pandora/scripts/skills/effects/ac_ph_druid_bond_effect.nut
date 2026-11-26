@@ -41,7 +41,7 @@ this.ac_ph_druid_bond_effect <- this.inherit("scripts/skills/skill", {
 			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "随德鲁伊成长至 [color=" + this.Const.UI.Color.PositiveValue + "]" + this.m.Level + "[/color] 级" }
 		];
 
-		local labels = ["生命", "胆识", "体力", "主动性", "近战技能", "远程技能", "近战防御", "远程防御"];
+		local labels = ["生命", "胆识", "疲劳值", "主动值", "近战技能", "远程技能", "近战防御", "远程防御"];
 		local icons = ["health", "bravery", "fatigue", "initiative", "melee_skill", "ranged_skill", "melee_defense", "ranged_defense"];
 		foreach (i, gain in this.m.Gains)
 		{

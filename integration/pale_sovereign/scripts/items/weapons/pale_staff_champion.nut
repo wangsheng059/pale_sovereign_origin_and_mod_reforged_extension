@@ -5,7 +5,7 @@ this.pale_staff_champion <- ::inherit("scripts/items/weapons/pale_staff", {
         this.pale_staff.create();
         this.m.ID = "weapon.pale_staff_champion";
         this.m.Name = "骸骨权杖";
-        this.m.Description = "镀铜的颅骨已将冠军誓约深深烙进杖身，每一次挥动都带着君临沙场的威压。导师与所有友方亡灵将合力追猎权杖标定的猎物。";
+        this.m.Description = "镀铜的颅骨已将勇士誓约深深烙进杖身，每一次挥动都带着君临沙场的威压。导师与所有友方亡灵将合力追猎权杖标定的猎物。";
         this.m.PaleForm = "_champion";
         this.m.RegularDamage = 75;
         this.m.RegularDamageMax = 95;

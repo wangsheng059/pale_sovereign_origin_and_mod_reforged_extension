@@ -50,7 +50,7 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
 		local extra = ::BGP.Necro.spellDurationBonus(this.getContainer().getActor());
 		ret.extend([
-			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "技能范围为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；目标为有尸体的格子（格子上可以有人）" },
+			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "技能范围为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；目标为有尸体的格子（格子上可以有人；不能作用于即将自行爬起的尸体或永恒禁卫残骸）" },
 			{ id = 11, type = "text", icon = "ui/icons/regular_damage.png", text = "对目标格和相邻 1 格内的所有敌人造成钝器伤害，等于尸体生前最大生命的 " + ::MSU.Text.colorPositive(::BGP.Necro.pctText(::BGP.Necro.WillScale.BlastPct(w))) + ::BGP.Necro.willText(w) + "；不伤友军" },
 			{ id = 12, type = "text", icon = "ui/icons/armor_damage.png", text = "尸体死亡时头甲、身甲还有剩余耐久的，额外造成劈砍伤害，等于剩余耐久总和的 " + ::MSU.Text.colorPositive("25%") + "（对护甲效率 " + ::MSU.Text.colorPositive("150%") + "）" },
 			{ id = 13, type = "text", icon = "ui/icons/morale.png", text = "被波及还活着的敌人做一次士气检定，难度 " + ::MSU.Text.colorNegative("-" + ::BGP.Necro.WillScale.BlastMorale(w)) },

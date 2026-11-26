@@ -5,13 +5,21 @@ this.pale_doom_mark_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_doom_mark";
         this.m.Name = "死兆";
-        this.m.Description = "魂玉统领的魂火盯上了这个被削弱的目标。受到亡灵的伤害 +15%，受到尸爆的伤害 +25%。";
+        this.m.Description = "魂玉统领的魂火盯上了这个被削弱的目标。";
         this.m.Icon = "skills/pale_doom_mark_status.png";
         this.m.IconDisabled = "skills/pale_doom_mark_status_sw.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;
         this.m.IsStacking = false;
+    }
+
+    function getTooltip()
+    {
+        local ret = this.skill.getTooltip();
+        ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "受到友方亡灵的伤害 " + ::MSU.Text.colorNegative("+15%") });
+        ret.push({ id = 11, type = "text", icon = "ui/icons/regular_damage.png", text = "受到尸爆的伤害 " + ::MSU.Text.colorNegative("+25%") });
+        return ret;
     }
 
     function onBeforeDamageReceived( _attacker, _skill, _hitInfo, _properties )

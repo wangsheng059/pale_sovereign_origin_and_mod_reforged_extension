@@ -4,7 +4,7 @@ this.pale_weaken <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "actives.pale_weaken";
         this.m.Name = "衰弱术";
-        this.m.Description = "无需视线的阴冷诅咒，如无形枯手扼住目标的咽喉，令其挥刃沉重、步履蹒跚。自动命中，不造成伤势，每回合一次。";
+        this.m.Description = "无视遮挡的阴冷诅咒，抽干目标的气力，让它出刃无力、架盾发虚。必定命中，不会造成临时伤。";
         this.m.Icon = "skills/pale_weaken.png";
         this.m.IconDisabled = "skills/pale_weaken_sw.png";
         this.m.Type = ::Const.SkillType.Active;

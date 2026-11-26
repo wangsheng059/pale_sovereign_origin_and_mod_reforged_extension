@@ -44,8 +44,8 @@ this.bgp_necro_flesh_reforge_skill <- ::inherit("scripts/skills/skill", {
 		local ret = this.skill.getDefaultUtilityTooltip();
 		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
 		ret.extend([
-			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "目标为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格内你的亡灵（你复活的单位、你的死灵宠物、永恒禁卫），不需要视野；它所在格或相邻 1 格内要有一具尸体，尸体被摧毁" },
-			{ id = 11, type = "text", icon = "ui/icons/armor_body.png", text = "第 1 次嫁接 骨刺外甲：" + ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.BoneArmor(w)) + " 点独立骨甲（先于护甲吸收伤害）；骨甲没碎时，每次被近战攻击对攻击者造成 " + ::MSU.Text.colorNegative(::BGP.Necro.WillScale.BoneThorns(w)) + " 点穿刺伤害（无视护甲）" + ::BGP.Necro.willText(w) },
+			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "目标为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格内你的亡灵（你复活的单位、你的亡灵宠物、永恒禁卫），不需要视野；它所在格或相邻 1 格内要有一具尸体，尸体被摧毁（不能作用于即将自行爬起的尸体或永恒禁卫残骸）" },
+			{ id = 11, type = "text", icon = "ui/icons/armor_body.png", text = "第 1 次嫁接 骨刺外甲：" + ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.BoneArmor(w)) + " 点独立骨甲（先于护甲吸收伤害）；骨甲没碎时，每次被近战攻击对攻击者造成 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.BoneThorns(w)) + " 点穿刺伤害（无视护甲）" + ::BGP.Necro.willText(w) },
 			{ id = 12, type = "text", icon = "ui/icons/action_points.png", text = "第 2 次嫁接 畸变肌腱：行动点上限 " + ::MSU.Text.colorPositive("+2") + "，每格移动行动点 " + ::MSU.Text.colorPositive("-1") + "（最少 1），所有攻击命中头部几率 " + ::MSU.Text.colorPositive("+15%") },
 			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "每个单位每场战斗最多嫁接 2 次" }
 		]);

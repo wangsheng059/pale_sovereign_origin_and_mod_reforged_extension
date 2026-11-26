@@ -26,8 +26,8 @@ this.pale_rending_pounce <- ::inherit("scripts/skills/actives/pale_tier_attack",
     {
         local ret = this.getDefaultTooltip();
         local actor = this.getContainer().getActor();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/initiative.png", text = "当前先手 " + actor.getInitiative()
-            + "，连续攻击 " + this.getAttackCount(actor) + " 次。伤害独立于手持武器，适用砍刀特技。" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/initiative.png", text = "每 60 点主动值连续攻击 1 次（最少 1 次；当前主动值 " + actor.getInitiative()
+            + "，连续攻击 " + this.getAttackCount(actor) + " 次）。伤害独立于手持武器，适用砍刀特技。" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png",
             text = "每回合 1 次。可跃过其他单位，落在目标相邻的空格。起跳时无视借机攻击。目标死亡后结束连击。" });
         return ret;

@@ -14,7 +14,7 @@ this.pale_breakthrough_effect <- ::inherit("scripts/skills/skill", {
 
     function getDescription()
     {
-        return "熔进髓腔的魂玉让冠军跨过了生前的极限。玉髓重铸 " + this.m.Stacks + " 层：伤害 +" + (this.m.Stacks * 10) + "%，行动点 +" + this.m.Stacks + "（生命加成已计入属性）。";
+        return "熔进髓腔的魂玉让勇士跨过了生前的极限。玉髓重铸 " + this.m.Stacks + " 层：伤害 +" + (this.m.Stacks * 10) + "%，行动点 +" + this.m.Stacks + "（生命加成已计入属性）。";
     }
 
     function onUpdate( _properties )

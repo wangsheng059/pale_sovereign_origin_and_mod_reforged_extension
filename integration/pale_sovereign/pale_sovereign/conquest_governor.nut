@@ -59,7 +59,7 @@ S.returnGovernor <- function( _town )
 {
     local flags = _town.getFlags();
     if (flags.get("PaleGovernor") != true)
-        return "这座城没有冠军坐镇。";
+        return "这座城没有勇士坐镇。";
     local stash = ::World.Assets.getStash();
     if (!stash.hasEmptySlot())
     {
@@ -77,7 +77,7 @@ S.returnGovernor <- function( _town )
 S.assignGovernor <- function( _town, _coffin )
 {
     if (this.oath() != this.Oath.Champion || this.conquestMode(_town) == 0 || _town.getFlags().get("PaleGovernor") == true)
-        return "无法派遣冠军。";
+        return "无法派遣勇士。";
     local stash = ::World.Assets.getStash();
     if (stash.getItems().find(_coffin) == null)
         return "这口棺椁已经不在战团物品栏。";
@@ -90,7 +90,7 @@ S.assignGovernor <- function( _town, _coffin )
 S.governorPanel <- function( _screen )
 {
     local town = this.findPaleTown();
-    _screen.Text = "冠军不需要睡眠，也从不擅离岗位。将一口候补棺椁留在城里，令冠军指挥亡灵驻军。";
+    _screen.Text = "勇士不需要睡眠，也从不擅离岗位。将一口候补棺椁留在城里，令勇士指挥亡灵驻军。";
     if (this.oath() != this.Oath.Champion || town == null)
         return;
     local flags = town.getFlags();

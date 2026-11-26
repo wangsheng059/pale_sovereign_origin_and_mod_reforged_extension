@@ -237,7 +237,7 @@ S.rewardAmbition <- function( _ambition, _key )
         case "immortal_guard":
             this.pendingItem("misc/pale_jade_item");
             this.pendingItem("misc/pale_chain_item");
-            this.amReward(_ambition, "获得魂玉与锁链各 1 件。出战冠军获得首次受击护盾，棺椁自然恢复翻倍，贴身护卫使导师近防、远防各 +5");
+            this.amReward(_ambition, "获得魂玉与锁链各 1 件。出战勇士获得首次受击护盾，棺椁自然恢复翻倍，贴身护卫使导师近防、远防各 +5");
             break;
         case "laden_cart":
             this.changeReserve(6);

@@ -7,20 +7,20 @@ S.CastleJobs <- [
     { Key = "wash", Name = "魂玉洗骨", Cost = "1 枚魂玉、2 点防腐尸骸", Items = [["misc.pale_jade", 1]], Reserve = 2, Pet = false, Unit = true, Route = 0,
       Desc = "从常驻亡灵所属种类的正面专属特质中随机注入 1 个。每名常驻亡灵限 2 次。" },
     { Key = "named", Name = "名器熔铸", Cost = "1 枚魂玉 + 1 件名器（或 1 枚魂玉 + 1 块金锭重铸承誓武器）", Items = [["misc.pale_jade", 1]], Reserve = 0, Pet = true, Unit = false, Route = 1,
-      Desc = "冠军独占。把仓库里的一件名器武器、头盔或护甲熔进冠军对应的栏位（保留名器基础属性）；或消耗 1 枚魂玉与 1 块金锭，重随冠军承誓武器的两项属性（只升不降，每项至多 +5%）。" },
+      Desc = "勇士独占。把仓库里的一件名器武器、头盔或护甲熔进勇士对应的栏位（保留名器基础属性）；或消耗 1 枚魂玉与 1 块金锭，重随勇士承誓武器的两项属性（只升不降，每项至多 +5%）。" },
     { Key = "inherit", Name = "棺魂传承", Cost = "1 枚魂玉", Items = [["misc.pale_jade", 1]], Reserve = 0, Pet = true, Unit = false, Route = 1,
-      Desc = "冠军独占。把冠军陵寝里一口候补棺椁的吞魂特质转给出战冠军（受吞魂上限约束，不含护驾遗志），那口棺椁随之销毁。" },
+      Desc = "勇士独占。把勇士陵寝里一口候补棺椁的吞魂特质转给出战勇士（受吞魂上限约束，不含护驾遗志），那口棺椁随之销毁。" },
     { Key = "enchant", Name = "术法淬玉", Cost = "2 枚魂玉（切换 1 枚）", Items = [["misc.pale_jade", 2]], Reserve = 0, Pet = false, Unit = false, Route = 2,
       Desc = "天灾独占。为整个战团附上一种死灵术法（同时生效 1 种，飞升后 2 种）。" },
     { Key = "coin", Name = "古币灌注", Cost = "1 枚古代金币", Items = [["misc.ancient_gold_coins", 1]], Reserve = 0, Pet = false, Unit = true, Route = 0,
       Desc = "选定的常驻亡灵直接补满当前等级剩余的经验，升 1 级。" },
     { Key = "gild", Name = "镀金骨甲", Cost = "1 块金锭", Items = [["loot.pale_gold_ingot", 1]], Reserve = 0, Pet = true, Unit = true, Route = 0,
-      Desc = "头盔与护甲最大耐久永久 +20（冠军棺椁自带的护甲也可以）。每名 1 次。" },
+      Desc = "头盔与护甲最大耐久永久 +20（勇士棺椁自带的护甲也可以）。每名 1 次。" },
     { Key = "gem", Name = "宝石眼窝", Cost = "1 颗宝石", Items = [["misc.gemstones", 1]], Reserve = 0, Pet = true, Unit = true, Route = 0,
-      Desc = "赋予永久特质【宝石眼窝】：主动性 +10、远程防御 +5、视野 +3。升阶保留，终生仅生效一次。" }
+      Desc = "赋予永久特质【宝石眼窝】：主动值 +10、远程防御 +5、视野 +3。升阶保留，每名单位限镶嵌一次。" }
 ];
 S.Enchants <- [
-    { Key = "miasma", Name = "玉毒尸弹", Desc = "尸弹落地时在目标格及周围 1 格生成 2 回合苍白尸瘴：活人敌人进入或在其中结束回合时受到 10–15 点无视护甲伤害，近战防御 −5。" },
+    { Key = "miasma", Name = "玉毒尸弹", Desc = "尸弹落地时在目标格及周围 1 格生成 2 回合苍白尸瘴：非亡灵敌人进入或在其中结束回合时受到 10–15 点无视护甲伤害，近战防御 −5。" },
     { Key = "echo", Name = "千魂回响", Desc = "导师每场前 2 次复活或召唤的疲劳消耗 −50%；唤起的临时亡灵带 3 回合玉骨盾：头、身各 +30 临时护甲，伤害 +15%。" },
     { Key = "tide", Name = "亡潮蓄能", Desc = "每场我方每累计击杀 4 名敌人，导师恢复 15 点疲劳，下一次衰弱术与岁月诅咒不耗行动点与疲劳（每场最多 3 次）。" }
 ];
@@ -410,7 +410,7 @@ S.forgeJobPanel <- function( _event, _screen )
         case "named":
             if (pet == null)
             {
-                _screen.Text += "\n\n先把冠军的棺椁装进导师的饰品栏。";
+                _screen.Text += "\n\n先把勇士的棺椁装进导师的饰品栏。";
                 break;
             }
             foreach (item in this.namedStashItems())
@@ -425,12 +425,12 @@ S.forgeJobPanel <- function( _event, _screen )
         case "inherit":
             if (pet == null)
             {
-                _screen.Text += "\n\n先把主冠军的棺椁装进导师的饰品栏。";
+                _screen.Text += "\n\n先把主勇士的棺椁装进导师的饰品栏。";
                 break;
             }
             if (this.petGet(pet, "Devours") >= this.devourCap(pet))
             {
-                _screen.Text += "\n\n出战冠军的吞魂次数已满（" + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "），无法再承接残魂。";
+                _screen.Text += "\n\n出战勇士的吞魂次数已满（" + this.petGet(pet, "Devours") + " / " + this.devourCap(pet) + "），无法再承接残魂。";
                 break;
             }
             local shown = 0;
@@ -613,7 +613,7 @@ S.spawnJadeMiasma <- function( _tile )
         return;
     local miasma = {
         Type = "pale_jade_miasma",
-        Tooltip = "苍白尸瘴贴着地面翻涌，只侵蚀活人的血肉",
+        Tooltip = "苍白尸瘴贴着地面翻涌，只侵蚀非亡灵敌人的血肉",
         IsPositive = false,
         IsAppliedAtRoundStart = false,
         IsAppliedAtTurnEnd = true,

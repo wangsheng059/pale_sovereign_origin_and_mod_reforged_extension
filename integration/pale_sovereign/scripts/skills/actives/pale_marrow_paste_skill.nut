@@ -9,7 +9,7 @@ this.pale_marrow_paste_skill <- ::inherit("scripts/skills/actives/bandage_ally_s
         this.m.Icon = "skills/pale_marrow_paste.png";
         this.m.IconDisabled = "skills/pale_marrow_paste_sw.png";
         this.m.Overlay = "";
-        this.m.Description = "把急救骨髓膏抹进相邻常驻亡灵或冠军的裂口，恢复它的躯体。";
+        this.m.Description = "把急救骨髓膏抹进相邻常驻亡灵或勇士的裂口，恢复它的躯体。";
         this.m.ActionPointCost = 4;
         this.m.FatigueCost = 10;
         this.m.MinRange = 1;
@@ -20,7 +20,7 @@ this.pale_marrow_paste_skill <- ::inherit("scripts/skills/actives/bandage_ally_s
     function getTooltip()
     {
         local ret = this.getDefaultUtilityTooltip();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/health.png", text = "相邻的常驻亡灵或冠军恢复 " + ::Math.floor(this.getHealPct() * 100) + "% 最大生命，并清除流血、酸液、燃烧" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/health.png", text = "相邻的常驻亡灵或勇士恢复 " + ::Math.floor(this.getHealPct() * 100) + "% 最大生命，并清除流血、酸液、燃烧" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "使用后消耗这罐骨髓膏" });
         return ret;
     }

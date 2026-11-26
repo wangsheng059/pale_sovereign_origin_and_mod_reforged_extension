@@ -65,7 +65,7 @@ foreach (id, branch in branches)
 local talents = {
     bone_piercing_arrow = {
         Name = "穿骨箭", Flavor = "枯骨记得将箭头磨到什么角度，才能穿过甲片的接缝。",
-        Description = "弓类攻击的穿甲比例 +20 个百分点，攻击距离 +1。"
+        Description = "弓类攻击的穿甲比例 +20 个百分点，攻击距离 +1（不含亡者箭雨）。"
     },
     fixed_shot = {
         Name = "定点射击", Flavor = "它能在扣下机括以前站上整整一夜。",

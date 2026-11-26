@@ -16,7 +16,7 @@ this.bgp_hunting_hour_skill <- ::inherit("scripts/skills/skill", {
 	{
 		this.m.ID = "actives.bgp_hunting_hour";
 		this.m.Name = ::BGP.PerkNames.HuntingHour;
-		this.m.Description = "吹响终极猎号！你和场上所有友方野兽立即解除控制效果、恢复疲劳，并进入狂热。每场战斗限用 1 次。";
+		this.m.Description = "吹响终极猎号，唤起兽群与自身的狂猎斗志。";
 		this.m.Icon = "skills/bgp_hunting_hour_skill.png";
 		this.m.IconDisabled = "skills/bgp_hunting_hour_skill_sw.png";
 		this.m.Overlay = "rf_command_skill";
@@ -43,7 +43,7 @@ this.bgp_hunting_hour_skill <- ::inherit("scripts/skills/skill", {
 		local ret = this.skill.getDefaultUtilityTooltip();
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "你和场上所有友方野兽解除眩晕、网缚、蛛网、晕眩、踉跄、分神" },
-			{ id = 11, type = "text", icon = "ui/icons/fatigue.png", text = "恢复 " + ::MSU.Text.colorPositive("50%") + " 最大疲劳值" },
+			{ id = 11, type = "text", icon = "ui/icons/fatigue.png", text = "恢复 " + ::MSU.Text.colorPositive("50%") + " 疲劳值上限" },
 			{ id = 12, type = "text", icon = "ui/icons/initiative.png", text = "持续 2 回合：主动值 " + ::MSU.Text.colorPositive("+50") + "，士气锁定为自信" }
 		]);
 		if (this.m.IsSpent)

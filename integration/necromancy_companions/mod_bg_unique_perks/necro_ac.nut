@@ -539,26 +539,7 @@
 
 ::BGP.NecroPet.canEquip <- function( _actor, _item )
 {
-	if (!::BGP.NecroPet.isOwnItem(_item))
-		return true;
-	try
-	{
-		// Living brothers (including the Mentor) can equip undead pet coffins; permanent undead cannot.
-		if ("PaleSovereign" in ::getroottable())
-		{
-			if (::PaleSovereign.isChief(_actor))
-				return true;
-			if (::PaleSovereign.isUndead(_actor))
-				return false;
-		}
-		if (_actor.getFlags().has("undead"))
-			return false;
-		return true;
-	}
-	catch (e)
-	{
-	}
-	// Non-company actors without flags are unrestricted.
+	// All company members (living brothers, permanent undead, and soulbound) can equip undead pet coffins.
 	return true;
 }
 

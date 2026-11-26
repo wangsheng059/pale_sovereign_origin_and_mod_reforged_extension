@@ -4,7 +4,7 @@ S.FollowerData <- {
     embalmer = {
         Name = "防腐师", Archetype = "Steward", Image = "ui/campfire/pale_embalmer",
         Description = "他身上的盐味和松脂味怎么也洗不掉。再破烂的尸体到了他手里，也能腌得整整齐齐，在车厢里码得严丝合缝。",
-        Effects = ["遗骸封存率提高：天灾路线每 3 具 2 点，冠军路线每 2 具 1 点", "工具容量 +50、弹药容量 +100、医疗用品容量 +100，修理效率 +50%，常驻亡灵每日修补量提高至 70%", "常驻亡灵升阶后从 3 级起步（7 级升阶为 3 级），升阶消耗的防腐尸骸 −2"]
+        Effects = ["遗骸封存率提高：天灾路线每 3 具 2 点，勇士路线每 2 具 1 点", "工具容量 +50、弹药容量 +100、医疗用品容量 +100，修理效率 +50%，常驻亡灵每日修补量提高至 70%", "常驻亡灵升阶后从 3 级起步（7 级升阶为 3 级），升阶消耗的防腐尸骸 −2"]
     },
     gravekeeper = {
         Name = "掘墓人首领", Archetype = "Ranger", Image = "ui/campfire/pale_gravekeeper",
@@ -13,8 +13,8 @@ S.FollowerData <- {
     },
     wight_captain = {
         Name = "尸妖王侍卫长", Archetype = "Officer", Image = "ui/campfire/pale_wight_captain",
-        Description = "一名从古帝国站岗至今的沉默军官。它早已不记得自己的名字，却还记得怎样操练一名冠军。",
-        Effects = ["冠军经验 +50%", "缚魂锁链生命门槛 +5 个百分点；亡者之城和古堡兵营的待选亡灵从 8 名增加到 16 名；战团所有人（活人和亡灵）与所有宠物（驯服的野兽、死灵宠物、冠军）获得的经验 +20%","冠军在前 5 回合获得 +20 近战技能；战团每击杀一名敌方冠军获得 200 克朗"]
+        Description = "一名从古帝国站岗至今的沉默军官。它早已不记得自己的名字，却还记得怎样操练一名勇士。",
+        Effects = ["勇士经验 +50%", "缚魂锁链生命门槛 +5 个百分点；亡者之城和古堡兵营的待选亡灵从 8 名增加到 16 名；战团所有人（活人和亡灵）与所有宠物（驯服的野兽、亡灵宠物、勇士）获得的经验 +20%","勇士在前 5 回合获得 +20 近战技能；战团每击杀一名敌方冠军获得 200 克朗"]
     },
     banshee = {
         Name = "女妖", Archetype = "Agent", Image = "ui/campfire/pale_banshee",
@@ -311,7 +311,7 @@ S.Mod.rawHookTree("scripts/items/accessory/accessory", function(p)
     local original = p.addXP;
     p.addXP = function( _xp )
     {
-        // 1 级：冠军 +50%；2 级：所有宠物（驯服的野兽、死灵宠物、冠军）再 +20%，与冠军加成相加（冠军共 +70%）
+        // 1 级：冠军 +50%；2 级：所有宠物（驯服的野兽、亡灵宠物、勇士）再 +20%，与冠军加成相加（冠军共 +70%）
         local rank = S.isActive() ? S.followerRank("wight_captain") : 0;
         if (rank >= 1 && _xp > 0)
         {

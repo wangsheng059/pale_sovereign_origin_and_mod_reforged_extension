@@ -1,7 +1,7 @@
 local S = ::PaleSovereign, A = ::BGP.Autopilot;
 local staffStrikeMult = 0.25;
 local page = ::Autopilot.msu.ModSettings.getPage("背景与亡灵");
-page.addElement(::MSU.Class.BooleanSetting("paleAutoChampion", true, "导师自动放出冠军", "第一回合召唤僵尸和骷髅，第二回合起放出饰品栏冠军并优先支配它。"));
+page.addElement(::MSU.Class.BooleanSetting("paleAutoChampion", true, "导师自动放出勇士", "第一回合召唤僵尸和骷髅，第二回合起放出饰品栏勇士并优先支配它。"));
 page.addElement(::MSU.Class.BooleanSetting("paleAutoCorpseShot", true, "自动投掷防腐尸骸", "有尸骸储备时，可向敌群投掷尸弹。优先利用战场已有的尸体。"));
 page.addElement(::MSU.Class.BooleanSetting("paleAutoChain", false, "自动使用缚魂锁链", "允许导师标记可吞魂的强敌，或用一条锁链复活可收编的亡灵强敌。"));
 

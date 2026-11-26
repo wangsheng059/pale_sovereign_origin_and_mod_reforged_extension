@@ -71,7 +71,7 @@ S.UndeadTraits <- {
         Effects = [["ui/icons/melee_defense.png", "每有 1 名相邻的友方亡灵，近战防御 +3（最多 +9）"]] },
     brittle = { Name = "朽坏关节", Excluded = ["trait.quick", "trait.dexterous", "trait.pale_soulfire", "trait.pale_dense_bone"],
         Description = "捆住关节的铜索早已锈蚀，每走一步都咯吱作响。",
-        Effects = [["ui/icons/initiative.png", "主动 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/melee_defense.png", "近战防御 " + ::MSU.Text.colorNegative("-3")]] },
+        Effects = [["ui/icons/initiative.png", "主动值 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/melee_defense.png", "近战防御 " + ::MSU.Text.colorNegative("-3")]] },
     sleepless = { Name = "不眠者", Excluded = [],
         Description = "死人不需要喘息，它只是在等下一道命令。",
         Effects = [["ui/icons/fatigue.png", "每回合疲劳恢复 +3"]] },
@@ -86,10 +86,10 @@ S.UndeadTraits <- {
         Effects = [["ui/icons/special.png", "受到重伤的阈值提高 25%"], ["ui/icons/armor_head.png", "被击中头部时的额外伤害降低 25%"]] },
     toxic_flesh = { Name = "腐毒血肉", Excluded = [],
         Description = "砍开它的皮肉，溅出来的不是血，而是一股呛人的腐毒。",
-        Effects = [["ui/icons/fatigue.png", "每次受到近战生命伤害时，1 格内的活人攻击者疲劳 +5"]] },
+        Effects = [["ui/icons/fatigue.png", "每次受到近战生命伤害时，1 格内的非亡灵敌人疲劳 +5"]] },
     refined_joints = { Name = "精炼骨节", Excluded = [],
         Description = "关节被细细打磨过，铜索换成了上好的银线，动起来几乎没有声响。",
-        Effects = [["ui/icons/fatigue.png", "最大疲劳 +10，每回合额外恢复 2 点疲劳"]] },
+        Effects = [["ui/icons/fatigue.png", "疲劳值上限 +10，每回合额外恢复 2 点疲劳"]] },
     tall_frame = { Name = "高大骨架", Excluded = ["trait.tiny"],
         Description = "这副骨架生前属于一个异常高大的人，挥起兵器来分量十足，却也更容易被打中。",
         Effects = [["ui/icons/regular_damage.png", "近战伤害 +10%"], ["ui/icons/health.png", "生命 +8"],
@@ -99,11 +99,11 @@ S.UndeadTraits <- {
         Effects = [["ui/icons/health.png", "生命 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/armor_body.png", "受到的钝击伤害 " + ::MSU.Text.colorNegative("+10%")]] },
     soulfire = { Name = "魂火炽烈", Excluded = ["trait.hesitant", "trait.pale_brittle"],
         Description = "眼窝里的魂火烧得比同类更旺，总是第一个动起来。",
-        Effects = [["ui/icons/initiative.png", "主动 +10"]] },
+        Effects = [["ui/icons/initiative.png", "主动值 +10"]] },
     // Eight negative traits with dedicated origin art.
     stiff_corpse = { Name = "僵直尸身", Excluded = ["trait.quick", "trait.dexterous", "trait.pale_soulfire"],
         Description = "尸僵从没真正褪去，关节像冻住的门轴，每个动作都慢半拍。",
-        Effects = [["ui/icons/initiative.png", "主动 " + ::MSU.Text.colorNegative("-15")], ["ui/icons/melee_defense.png", "近战防御 " + ::MSU.Text.colorNegative("-3")]] },
+        Effects = [["ui/icons/initiative.png", "主动值 " + ::MSU.Text.colorNegative("-15")], ["ui/icons/melee_defense.png", "近战防御 " + ::MSU.Text.colorNegative("-3")]] },
     broken_fingers = { Name = "残缺手指", Excluded = ["trait.strong", "trait.pale_gnawing"],
         Description = "几根手指早已烂掉，剩下的勉强攥住兵器，砍下去总是使不上劲。",
         Effects = [["ui/icons/regular_damage.png", "近战伤害 " + ::MSU.Text.colorNegative("-10%")]] },
@@ -118,10 +118,10 @@ S.UndeadTraits <- {
         Effects = [["ui/icons/armor_body.png", "身体受到的伤害 " + ::MSU.Text.colorNegative("+10%")]] },
     rusted_pins = { Name = "锈蚀骨钉", Excluded = ["trait.athletic", "trait.pale_refined_joints", "trait.pale_brittle"],
         Description = "固定骨节的铁钉锈成了一团，每动一下都要多费一份力气。",
-        Effects = [["ui/icons/fatigue.png", "最大疲劳 " + ::MSU.Text.colorNegative("-10") + "，每回合疲劳恢复 " + ::MSU.Text.colorNegative("-2")]] },
+        Effects = [["ui/icons/fatigue.png", "疲劳值上限 " + ::MSU.Text.colorNegative("-10") + "，每回合疲劳恢复 " + ::MSU.Text.colorNegative("-2")]] },
     dim_soulfire = { Name = "魂火黯淡", Excluded = ["trait.quick", "trait.eagle_eyes", "trait.pale_soulfire"],
         Description = "眼窝里只剩一点将熄的余烬，它看不远，也总是最后一个动起来。",
-        Effects = [["ui/icons/initiative.png", "主动 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/vision.png", "视野 " + ::MSU.Text.colorNegative("-1")]] },
+        Effects = [["ui/icons/initiative.png", "主动值 " + ::MSU.Text.colorNegative("-10")], ["ui/icons/vision.png", "视野 " + ::MSU.Text.colorNegative("-1")]] },
     // 1.7.0 活人与亡灵联动的特质（不进随机池）
     former_comrade = { Name = "旧日同袍", Excluded = [],
         Description = "它还记得自己活着时和谁并肩站过队。只要身边有活人弟兄，它站得比谁都稳。",
@@ -131,16 +131,16 @@ S.UndeadTraits <- {
         Effects = [["ui/icons/warning.png", "已被缚魂锁链召返过一次，不能再次召返；无法移除"]] },
     acclimated = { Name = "见怪不怪", Excluded = [],
         Description = "和死人同吃同住久了，这点阵仗早就吓不住他了。",
-        Effects = [["ui/icons/bravery.png", "免疫亡灵相关事件的心情下降"], ["ui/icons/special.png", "友方常驻亡灵与召唤仆从阵亡不再触发他的士气检定"]] },
+        Effects = [["ui/icons/bravery.png", "免疫亡灵相关事件的心情下降，免疫孤立心悸（身边只有亡灵时不 −2 决心）"], ["ui/icons/special.png", "友方亡灵（含常驻亡灵、亡灵宠物与召唤仆从）阵亡不再触发他的士气检定"]] },
     death_indenture = { Name = "生前死契", Excluded = [],
         Description = "他已经和导师签好了死后的去处。活着时少拿一半军饷，死了也还要跟着老弟兄们走。",
-        Effects = [["ui/icons/asset_daily_money.png", "日常军饷 -50%"], ["ui/icons/bravery.png", "决心 +4"], ["ui/icons/special.png", "免疫亡灵相关事件的心情下降；阵亡且遗体完整时，战后只需 2 点防腐尸骸即可转化为同名常驻亡灵"]] },
+        Effects = [["ui/icons/asset_daily_money.png", "日常军饷 -50%"], ["ui/icons/bravery.png", "决心 +4"], ["ui/icons/special.png", "免疫亡灵相关事件的心情下降、孤立心悸（身边只有亡灵时不 −2 决心）及友方亡灵（含常驻亡灵、亡灵宠物与召唤仆从）阵亡士气检定；阵亡且遗体完整时，战后只需 2 点防腐尸骸即可转化为同名常驻亡灵"]] },
     fallen_saint = { Name = "堕落圣徒", Excluded = [],
         Description = "他亲手丢掉了旧护符。救下他的是一具行尸，而不是天上的神。",
-        Effects = [["ui/icons/bravery.png", "决心 +4"], ["ui/icons/special.png", "免疫亡灵相关事件的心情下降；友方常驻亡灵阵亡不再触发他的士气检定"]] },
+        Effects = [["ui/icons/bravery.png", "决心 +4"], ["ui/icons/special.png", "免疫亡灵相关事件的心情下降、孤立心悸（身边只有亡灵时不 −2 决心），友方亡灵（含常驻亡灵、亡灵宠物与召唤仆从）阵亡不再触发他的士气检定"]] },
     gem_eyes = { Name = "宝石眼窝", Icon = "soulfire", Excluded = [],
         Description = "古堡魂炉将打磨过的宝石嵌进它的眼眶，幽冷的折光让它在暗夜与箭雨里也能一眼看清猎物。",
-        Effects = [["ui/icons/initiative.png", "主动性 +10"], ["ui/icons/ranged_defense.png", "远程防御 +5"], ["ui/icons/vision.png", "视野 +3"], ["ui/icons/special.png", "古堡魂炉镶嵌，升阶保留，终生仅生效一次"]] },
+        Effects = [["ui/icons/initiative.png", "主动值 +10"], ["ui/icons/ranged_defense.png", "远程防御 +5"], ["ui/icons/vision.png", "视野 +3"], ["ui/icons/special.png", "古堡魂炉镶嵌，升阶保留，每名单位限镶嵌一次"]] },
     forgotten_drill = { Name = "遗忘武艺", Excluded = ["trait.bright", "trait.pale_old_drill"],
         Description = "生前学过的招式早已随魂魄散尽，它挥舞兵器的样子和村夫抡锄头没什么两样。",
         Effects = [["ui/icons/melee_skill.png", "近战技能 " + ::MSU.Text.colorNegative("-5")], ["ui/icons/ranged_skill.png", "远程技能 " + ::MSU.Text.colorNegative("-5")]] }
@@ -438,7 +438,7 @@ S.RecruitPoolDays <- 7;
 S.RecruitPerPage <- 4;
 S.RecruitPage <- 0;
 S.RecruitTalentNames <- [
-    ["Hitpoints", "生命"], ["Bravery", "决心"], ["Fatigue", "体力"], ["Initiative", "主动"],
+    ["Hitpoints", "生命"], ["Bravery", "决心"], ["Fatigue", "疲劳值"], ["Initiative", "主动值"],
     ["MeleeSkill", "近战"], ["RangedSkill", "远程"], ["MeleeDefense", "近防"], ["RangedDefense", "远防"]
 ];
 
@@ -529,7 +529,7 @@ S.recruitCandidateText <- function( _bro, _index )
     try
     {
         local p = _bro.getCurrentProperties();
-        text += "\n生命 " + _bro.getHitpointsMax() + "　决心 " + p.getBravery() + "　体力 " + _bro.getFatigueMax() + "　主动 " + p.getInitiative()
+        text += "\n生命 " + _bro.getHitpointsMax() + "　决心 " + p.getBravery() + "　疲劳值 " + _bro.getFatigueMax() + "　主动值 " + p.getInitiative()
             + "\n近战 " + p.getMeleeSkill() + "　远程 " + p.getRangedSkill() + "　近防 " + p.getMeleeDefense() + "　远防 " + p.getRangedDefense();
     }
     catch (e)

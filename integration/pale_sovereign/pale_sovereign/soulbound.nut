@@ -41,7 +41,7 @@ S.SoulboundClasses <- {
     },
     barrow = {
         Name = "墓穴恶鬼", Skeleton = false, Look = "fallen_hero",
-        Description = "墓冢里爬出的北地亡者，须发上还挂着冰霜。锁链没能磨掉它的狂怒，只是替这份狂怒指定了方向。",
+        Description = "墓冢里爬出的北地亡者，须发上还结着霜。黑铁锁链套在它腕上，把那股蛮横的杀气指往你的敌人。",
         Scripts = ["rf_draugr_huskarl", "rf_draugr_huskarl_bodyguard", "rf_draugr_hero"],
         Groups = [["axe", "cleaver"], ["power", "swift"], ["medium_armor", "heavy_armor"], ["vicious", "unstoppable"]],
         Excluded = ["bow", "crossbow", "throwing", "ranged", "dagger"],
@@ -58,7 +58,7 @@ S.SoulboundClasses <- {
     },
     hex = {
         Name = "禁咒师", Skeleton = true, Look = "skeleton_king",
-        Description = "祭司与先知的禁咒刻在它的骨头上。它不再为自己的神祇吟唱，而是用那些古老的音节扼住生者的胆气。",
+        Description = "祭司与先知的禁咒刻在它的骨头上。旧神早已无人记起，那些古老的音节依旧能让活人发抖。",
         Scripts = ["skeleton_priest", "rf_draugr_shaman"],
         Groups = [["polearm", "dagger"], ["swift", "shield"], ["light_armor", "medium_armor"], ["tactician", "fast"]],
         Excluded = ["bow", "crossbow", "throwing", "ranged", "heavy_armor"],
@@ -75,7 +75,7 @@ S.SoulboundClasses <- {
     },
     blood = {
         Name = "血族", Skeleton = false, Look = "tomb_blademaster",
-        Description = "暗夜的捕食者被锁链拴在了导师的阴影里。它依旧渴血，只是现在由别人决定它该咬向谁的喉咙。",
+        Description = "暗夜里的捕食者如今被锁在导师影子里。它照样嗜血，只是该扑向哪根喉咙，得听绳索那一头吩咐。",
         Scripts = ["vampire", "vampire_low", "rf_vampire_lord"],
         Groups = [["sword", "cleaver"], ["swift", "power"], ["light_armor", "medium_armor"], ["agile", "fast"]],
         Excluded = ["bow", "crossbow", "throwing", "ranged", "shield", "heavy_armor"],
@@ -93,7 +93,7 @@ S.SoulboundClasses <- {
 };
 S.SoulboundOrder <- ["legion", "knight", "barrow", "hex", "blood"];
 S.SoulboundStatKeys <- ["Hitpoints", "MeleeSkill", "MeleeDefense", "RangedDefense", "Initiative", "Stamina"];
-S.SoulboundStatNames <- ["生命", "近战技能", "近战防御", "远程防御", "主动性", "体力"];
+S.SoulboundStatNames <- ["生命", "近战技能", "近战防御", "远程防御", "主动值", "疲劳值"];
 S.SoulboundStatMult <- 0.8;
 
 // 锁魂者专属特技
@@ -107,17 +107,17 @@ S.SoulPerks <- {
     hex_domain = { Name = "禁咒领域", Icon = "skills/pale_sb_hex_domain",
         Description = "每回合开始时，3 格内所有敌人的近战技能、远程技能、决心各 −10，持续到它们下一回合结束。" },
     blood_feast = { Name = "血宴", Icon = "skills/pale_sb_blood_feast",
-        Description = "每击杀 1 名敌人，本场战斗造成的伤害 +5%、主动性 +20，可无限叠加。" },
+        Description = "每击杀 1 名敌人，本场战斗造成的伤害 +5%、主动值 +20，可无限叠加。" },
     barrow_chant = { Name = "墓穴挽歌", Icon = "skills/pale_sb_barrow_chant",
         Description = "每回合开始时，3 格内的敌人受挽歌影响直到其下一回合结束：士气每低于稳定一级，造成的伤害 −10%。" },
     necro_attune = { Name = "死灵共鸣", Icon = "skills/pale_sb_necro_attune",
-        Description = "此人在场时，战团复活的亡灵生命上限 +10。" },
+        Description = "此人在场时，战团通过「复活死者」唤起的亡灵生命上限 +10（不叠加，不含主动召唤技能）。" },
     blinding_hex = { Name = "致盲禁咒", Icon = "skills/pale_sb_blinding_hex",
         Description = "攻击命中后目标陷入致盲：近战技能、远程技能 −15，持续到其下一回合结束。" },
     blood_thirst = { Name = "血之渴", Icon = "skills/pale_sb_blood_thirst",
         Description = "攻击造成生命伤害时，恢复造成伤害 35% 的生命。" },
     night_walker = { Name = "夜行", Icon = "skills/pale_sb_night_walker",
-        Description = "夜战时主动性 +20。" }
+        Description = "夜战时主动值 +20。" }
 };
 
 local perkDefs = [];
@@ -674,7 +674,7 @@ S.refinePanel <- function( _screen )
 {
     _screen.Text = "炼化会把一名常驻亡灵的魂火凝成古代魂玉，躯壳随之化为骨渣，无法挽回。只有 " + this.RefineLevel + " 级以上的常驻亡灵才有足够的魂火。";
     if (!this.isAscended())
-        _screen.Text += "\n\n（飞升前，每次炼化都会令导师虚弱 2 天：决心与疲劳上限 −15%，虚弱消退前无法再次炼化）";
+        _screen.Text += "\n\n（飞升前，每次炼化都会令导师虚弱 2 天：决心与疲劳值上限 −15%，虚弱消退前无法再次炼化）";
     if ("isRefineWeak" in this && this.isRefineWeak())
     {
         local left = ::Math.max(1, ::Math.ceil((::World.Flags.getAsFloat("Pale.RefineWeakUntil") - (::World.getTime().Days + ::World.getTime().Hours / 24.0)) * 24.0));
@@ -716,7 +716,7 @@ S.refineConfirmPanel <- function( _screen )
         + background.m.Name + "　" + target.getLevel() + " 级"
         + (::PaleSovereign.isSoulbound(target) ? "　锁魂者" : "")
         + "\n\n炼化后它将永久离开战团，无法复活或召回。身上的装备会放回仓库，你获得 1 枚古代魂玉。"
-        + (this.isAscended() ? "" : "\n\n注意：抽取魂火会令导师虚弱 2 天（决心与疲劳上限 −15%），虚弱结束前不能再次炼化。");
+        + (this.isAscended() ? "" : "\n\n注意：抽取魂火会令导师虚弱 2 天（决心与疲劳值上限 −15%），虚弱结束前不能再次炼化。");
     this.option(_screen, "确认炼化 " + target.getName(), function()
     {
         S.RefineTarget = null;

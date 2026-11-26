@@ -11,7 +11,7 @@
 
 ::AC_PH_Compat <- {
 	ID = "mod_ac_ph_compat",
-	Version = "1.2.3",
+	Version = "1.2.4",
 	Name = "配件兄弟×潘多拉兼容补丁"
 };
 

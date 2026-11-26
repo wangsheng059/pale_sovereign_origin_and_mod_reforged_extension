@@ -13,7 +13,12 @@ this.bgp_quirk_necro_pact <- ::inherit("scripts/companions/quirks/companions_goo
 	function getTooltip()
 	{
 		local ret = this.companions_good_boy.getTooltip();
-		ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "11 级起每升 1 级：最小伤害 +0.5、最大伤害 +1（同“好孩子”）" });
+		local level = 11;
+		try { level = this.getContainer().getActor().m.Item.m.Level; } catch (e) { level = 11; }
+		local bonus = ::Math.max(0, level - 10);
+		local minB = ::Math.floor(0.5 * bonus);
+		local maxB = ::Math.floor(1.0 * bonus);
+		ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "当前最小伤害 " + ::MSU.Text.colorPositive("+" + minB) + "、最大伤害 " + ::MSU.Text.colorPositive("+" + maxB) + "（11 级起每升 1 级 +0.5 / +1，向下取整）" });
 		return ret;
 	}
 });

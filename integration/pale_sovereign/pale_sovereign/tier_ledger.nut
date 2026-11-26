@@ -84,7 +84,7 @@ S.tierBranchSummary <- function( _key )
     local stats = branch.Stats;
     local text = "【" + branch.Name + "】" + branch.Description + "\n生命 " + stats[0] + "　近战 " + stats[1]
         + ("RangedSkill" in branch ? "　远程 " + branch.RangedSkill : "")
-        + "　近防 " + stats[2] + "　远防 " + stats[3] + "　先手 " + stats[4] + "　行动点 " + stats[5] + "　决心 100";
+        + "　近防 " + stats[2] + "　远防 " + stats[3] + "　主动值 " + stats[4] + "　行动点 " + stats[5] + "　决心 100";
     foreach (key in branch.Skills)
     {
         local talent = this.TierTalents[key];

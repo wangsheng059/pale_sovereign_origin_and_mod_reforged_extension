@@ -5,7 +5,7 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 	{
 		this.m.ID = "actives.bgp_necro_bind";
 		this.m.Name = "驱役亡灵";
-		this.m.Description = "以意志锁住亡灵的魂火。你可以收回亲手复活的仆从，也可以趁敌方亡灵虚弱时将它收入棺椁，成为战团的死灵宠物。";
+		this.m.Description = "以意志锁住亡灵的魂火。你可以收回亲手复活的仆从，也可以趁敌方亡灵虚弱时将它收入棺椁，成为战团的亡灵宠物。";
 		this.m.Icon = "skills/bgp_necro_bind_skill.png";
 		this.m.IconDisabled = "skills/bgp_necro_bind_skill_sw.png";
 		this.m.Overlay = "";
@@ -42,9 +42,9 @@ this.bgp_necro_bind_skill <- ::inherit("scripts/skills/skill", {
 		local pct = this.getEnemyHpThresholdPct(user);
 		local resolve = ::BGP.Necro.getResolve(user);
 		ret.extend([
-			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "目标为 " + ::MSU.Text.colorPositive("6") + " 格内仍在场的单位：你亲手复活的友军不限生命值；敌方亡灵须尚未死亡，且当前生命不高于最大生命的 " + ::MSU.Text.colorPositive(pct + "%") + "（5% + ⌊(当前决心 " + resolve + " − 20) / 8⌋%，上限 30%）。目标须有对应的死灵宠物类型" },
+			{ id = 10, type = "text", icon = "ui/icons/special.png", text = "目标为 " + ::MSU.Text.colorPositive("6") + " 格内仍在场的单位：你亲手复活的友军不限生命值；敌方亡灵须尚未死亡，且当前生命不高于最大生命的 " + ::MSU.Text.colorPositive(pct + "%") + "（5% + ⌊(当前决心 " + resolve + " − 20) / 8⌋%，上限 30%）。目标须有对应的亡灵宠物类型" },
 			{ id = 11, type = "text", icon = "ui/icons/special.png", text = "只能在饰品栏空着时使用，收服后直接装备（本场不能再放出）；属性、名字、伤势沿用这个单位" },
-			{ id = 12, type = "text", icon = "ui/icons/special.png", text = "之后和配件兄弟的宠物一样放出、收回、升级，升级时从亡灵特质池抽特质，11 级得到死灵契约" },
+			{ id = 12, type = "text", icon = "ui/icons/special.png", text = "之后和其他饰品栏的宠物一样放出、收回、升级，升级时从亡灵特质池抽特质，11 级得到死灵契约" },
 			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "记住它现在的武器和护甲：每次放出都是满耐久的同款，不会掉落；原来那套随它一起消失" }
 		]);
 		if (!this.hasDestination(user))

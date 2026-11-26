@@ -436,7 +436,7 @@
 	::BGP.AttrInfo = [];
 	::BGP.AttrInfo.resize(A.COUNT, null);
 	::BGP.AttrInfo[A.Hitpoints] = { Field = "Hitpoints", Ref = 60.0, Mult = "HitpointsMult", Name = "生命值", Kind = 0 };
-	::BGP.AttrInfo[A.Fatigue] = { Field = "Stamina", Ref = 100.0, Mult = "StaminaMult", Name = "疲劳上限", Kind = 0 };
+	::BGP.AttrInfo[A.Fatigue] = { Field = "Stamina", Ref = 100.0, Mult = "StaminaMult", Name = "疲劳值", Kind = 0 };
 	::BGP.AttrInfo[A.Initiative] = { Field = "Initiative", Ref = 110.0, Mult = "InitiativeMult", Name = "主动值", Kind = 1 };
 	::BGP.AttrInfo[A.RangedSkill] = { Field = "RangedSkill", Ref = 50.0, Mult = "RangedSkillMult", Name = "远程技能", Kind = 1 };
 	::BGP.AttrInfo[A.RangedDefense] = { Field = "RangedDefense", Ref = 10.0, Mult = "RangedDefenseMult", Name = "远程防御", Kind = 1 };

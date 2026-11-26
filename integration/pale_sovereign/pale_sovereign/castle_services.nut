@@ -21,7 +21,7 @@ S.castleTombs <- function( _town )
 S.storeCastleCoffin <- function( _town, _item, _put )
 {
     if (!this.castleHas(_town, "pale_mausoleum"))
-        return "这座古堡还没有冠军陵寝。";
+        return "这座古堡还没有勇士陵寝。";
     local carry = ::World.Assets.getStash();
     local tomb = _town.m.Stash;
     local from = _put ? carry : tomb;

@@ -228,7 +228,7 @@
 	try { e.getSkills().update(); } catch (err) {}
 	try { e.setDirty(true); } catch (err) {}
 	if (!_owner.isHiddenToPlayer())
-		::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_owner) + "唤来了" + ::Const.UI.getColorizedEntityName(e) + "（不灭冠军）");
+		::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_owner) + "唤来了" + ::Const.UI.getColorizedEntityName(e) + "（不灭勇士）");
 	return true;
 }
 

@@ -4,7 +4,7 @@ this.pale_soul_chain <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "actives.pale_soul_chain";
         this.m.Name = "缚魂锁链";
-        this.m.Description = "甩出黑铁锁链缠住濒死的强敌，强行锚定其将散未散的魂火。只要战后遗骸尚存，便可将其力量注入冠军体内。";
+        this.m.Description = "甩出黑铁锁链缠住垂死的强敌，锁住它不散的魂火。只要战后遗骸尚存，便可把它的力量灌入勇士体内。";
         this.m.Icon = "skills/pale_chain.png";
         this.m.IconDisabled = "skills/pale_chain_sw.png";
         this.m.Type = ::Const.SkillType.Active;
@@ -26,7 +26,7 @@ this.pale_soul_chain <- ::inherit("scripts/skills/skill", {
         local ret = this.getDefaultUtilityTooltip();
         local count = ::PaleSovereign.countItems("misc.pale_chain");
         ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "无需视野。标记 6 格内生命不高于 " + ::PaleSovereign.markThreshold() + "% 的强敌（敌阵中带有【可缚之魂】提示的目标），同时附加【锁链牵制】（无法溃逃、近战防御 −10、对导师伤害 −20%）。战胜并保全遗骸（头颅完整）后可注魂，每战限一名。" });
-        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "战团持有 " + count + " 条锁链。需由导师放出冠军后使用，完成注魂时才消耗。" });
+        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "战团持有 " + count + " 条锁链。需由导师放出勇士后使用，完成注魂时才消耗。" });
         return ret;
     }
 
