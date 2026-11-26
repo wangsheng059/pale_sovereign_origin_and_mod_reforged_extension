@@ -1,5 +1,7 @@
 local S = ::PaleSovereign;
 ::MSU.AI.addBehavior("PaleFormation", "Pale.Formation", ::Const.AI.Behavior.Order.EngageMelee, ::Const.AI.Behavior.Score.Attack);
+// Run Champion Rotation BEFORE Shieldwall & Attacks so Lich King never cancels a freshly raised Shieldwall by rotating afterwards.
+::MSU.AI.addBehavior("PaleChampionRotation", "Pale.ChampionRotation", 20, ::Const.AI.Behavior.Score.Attack);
 
 S.isFormationUndead <- function(actor)
 {
@@ -123,10 +125,17 @@ S.formationLead <- function(tile, threats)
 S.Mod.hook("scripts/ai/tactical/agent", function(q) {
     q.onTurnStarted = @(__original) function() {
         local actor = this.getActor();
+        local added = false;
         if (S.isFormationUndead(actor) && this.getBehavior(::Const.AI.Behavior.ID.PaleFormation) == null) {
             this.addBehavior(::new("scripts/ai/pale_formation_move"));
-            this.finalizeBehaviors();
+            added = true;
         }
+        if (S.isChampionAI(actor) && actor.getSkills().hasSkill("actives.rotation")
+            && this.getBehavior(::Const.AI.Behavior.ID.PaleChampionRotation) == null) {
+            this.addBehavior(::new("scripts/ai/pale_champion_rotation"));
+            added = true;
+        }
+        if (added) this.finalizeBehaviors();
         return __original();
     };
     q.sortBehaviors = @(__original) function() {
@@ -141,7 +150,7 @@ S.Mod.hook("scripts/ai/tactical/agent", function(q) {
                 foreach (b in this.m.Behaviors) {
                     if (b.getScore() <= 0) continue;
                     switch (b.ClassName) {
-                        case "pale_formation_move": case "ai_idle": case "ai_break_free": case "ai_recover":
+                        case "pale_formation_move": case "pale_champion_rotation": case "ai_idle": case "ai_break_free": case "ai_recover":
                         case "ai_defend_shieldwall": case "ai_defend_spearwall": case "ai_defend_riposte":
                         case "ai_attack_bow": case "ai_attack_crossbow": case "ai_attack_handgonne": continue;
                         case "ai_attack_default":
@@ -153,5 +162,47 @@ S.Mod.hook("scripts/ai/tactical/agent", function(q) {
             }
         }
         return __original();
+    };
+});
+
+// Smart Shieldwall discipline for Lich King & summoned/raised shield skeletons:
+// Healthy Lich King facing only 1 regular enemy swings TWICE instead of wasting 4 AP on Shieldwall;
+// rooted undead with no melee adjacent break free FIRST instead of wasting 4 AP on Shieldwall.
+S.Mod.hook("scripts/ai/tactical/behaviors/ai_defend_shieldwall", function(q) {
+    q.onEvaluate = @(__original) function(_entity) {
+        if (::Autopilot.conf("bgpSmartFrontline") && _entity.getFaction() == ::Const.Faction.PlayerAnimals
+            && (S.isChampionAI(_entity) || S.isRaisedFighter(_entity) || S.isFormationUndead(_entity))) {
+            local F = ::BGP.Autopilot.Frontline;
+            local enemies = F.collectEnemies(_entity, this.getAgent());
+            local meleeAdj = F.countDangerousMeleeAdjacent(_entity, enemies);
+            if (_entity.getCurrentProperties().IsRooted && meleeAdj == 0)
+                return ::Const.AI.Behavior.Score.Zero;
+            local hpPct = _entity.getHitpointsPct();
+            local isChamp = S.isChampionAI(_entity);
+            local heavyAdj = F.hasHeavyMeleeAdjacent(_entity, enemies);
+            if (meleeAdj == 0) {
+                local within2 = F.countDangerousMeleeWithin(_entity, enemies, 2);
+                if (within2 < 2) return ::Const.AI.Behavior.Score.Zero;
+            } else if (meleeAdj == 1) {
+                // Single melee enemy: only Shieldwall when wounded or facing a heavy 2H boss while hurt; otherwise swing twice!
+                local need = isChamp ? (hpPct <= 0.55 || (heavyAdj && hpPct <= 0.75)) : (hpPct <= 0.45);
+                if (!need) return ::Const.AI.Behavior.Score.Zero;
+            }
+        }
+        return __original(_entity);
+    };
+});
+
+// Suppress vanilla ai_defend_rotation on Lich King when smart AI is enabled so ONLY our Shieldwall-safe PaleChampionRotation controls Lich King's Rotation.
+// Note: ai_defend_rotation.onEvaluate is a Squirrel generator (uses yield), so we MUST hook evaluate(), NOT onEvaluate().
+S.Mod.hook("scripts/ai/tactical/behaviors/ai_defend_rotation", function(q) {
+    q.evaluate = @(__original) function(_entity) {
+        if (::Autopilot.conf("bgpSmartFrontline") && S.isChampionAI(_entity)) {
+            this.m.Thread = null;
+            this.m.TargetTile = null;
+            this.m.Score = 0;
+            return true;
+        }
+        return __original(_entity);
     };
 });

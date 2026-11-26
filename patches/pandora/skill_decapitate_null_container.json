@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "mod_pandoras_hobby/hooks/skills/skill.nut",
+  "before": "29fd0222e3b6fdf1e5669a8f79cc289f7a880e29d725434850ccce577a276e13",
+  "after": "08b167bdce94a9645162f935c36a8cafeb0ae74b9672500e0b4b4510bffe5e2a",
+  "old": "if(this.m.Container != null && this.m.Container.hasSkill(\"effects.ph_conqueror_potion\"))",
+  "new": "if(!::MSU.isNull(this.m.Container) && this.m.Container.hasSkill(\"effects.ph_conqueror_potion\"))"
+}

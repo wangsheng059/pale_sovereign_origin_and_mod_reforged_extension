@@ -154,11 +154,9 @@ S.worldEvent <- function()
             return;
         }
     }
-    if (this.get("HarvestNotice") != 0 && this.openEvent("harvest"))
-    {
+    // Corpse harvesting is fully automatic on victory; clear any legacy pending notice without opening a popup.
+    if (this.get("HarvestNotice") != 0)
         this.set("HarvestNotice", 0);
-        return;
-    }
     local ambition = ::World.Ambitions.getActiveAmbition();
     local glimpse = ambition != null && ambition.getID() == "ambition.ps_forbidden_glimpse";
     if (!glimpse && this.canAscend() && this.openEvent("ascend"))
@@ -434,7 +432,7 @@ S.campPanel <- function( _event, _screen )
         this.option(_screen, "常驻亡灵升阶 · 重铸形骸", function() { _event.m.TierPage = 0; return "@tier_roster"; });
     if (site != null && oath != this.Oath.None)
     {
-        if (this.get(site.Key + "Inspected") == 0 && (site.Kind == 1 || oath == this.Oath.Scourge))
+        if (this.get(site.Key + "Inspected") == 0 && site.Kind == 1)
             _screen.Options.push({
                 Text = "勘察 " + site.Name,
                 function getResult( _event )
@@ -735,7 +733,7 @@ S.renderEvent <- function( _event, _screen )
             this.option(_screen, "“先别打扰它，等它练完这套剑法。”", function()
             {
                 S.set("CrownDeferred", 1);
-                return "你示意守夜人退回篝火旁，静静看着它在月光下收招归位。\n\n（下次在古代遗址附近打开亡灵营地账簿时可再次触发）";
+                return "你示意守夜人退回篝火旁，静静看着它在月光下收招归位。\n\n（下次在古代遗址附近打开亡者的营地账簿时可再次触发）";
             });
             break;
 

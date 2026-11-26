@@ -62,6 +62,28 @@ this.pale_necromancer_background <- ::inherit("scripts/skills/backgrounds/bgp_ne
                 skills.add(::new("scripts/skills/actives/pale_summon_" + summon));
     }
 
+    function addResources()
+    {
+        this.bgp_necromancer_background.addResources();
+        if (!::PaleSovereign.isActive())
+            return;
+        // Pin transient Pale Sovereign FX & undead atlases in Temporary Tactical Resources for the whole battle
+        // so spell pulses and summons load each OpenGL texture once instead of thrashing VRAM dozens of times per fight.
+        foreach (res in [
+            "gfx/pale_status_hd.png",
+            "gfx/pale_status_art.png",
+            "gfx/pale_field_art.png",
+            "gfx/pale_unbreakable_mini.png",
+            "gfx/pale_summon_fx.png",
+            "gfx/pale_undead_heads.png",
+            "gfx/pale_undead_details.png",
+            "gfx/pale_undead_bodies.png"
+        ])
+        {
+            ::Tactical.addResource(res);
+        }
+    }
+
     function onUpdate( _properties )
     {
         this.bgp_necromancer_background.onUpdate(_properties);

@@ -44,7 +44,7 @@ S.ensureCaptiveChampion <- function( _bro )
     catch (e) { ::logError("[PaleSovereign] 俘虏冠军词条: " + e); }
 };
 
-S.CaptiveUsageText <- "双击：转化为常驻行尸（不耗防腐尸骸，保留等级；冠军转化后仍是冠军）。右键：招募为活人兄弟。立誓后也可以在亡灵营地的尸骸工坊宰杀，防腐尸骸 +1。";
+S.CaptiveUsageText <- "双击：转化为常驻行尸（不耗防腐尸骸，保留等级；冠军转化后仍是冠军）。右键：招募为活人兄弟。立誓后也可以在亡者的营地的尸骸工坊宰杀，防腐尸骸 +1。";
 
 mod.hook("scripts/ui/screens/character/character_screen", function(q)
 {

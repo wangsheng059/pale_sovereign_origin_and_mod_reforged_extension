@@ -215,12 +215,12 @@ S.onVictory <- function( _loot )
             soulFound = true;
     }
     this.set("LastVictoryHumanoid", humanoid ? 1 : 0);
-    if (!this.castleDefenseLoot(strategic, this.Battle.DefenseDead) && this.oath() != this.Oath.None)
+    if (!this.castleDefenseLoot(strategic, this.Battle.DefenseDead))
     {
-        // 复活技能拉起来的遗骸照样算一具（复活时记下，见 hooks.nut）
+        // Raised corpses still count toward the post-battle tally (tracked in hooks.nut).
         local total = corpses.len() + this.Battle.RaisedHarvest;
         local before = this.get("Reserve");
-        // 1.7.0 天灾路线每 2 具 1 点（防腐师每 3 具 2 点）；冠军路线每 5 具 2 点（防腐师每 2 具 1 点）；向下取整
+        // Scourge: 1 per 2 (2 per 3 with embalmer); Champion/pre-oath: 2 per 5 (1 per 2 with embalmer), floor.
         local rate = this.harvestRate();
         local harvestYield = (total * rate[0] / rate[1]).tointeger();
         if (harvestYield > 0 || total > 0)
@@ -229,14 +229,14 @@ S.onVictory <- function( _loot )
         local gathered = this.get("Reserve") - before;
         local used = ::Math.ceil(::Math.min(gathered, (total * rate[0] / rate[1]).tointeger()) * rate[1].tofloat() / rate[0]);
         this.Battle.Uncollected = ::Math.max(0, corpses.len() - used);
-        // 1.7.0 天灾路线：采集到精锐亡灵的尸体时 50% 得 1 枚魂玉（每场最多 1 枚）
+        // Scourge: 50% chance for 1 Ancient Soul Jade when harvesting an elite undead corpse (max 1 per battle).
         if (eliteUndead && this.oath() == this.Oath.Scourge && ::Math.rand(1, 100) <= 50 && this.addMaterials("jade", 1))
             ::Tactical.EventLog.log("精锐亡灵的骸骨里藏着一枚古代魂玉。");
         this.set("LastHarvest", gathered);
         this.set("LastCorpseCount", total);
         this.set("HarvestArtStep", (this.get("HarvestArtStep") + 1) % 4);
-        this.set("HarvestNotice", 1);
-        ::Tactical.EventLog.log("清点合格遗骸 " + total + " 具，封存防腐尸骸：" + before + " → " + this.get("Reserve") + "。");
+        this.set("HarvestNotice", 0);
+        ::Tactical.EventLog.log("清点合格遗骸 " + total + " 具，自动封存防腐尸骸：" + before + " → " + this.get("Reserve") + "。");
         ::logInfo("[PaleSovereign] 遗骸采集：地上尸体 " + stats.Seen + "，合格 " + corpses.len() + "，复活计入 " + this.Battle.RaisedHarvest
             + "；排除 友方 " + stats.Faction + " / 种类 " + stats.Kind + " / 尸弹 " + stats.Shot);
     }

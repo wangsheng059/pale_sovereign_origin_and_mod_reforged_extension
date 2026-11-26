@@ -2,6 +2,7 @@ local S = ::PaleSovereign, A = ::BGP.Autopilot;
 local staffStrikeMult = 0.25;
 local page = ::Autopilot.msu.ModSettings.getPage("背景与亡灵");
 page.addElement(::MSU.Class.BooleanSetting("paleAutoChampion", true, "导师自动放出勇士", "第一回合召唤僵尸和骷髅，第二回合起放出饰品栏勇士并优先支配它。"));
+page.addElement(::MSU.Class.BooleanSetting("paleAutoExtraSummon", false, "导师自动耗骸续召", "允许导师在每场免费召唤用完后消耗防腐尸骸续召僵尸和骷髅；关闭时每场默认各免费召唤 1 次。"));
 page.addElement(::MSU.Class.BooleanSetting("paleAutoCorpseShot", true, "自动投掷防腐尸骸", "有尸骸储备时，可向敌群投掷尸弹。优先利用战场已有的尸体。"));
 page.addElement(::MSU.Class.BooleanSetting("paleAutoChain", false, "自动使用缚魂锁链", "允许导师标记可吞魂的强敌，或用一条锁链复活可收编的亡灵强敌。"));
 
@@ -10,6 +11,7 @@ local function screen(c, s, t) {
     local distance = A.nearest(c.Enemies, t);
     if (distance == 99 && ::Time.getRound() > 2 && !S.isChief(c.Actor)) return 0;
     local zones = A.zone(c.Actor, t), formationPenalty = 0.0;
+    local coverBonus = 0.0;
     if (S.Battle != null && !S.Battle.CompanyContact) {
         if (!("OpeningGroup" in c.Cache)) {
             local group = S.formationGroup(S.fieldBrothers());
@@ -20,19 +22,37 @@ local function screen(c, s, t) {
             formationPenalty = ::Math.minf(2.5, 0.75 * S.formationLead(t, c.Cache.OpeningThreats)
                 + 0.18 * t.getDistanceTo(c.Cache.OpeningGroup.Anchor));
     }
-    return 4.7 - formationPenalty + (distance == 99 ? 0 : 1.4 / ::Math.maxf(1.0, distance))
+    // Prefer spawning summons/Lich on the front tile directly facing enemies so Mentor gets immediate ranged cover & melee screen.
+    if (::Autopilot.conf("bgpSmartFrontline") && S.isChief(c.Actor) && distance < 99) {
+        local originDist = A.nearest(c.Enemies, c.Origin);
+        if (distance < originDist) coverBonus = 1.8;
+    }
+    return 4.7 - formationPenalty + coverBonus + (distance == 99 ? 0 : 1.4 / ::Math.maxf(1.0, distance))
         + 0.13 * (t.Level - c.Origin.Level) - (t.IsBadTerrain ? 0.32 : 0) - 0.45 * ::Math.max(0, zones - 1);
 }
 local function summon(c, s, t) {
+    if (s.m.Used && !::Autopilot.conf("paleAutoExtraSummon")) return 0;
     local value = screen(c, s, t);
-    return value > 0 && S.isChief(c.Actor) && ::Time.getRound() <= 1 ? value + 18.0 : value;
+    if (value <= 0) return 0;
+    if (S.isChief(c.Actor)) {
+        if (::Autopilot.conf("bgpSmartFrontline")) {
+            // Round 1: Lich King (3 AP) + Skeleton (4 AP); Round 2: Zombie (4 AP) so Mentor gets Lich Ward + cover immediately on Round 1.
+            local bonus = s.getID() == "actives.pale_summon_skeleton" ? 18.0 : 17.0;
+            if (::Time.getRound() <= 2) return value + bonus;
+        } else if (::Time.getRound() <= 1) {
+            return value + 18.0;
+        }
+    }
+    return value;
 }
 A.add("pale_summon_zombie", "Adjacent", summon);
 A.add("pale_summon_skeleton", "Adjacent", summon);
 A.add("unleash_companion", "Adjacent", function(c, s, t) {
-    if (!S.isChief(c.Actor) || !::Autopilot.conf("paleAutoChampion") || ::Time.getRound() < 2 || S.mainPet() == null) return 0;
+    if (!S.isChief(c.Actor) || !::Autopilot.conf("paleAutoChampion") || S.mainPet() == null) return 0;
+    local smart = ::Autopilot.conf("bgpSmartFrontline");
+    if (!smart && ::Time.getRound() < 2) return 0;
     local value = screen(c, s, t);
-    return value > 0 ? value + 18.0 : 0;
+    return value > 0 ? value + (smart ? 24.0 : 18.0) : 0;
 });
 local possess = A.Actions["actives.possess_undead"].Score;
 A.Actions["actives.possess_undead"].Score = function(c, s, t) {
@@ -68,16 +88,54 @@ S.Mod.hook("scripts/ai/tactical/behavior", function(q) {
 });
 A.add("pale_weaken", "Enemies", function(c, s, t) {
     local enemy = t.getEntity();
+    local hp = enemy.getHitpoints();
     local value = 2.2 + (enemy.getSkills().hasSkill("effects.pale_weaken") ? 0 : 0.8);
-    if (enemy.getHitpoints() <= 20) value += 1.8;
-    else if (enemy.getMoraleState() == ::Const.MoraleState.Fleeing) value *= 0.6;
+    if (enemy.getMoraleState() == ::Const.MoraleState.Fleeing) value *= 0.6;
     if (s.m.Scourge) value += 0.85 * (A.countNear(c.Enemies, t) - 1);
-    return value + 0.22 * ::Math.min(3, A.countNear(c.Allies, t, 2));
+    value += 0.22 * ::Math.min(3, A.countNear(c.Allies, t, 2));
+
+    // Lethal snipe evaluation: pale_weaken deals 12-20 guaranteed armor-ignoring direct HP damage.
+    local lethal = 0.0;
+    if (hp <= 12) lethal = 9.5;
+    else if (hp <= 16) lethal = 6.5;
+    else if (hp <= 20) lethal = 3.0;
+    if (s.m.Scourge) {
+        foreach (et in c.Enemies) {
+            if (et.ID != t.ID && et.getDistanceTo(t) <= 1 && et.getEntity().getHitpoints() <= 6)
+                lethal += 4.0;
+        }
+    }
+    if (lethal > 0.0) {
+        // Extra priority when we can immediately raise the freshly killed enemy this same turn!
+        local raise = c.Actor.getSkills().getSkillByID("actives.bgp_necro_raise");
+        if (raise != null && !raise.isHidden() && raise.isUsable() && !t.IsCorpseSpawned
+            && !enemy.getFlags().has("PaleRaised") && c.Origin.getDistanceTo(t) <= raise.getMaxRange()) {
+            local apLeft = c.Actor.getActionPoints() - s.getActionPointCost();
+            local fatLeft = c.Actor.getFatigueMax() - c.Actor.getFatigue() - s.getFatigueCost();
+            if (apLeft >= raise.getActionPointCost() && fatLeft >= raise.getFatigueCost())
+                lethal += (hp <= 12 ? 5.0 : 3.0);
+        }
+    } else if (!enemy.getSkills().hasSkill("effects.pale_prey") && enemy.getMoraleState() != ::Const.MoraleState.Fleeing) {
+        // When no lethal snipe is available, prioritize marking dangerous high-HP bosses/elites as Prey (+10 hit / +20% dmg for all undead).
+        if (enemy.getHitpointsMax() >= 130 || enemy.getSkills().hasSkill("racial.champion")
+            || enemy.getArmor(::Const.BodyPart.Body) >= 180)
+            value += 2.2;
+    }
+    return value + lethal;
 });
 A.add("pale_soul_chain", "Enemies", @(c, s, t) ::Autopilot.conf("paleAutoChain") ? 8.5 + (t.getEntity().getSkills().hasSkill("racial.champion") ? 1 : 0) : 0);
 A.add("pale_soul_bind", "Corpses", @(c, s, t) ::Autopilot.conf("paleAutoChain") ? 8.0 + A.corpseValue(t) : 0);
 A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
     if (!::Autopilot.conf("paleAutoCorpseShot") || ::BGP.Necro.getCorpse(t) != null || A.countNear(c.Enemies, t) < 2) return 0;
+    if (::Autopilot.conf("bgpSmartFrontline")) {
+        // Dedicated archers/crossbowmen, engaged melee units, frontline shieldbearers near contact, and fatigued bros must use their real weapons/defenses instead of 20-30 dmg corpse throws.
+        if (c.Actor.isArmedWithRangedWeapon() || c.Engaged) return 0;
+        if (::BGP.hasShield(c.Actor) && A.nearest(c.Enemies, c.Origin) <= 2) return 0;
+        if (c.Actor.getFatigue() > c.Actor.getFatigueMax() * 0.50) return 0;
+        foreach (corpse in c.Behavior.targets(c, "Corpses")) if (corpse.getDistanceTo(t) <= 3) return 0;
+        if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;
+        return 0.70 + 0.15 * A.weaponChance(s, t) + 0.10 * ::Math.min(3, A.countNear(c.Enemies, t));
+    }
     foreach (corpse in c.Behavior.targets(c, "Corpses")) if (corpse.getDistanceTo(t) <= 1) return 0;
     if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;
     return 1.7 + A.weaponChance(s, t) + 0.35 * ::Math.min(4, A.countNear(c.Enemies, t));

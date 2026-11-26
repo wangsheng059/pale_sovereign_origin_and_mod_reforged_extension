@@ -13,8 +13,7 @@ S.tierLedgerPanel <- function( _event, _screen )
     local units = this.tierLedgerTargets();
     local page = ::Math.min(_event.m.TierPage, ::Math.max(0, (units.len() - 1) / 4));
     _screen.Text = "空地上以骨灰与粗盐画好重铸法阵。历经血战、达到 7 级的常驻骷髅与行尸可以踏入其中，拆去旧骨、重塑更凶悍的亡者形骸。\n\n"
-        + "每次升阶需古代魂玉 " + this.TierCost.Jade + " 枚、防腐尸骸 " + this.tierReserveCost() + " 点、" + this.TierCost.Money + " 克朗。"
-        + "骷髅弓手走独立远程分支，每次升阶均从 1 级重新开始。"
+        + "每次升阶需古代魂玉 " + this.TierCost.Jade + " 枚、防腐尸骸 " + this.tierReserveCost() + " 点、" + this.TierCost.Money + " 克朗，每次升阶均从 1 级重新开始。"
         + "\n\n古代魂玉　" + this.countItems("misc.pale_jade") + "　防腐尸骸　" + this.get("Reserve");
     if (units.len() == 0)
         _screen.Text += "\n\n目前没有达到 7 级、且尚未升至高阶的常驻亡灵。";

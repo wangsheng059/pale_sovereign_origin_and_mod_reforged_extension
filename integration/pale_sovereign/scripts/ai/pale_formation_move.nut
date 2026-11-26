@@ -38,20 +38,39 @@ this.pale_formation_move <- ::inherit("scripts/ai/tactical/behavior", {
     {
         local origin = actor.getTile(), nearest = 99;
         foreach (t in group.Tiles) nearest = ::Math.min(nearest, t.getDistanceTo(origin));
+        local smart = ::Autopilot.conf("bgpSmartFrontline");
+        local isDisposable = !::PaleSovereign.isChampionAI(actor);
+        local enemyRanged = 0;
+        if (smart) {
+            foreach (e in threats) {
+                if (e.Tile.IsOccupiedByActor && e.Tile.getEntity().isArmedWithRangedWeapon())
+                    ++enemyRanged;
+            }
+        }
+        // Under heavy enemy archer fire (>= 3 shooters like Goblins/Nobles/Bandits), arrow-resistant Skeletons & Lich King screen AHEAD of our living brothers!
+        local maxLead = 0;
+        if (smart) {
+            if (isDisposable) maxLead = enemyRanged >= 3 ? 2 : 1;
+            else if (enemyRanged >= 3) maxLead = 1;
+        }
         local lead = ::PaleSovereign.formationLead(origin, threats);
-        if (lead == 0 && nearest <= 2 && origin.getDistanceTo(group.Anchor) <= 3) return null;
+        if (lead <= maxLead && nearest <= 2 && origin.getDistanceTo(group.Anchor) <= 3 && (!smart || maxLead == 0 || lead >= 1))
+            return null;
 
         local seen = {}, candidates = [];
         foreach (at in group.Tiles) foreach (t in ::PaleSovereign.area(at)) {
             if (t.ID in seen || !t.IsEmpty) continue;
             seen[t.ID] <- true;
-            if (::PaleSovereign.formationLead(t, threats) > 0 || !::PaleSovereign.isSafeChampionStep(this, actor, t, origin, 0)) continue;
-            candidates.push({ Tile = t, Cost = origin.getDistanceTo(t) + 0.75 * t.getDistanceTo(group.Anchor) });
+            local tLead = ::PaleSovereign.formationLead(t, threats);
+            if (tLead > maxLead || !::PaleSovereign.isSafeChampionStep(this, actor, t, origin, 0)) continue;
+            // Strongly prefer front-screen tiles ahead of our brothers to absorb arrows & Orc charges.
+            local screenPref = (smart && maxLead > 0 && tLead >= 1) ? (-2.2 * tLead) : 0.0;
+            candidates.push({ Tile = t, Cost = origin.getDistanceTo(t) + 0.75 * t.getDistanceTo(group.Anchor) + screenPref });
         }
         candidates.sort(@(a, b) a.Cost != b.Cost ? a.Cost <=> b.Cost : a.Tile.ID <=> b.Tile.ID);
         foreach (candidate in candidates) {
             local first = this.firstStep(actor, settings, candidate.Tile, 0);
-            if (first != null && ::PaleSovereign.formationLead(first, threats) <= lead
+            if (first != null && ::PaleSovereign.formationLead(first, threats) <= ::Math.max(lead, maxLead)
                 && ::PaleSovereign.isSafeChampionStep(this, actor, first, origin, 0)) return first;
         }
         return null;
@@ -60,6 +79,9 @@ this.pale_formation_move <- ::inherit("scripts/ai/tactical/behavior", {
     function reinforce(actor, threats, settings)
     {
         local origin = actor.getTile(), range = ::Math.max(1, actor.getIdealRange());
+        local smart = ::Autopilot.conf("bgpSmartFrontline");
+        local isChamp = ::PaleSovereign.isChampionAI(actor);
+        local maxZones = smart ? (isChamp ? 2 : 3) : 1;
         // An outlying brother can make contact beyond this unit's personal sight.
         if (threats.len() == 0 && "ContactTile" in ::PaleSovereign.Battle)
             threats.push({ Tile = ::PaleSovereign.Battle.ContactTile, Front = 0 });
@@ -68,12 +90,20 @@ this.pale_formation_move <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.Joined = true;
                 return null;
             }
-            enemy.Cost <- origin.getDistanceTo(enemy.Tile) + (enemy.Front <= 2 ? 0 : 3);
+            local hvtDiscount = 0;
+            if (smart && enemy.Tile.IsOccupiedByActor) {
+                local foe = enemy.Tile.getEntity();
+                local fs = foe.getSkills();
+                if (foe.isArmedWithRangedWeapon() || fs.hasSkill("actives.raise_undead")
+                    || fs.hasSkill("actives.root") || fs.hasSkill("actives.rally_the_troops"))
+                    hvtDiscount = 3;
+            }
+            enemy.Cost <- origin.getDistanceTo(enemy.Tile) + (enemy.Front <= 2 ? 0 : 3) - hvtDiscount;
         }
         threats.sort(@(a, b) a.Cost <=> b.Cost);
         foreach (enemy in threats) {
             local first = this.firstStep(actor, settings, enemy.Tile, range);
-            if (first != null && ::PaleSovereign.isSafeChampionStep(this, actor, first, origin, 1)) return first;
+            if (first != null && ::PaleSovereign.isSafeChampionStep(this, actor, first, origin, maxZones)) return first;
         }
         return null;
     }

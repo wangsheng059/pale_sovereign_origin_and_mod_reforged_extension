@@ -214,7 +214,7 @@ S.castlePanel <- function( _screen )
                 });
             break;
     }
-    this.option(_screen, _screen.ID == "castle" ? "回到亡灵营地" : "回到亡灵古堡", @() _screen.ID == "castle" ? "@camp" : "@castle");
+    this.option(_screen, _screen.ID == "castle" ? "回到亡者的营地" : "回到亡灵古堡", @() _screen.ID == "castle" ? "@camp" : "@castle");
 };
 
 S.SacrificeItemID <- 0;

@@ -40,7 +40,7 @@
     WorldScreenTopbarOptionsModule.prototype.createDIV = function (parent) {
         createOptionsBar.call(this, parent);
         var optionsBar = this;
-        this.mPaleCampButton = this.mContainer.createTextButton("亡灵营地", function () {
+        this.mPaleCampButton = this.mContainer.createTextButton("亡者的营地", function () {
             if (optionsBar.mSQHandle !== null) {
                 SQ.call(optionsBar.mSQHandle, "onPaleCampButtonPressed");
             }
@@ -79,9 +79,9 @@
         }
         var warning = null;
         if (champion.indexOf(perk.ID) !== -1) {
-            warning = "“枯骨重铸王冠，万魂归于一躯。”\n\n确认立下亡灵冠军誓约，开放缚魂锁链、冠军与候补管理；名册上限 24 人、每场最多部署 9 人，可用空余编制征召常驻亡灵。亡灵天灾永久锁定，洗点后仍遵守誓约。";
+            warning = "“枯骨重铸王冠，万魂归于一躯。”\n\n确认立下亡灵勇士誓约，开放缚魂锁链注魂、魂玉铭刻、灵阶突破与候补管理；名册上限 24 人、每场最多部署 9 人，常驻亡灵数量只受名册限制。亡灵天灾独有特技永久锁定（亡灵法术精通与亡灵法术大师仍可学习），洗点后仍遵守誓约。";
         } else if (scourge.indexOf(perk.ID) !== -1) {
-            warning = "“生者皆为柴薪，万物终归死寂。”\n\n确认立下亡灵天灾誓约，开放尸弹与锁魂复生；名册上限 24 人、每场最多部署 13 人（完成「禁忌的初窥」后 14 人，飞升后 16 人），可用空余编制征召常驻亡灵。亡灵冠军永久锁定，洗点后仍遵守誓约。";
+            warning = "“生者皆为柴薪，万物终归死寂。”\n\n确认立下亡灵天灾誓约，开放尸弹、锁魂复生、魂玉统领与炼化换玉；名册上限 24 人、每场最多部署 13 人（完成「禁忌的初窥」后 14 人，飞升后 16 人），常驻亡灵数量只受名册限制。亡灵勇士独有特技永久锁定（亡灵法术精通与亡灵法术大师仍可学习），洗点后仍遵守誓约。";
         }
         if (warning !== null) {
             content.find(".right-column").append(
