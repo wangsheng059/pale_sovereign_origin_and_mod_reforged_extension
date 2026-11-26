@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/skills/backgrounds/barbarian_chosen_background.nut",
+  "before": "1bf1c146bbb3624d38fb2eabcbc131e6c46a2282d560caff77b4666a16d0196f",
+  "after": "d6cd5e351ac44ea39b63bc091f5464aac09347f33b278f34919d84535fbbf461",
+  "old": "this.m.BackgroundDescription = \"Those warriors dedicated their lives to their god in exchange of their help in the battle, sometimes, these same warriors enlist in mercenary companies to help their tribes and serve their gods.\";\r\n\t\tthis.m.GoodEnding = \"%name% finally achieved his legacy of Chosen, he fought for so long that his god gave him more and more mutations, he accepted them easily and when his time came, he was warmly welcome into Valhalla.\";\r\n\t\tthis.m.BadEnding = \"What more to say ? After these embarassing failures, %name% wasn't worth the gods attention anymore, the lost of his mutations drove him crazy and he became the exact opposite of what he wanted : a Fallen.\";",
+  "new": "this.m.BackgroundDescription = \"这些战士将毕生献给北方诸神，以换取战场上神恩的眷顾。有时，他们也会投身佣兵战团，既为部族奔走，也借杀戮侍奉诸神。\";\r\n\t\tthis.m.GoodEnding = \"%name% 终究成就了神选者的荣光。历经无数血战，他所侍奉的神明不断赐下异变，他也坦然接纳；当大限将至时，英灵殿敞开大门，热忱迎他归位。\";\r\n\t\tthis.m.BadEnding = \"还能说些什么呢？屡遭屈辱败绩之后，%name% 再也配不上神明的垂青。失去赐福异变的他彻底癫狂，最终沦为自己最不齿的存在——一名堕落者。\";"
+}

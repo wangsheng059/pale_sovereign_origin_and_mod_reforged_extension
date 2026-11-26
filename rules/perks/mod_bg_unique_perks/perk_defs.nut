@@ -43,8 +43,7 @@
 		Effects = [{
 			Type = ::UPD.EffectType.Passive,
 			Description = [
-				"每次成功闪避敌人的近战或远程攻击时，恢复 " + ::MSU.Text.colorPositive("3") + " 点疲劳，并使主动值 " + ::MSU.Text.colorPositive("+5") + "。",
-				"主动值加成在本场战斗中累积，战斗结束后清空。"
+				"每次成功闪避敌人的近战或远程攻击时，恢复 " + ::MSU.Text.colorPositive("3") + " 点疲劳，并使主动值 " + ::MSU.Text.colorPositive("+5") + "。"
 			]
 		}]
 	}),

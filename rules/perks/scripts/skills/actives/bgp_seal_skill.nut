@@ -11,6 +11,8 @@ this.bgp_seal_skill <- ::inherit("scripts/skills/skill", {
 	{
 		this.m.ID = "actives.bgp_seal_base";
 		this.m.Name = "战印";
+		this.m.Icon = "skills/bgp_seal_center_skill.png";
+		this.m.IconDisabled = "skills/bgp_seal_center_skill_sw.png";
 		this.m.Overlay = "";
 		this.m.SoundOnUse = [];
 		this.m.Type = ::Const.SkillType.Active;

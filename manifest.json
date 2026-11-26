@@ -1547,7 +1547,9 @@
     "patches/swordmaster/ai_weak_effect_create.json",
     "patches/swordmaster/ai_weak_effect_refresh.json",
     "patches/swordmaster/sb_blessing_effect_b.json",
-    "patches/swordmaster/sb_snow_effect.json"
+    "patches/swordmaster/sb_snow_effect.json",
+    "patches/north_expansion/chosen_background_cn_meta.json",
+    "patches/north_expansion/chosen_background_cn_desc.json"
   ],
   "omissions": [
     {

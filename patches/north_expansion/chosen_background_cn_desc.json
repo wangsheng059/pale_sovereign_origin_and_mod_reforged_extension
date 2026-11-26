@@ -1,0 +1,8 @@
+{
+  "source": "north-expansion-mod(野蛮人扩张-汉化版1.0)_改3.zip",
+  "member": "scripts/skills/backgrounds/barbarian_chosen_background.nut",
+  "before": "d6cd5e351ac44ea39b63bc091f5464aac09347f33b278f34919d84535fbbf461",
+  "after": "5847c32148b6661625e4e7b901aef3b092414924a540d514caa7297a7403b75d",
+  "old": "return \"{%name% is what you call a Chosen, a warrior that has dedicated his life to one of the North Gods, in exchange those gods might give mutations to those warriors. %name% is no different, he was an ordinary raider until {a dark voice raised during his sleep, ordering to murder and plunder | a voice, in broad day light, ordered him to fight champions | a divine signs told him to depart to the south.}.}\";",
+  "new": "return \"{%name% 便是世人所称的神选者——将性命献给北方某位古神、以期换取神赐异变的战士。%name% 原本只是一名寻常劫掠者，直到{某夜沉睡时一道阴暗低语在他脑海中响起，命他杀戮与劫掠 | 大白日里一道神谕之声突兀降临，命他遍战天下强者 | 天际显现神兆，指引他启程南下}。}\";"
+}
