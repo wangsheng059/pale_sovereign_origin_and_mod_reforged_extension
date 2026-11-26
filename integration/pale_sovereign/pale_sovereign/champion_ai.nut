@@ -56,14 +56,16 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
                 break;
             }
         }
-        // High-value casters, bannermen/warlords, ranged shooters, and unshielded 2H/polearm killers.
+        // High-value casters, Orc Berserkers, bannermen/drummers/warlords/officers, ranged shooters, and unshielded 2H/polearm killers.
         if (tSkills.hasSkill("actives.raise_undead") || tSkills.hasSkill("actives.root")
             || tSkills.hasSkill("actives.insect_swarm") || tSkills.hasSkill("actives.hex")
-            || tSkills.hasSkill("actives.horror") || tSkills.hasSkill("actives.sleep"))
-            priority = ::Math.maxf(priority, 1.35);
+            || tSkills.hasSkill("actives.horror") || tSkills.hasSkill("actives.miasma") || tSkills.hasSkill("actives.sleep"))
+            priority = ::Math.maxf(priority, 1.45);
+        else if (tSkills.hasSkill("effects.berserker_rage") || _target.ClassName == "orc_berserker")
+            priority = ::Math.maxf(priority, 1.15);
         else if (tSkills.hasSkill("actives.rally_the_troops") || tSkills.hasSkill("actives.barbarian_drum")
-            || tSkills.hasSkill("actives.warcry"))
-            priority = ::Math.maxf(priority, 0.95);
+            || tSkills.hasSkill("actives.warcry") || _target.ClassName == "rf_skeleton_centurion" || _target.ClassName == "rf_skeleton_decanus")
+            priority = ::Math.maxf(priority, 1.00);
         else if (_target.isArmedWithRangedWeapon())
             priority = ::Math.maxf(priority, 0.85);
         else
@@ -73,6 +75,9 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
                 && !_target.isArmedWithShield())
                 priority = ::Math.maxf(priority, 0.80);
         }
+        // Avoid killing RF_Squire before enemy Knight is down (killing Squire buffs the Knight!).
+        if (_target.ClassName == "rf_squire")
+            priority *= 0.25;
         // Wounded & armor-stripped focus-fire bonus so undead swarm collapses single enemies fast.
         local hpPct = _target.getHitpointsPct();
         if (hpPct <= 0.50)

@@ -67,7 +67,16 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
             }
         }
     }
-    local urgencyBonus = (::Autopilot.conf("bgpSmartFrontline") && ::Time.getRound() >= 2 && ::Time.getRound() <= 8) ? 1.6 : 0.0;
+    local aliveUndead = 0;
+    foreach (at in c.Allies) {
+        local u = at.getEntity();
+        if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
+            ++aliveUndead;
+    }
+    // High urgency while building the first 4-5 undead meatshields; taper once >= 6 are already up so Mentor mixes in 3+ target Corpse Explosions!
+    local urgencyBonus = 0.0;
+    if (::Autopilot.conf("bgpSmartFrontline") && ::Time.getRound() >= 2 && ::Time.getRound() <= 8)
+        urgencyBonus = aliveUndead < 4 ? 1.6 : (aliveUndead < 6 ? 0.8 : 0.0);
     return (distance <= 2 ? 7.0 : distance <= 5 ? 5.9 : 3.2) + A.corpseValue(t) * 1.6 + shutdownBonus + backlineScreenBonus + urgencyBonus
         + (c.Engaged && c.Origin.getDistanceTo(t) <= 2 ? 0.9 : 0)
         - (pressure > 2 ? 0.65 : 0) - (c.Behavior.hasNegativeTileEffect(t, c.Actor) ? 1.1 : 0);
@@ -79,20 +88,34 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
     local smart = ::Autopilot.conf("bgpSmartFrontline");
     local value = 0.0;
     local hits = 0;
+    local armoredHits = 0;
     local lethalCount = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
         ++hits;
+        if (enemy.getArmor(::Const.BodyPart.Body) >= 130) ++armoredHits;
         value += 1.1 + ::Math.minf(1.8, (blast.Blunt + blast.Cutting * 0.45) / 35.0);
         if (enemy.getHitpoints() <= blast.Blunt * 0.65) {
             value += 1.6;
             ++lethalCount;
         }
     }
-    // Under 4 AP (3 AP with Mastery), avoid burning a raisable corpse & 3 AP on a single healthy enemy.
-    if (smart && hits < 2 && lethalCount == 0)
-        return 0;
+    // Under 4 AP (3 AP with Mastery), avoid burning a raisable corpse & 3 AP on a single healthy enemy,
+    // BUT reward blowing up dense 3+ enemy armored formations (Noble Footmen/Knights, Ancient Honor Guards, Orc clumps)!
+    if (smart) {
+        if (hits < 2 && lethalCount == 0)
+            return 0;
+        local aliveUndead = 0;
+        foreach (at in c.Allies) {
+            local u = at.getEntity();
+            if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
+                ++aliveUndead;
+        }
+        if (hits >= 3 && (aliveUndead >= 2 || armoredHits >= 2)) {
+            value += (hits >= 4 ? 4.2 : 2.6) + (armoredHits >= 2 ? 1.2 : 0.0);
+        }
+    }
     return value;
 });
 A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
@@ -405,13 +428,17 @@ local F = A.Frontline <- {
         local engagedBrothers = 0;
         local activeEnemies = 0;
         local enemyChargers = 0;
+        local enemyUrgentCasters = 0;
         foreach (foe in enemies)
         {
             if (foe.getMoraleState() != ::Const.MoraleState.Fleeing)
             {
                 ++activeEnemies;
-                if (foe.getSkills().hasSkill("actives.charge"))
+                local fs = foe.getSkills();
+                if (fs.hasSkill("actives.charge"))
                     ++enemyChargers;
+                if (fs.hasSkill("actives.raise_undead") || fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma"))
+                    ++enemyUrgentCasters;
             }
         }
         foreach (bro in brothers)
@@ -460,8 +487,9 @@ local F = A.Frontline <- {
         }
 
         local rangedAdvantage = enemyRanged <= 0.01 || enemyRanged < playerRanged;
-        // Never passively wait in HoldLine against Orc Charger packs (>= 3 enemies with Charge): waiting hands them a free 2-tile stun-charge runway!
-        local holdLine = rangedAdvantage && enemyChargers < 3 && !state.StallBroken && !state.MeleeJoined && activeEnemies > 0;
+        // Never passively wait in HoldLine against Orc Charger packs (>= 3) or past Round 1 against Enemy Necromancers / Ancient Priests (press in to stop infinite Raise/Miasma/Horror!).
+        local casterPush = enemyUrgentCasters > 0 && round >= 2;
+        local holdLine = rangedAdvantage && enemyChargers < 3 && !casterPush && !state.StallBroken && !state.MeleeJoined && activeEnemies > 0;
 
         return {
             Enemies = enemies,
@@ -988,27 +1016,64 @@ local F = A.Frontline <- {
         if (!fleeing && _target.getArmorMax(::Const.BodyPart.Body) > 30 && bodyArmor <= 10)
             mult *= 1.20;
 
-        // 3. Priority targets: hostile casters, archers/crossbowmen, bannermen, and heavy 2H elites.
+        // 3. Priority targets: hostile casters, Orc Berserkers, archers/crossbowmen, bannermen/drummers/officers, and heavy 2H elites.
         local tSkills = _target.getSkills();
         if (!fleeing)
         {
-            local isCaster = false;
-            foreach (sid in this.EnemyCasterSkills)
+            local isPriestOrNecro = tSkills.hasSkill("actives.raise_undead") || tSkills.hasSkill("actives.horror") || tSkills.hasSkill("actives.miasma");
+            local isCaster = isPriestOrNecro;
+            if (!isCaster)
             {
-                if (tSkills.hasSkill(sid)) { isCaster = true; break; }
+                foreach (sid in this.EnemyCasterSkills)
+                {
+                    if (tSkills.hasSkill(sid)) { isCaster = true; break; }
+                }
             }
-            if (isCaster)
+            // Reforged Noble Squire rule: avoid killing RF_Squire while an enemy Knight is alive (killing Squire buffs the Knight!).
+            local isSquireWithLiveKnight = false;
+            try {
+                if (_target.ClassName == "rf_squire") {
+                    foreach (fi, list in ::Tactical.Entities.getAllInstances()) {
+                        if (fi == ::Const.Faction.Player || fi == ::Const.Faction.PlayerAnimals) continue;
+                        foreach (e in list) {
+                            if (e != null && !::MSU.isNull(e) && e.isAlive() && !e.isDying()
+                                && (e.ClassName == "knight" || e.ClassName == "rf_knight_anointed")) {
+                                isSquireWithLiveKnight = true; break;
+                            }
+                        }
+                        if (isSquireWithLiveKnight) break;
+                    }
+                }
+            } catch (e) {}
+
+            if (isSquireWithLiveKnight)
+                mult *= 0.42;
+            else if (isPriestOrNecro)
+                mult *= _skill.isRanged() ? 1.95 : 1.65;
+            else if (isCaster)
                 mult *= _skill.isRanged() ? 1.70 : 1.50;
+            else if (tSkills.hasSkill("effects.berserker_rage") || _target.ClassName == "orc_berserker")
+                // Delete unarmored high-burst Orc Berserkers BEFORE Rage ramps up and one-shots frontliners!
+                mult *= _skill.isRanged() ? 1.70 : 1.55;
             else if (_target.isArmedWithRangedWeapon())
                 mult *= _skill.isRanged() ? 1.45 : 1.30;
             else if (tSkills.hasSkill("actives.rally_the_troops") || tSkills.hasSkill("actives.barbarian_drum")
-                || tSkills.hasSkill("actives.warcry"))
-                mult *= 1.40;
+                || tSkills.hasSkill("actives.warcry") || _target.ClassName == "rf_skeleton_centurion" || _target.ClassName == "rf_skeleton_decanus")
+                mult *= 1.45;
             else
             {
                 local w = _target.getMainhandItem();
                 if (w != null && w.isItemType(::Const.Items.ItemType.TwoHanded) && w.isItemType(::Const.Items.ItemType.MeleeWeapon))
                     mult *= _target.isArmedWithShield() ? 1.22 : 1.34;
+            }
+
+            // Bows take massive piercing resistance against armored Ancient Dead skeletons (non-Priest): deprioritize armored skels so Bow snipes Priests/casters!
+            if (_skill.isRanged() && !isPriestOrNecro)
+            {
+                local weapon = _actor.getMainhandItem();
+                if (weapon != null && weapon.isWeaponType(::Const.Items.WeaponType.Bow)
+                    && _target.getFlags().has("skeleton") && bodyArmor >= 90)
+                    mult *= 0.42;
             }
 
             // 3b. Backline breach protection: prioritize any enemy within 2 tiles of our Mentor or archers!
@@ -1371,14 +1436,12 @@ local F = A.Frontline <- {
         }
         local skills = _actor.getSkills();
         local hasDefPerk = skills.hasSkill("perk.battle_forged") || skills.hasSkill("perk.nimble");
-        // Never allow an unshielded flank bro to step into 3+ enemies without strong line support (>= 2 allies, or BF + shield ally at high HP).
-        if (adjEnemies >= 3)
-        {
-            if (adjAllies == 0) return true;
-            if (!hasDefPerk) return true;
-            if (adjAllies < 2 && (adjShieldAllies == 0 || _actor.getHitpointsPct() < 0.80)) return true;
-        }
-        // Unshielded melee without BF/Nimble (e.g. light-med 1H Mace) should avoid stepping solo into 2+ dangerous melee with zero adjacent allies.
+        local hasUnderdog = skills.hasSkill("perk.underdog");
+        // Only discourage TRUE solo dives with zero adjacent allies (never paralyze Underdog frontliners fighting alongside the line against tight shieldwalls!).
+        if (adjEnemies >= 3 && adjAllies == 0)
+            return true;
+        if (!hasDefPerk && !hasUnderdog && adjEnemies >= 3 && adjShieldAllies == 0)
+            return true;
         if (!hasDefPerk && adjEnemies >= 2 && adjAllies == 0)
             return true;
         return false;
@@ -1657,8 +1720,8 @@ local F = A.Frontline <- {
         if (done && this.m.Score > 0 && ::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")
             && this.m.TargetTile != null && !this.m.IsWaitingBeforeMove && F.isSuicidalSoloDive(_entity, this.m.TargetTile))
         {
-            // Heavily discourage unshielded 2H/Duelist bros from diving solo into 3+ melee enemies.
-            this.m.Score *= 0.15;
+            // Discourage unshielded bros from diving completely solo into 3+ melee enemies without paralyzing normal line contact.
+            this.m.Score *= 0.35;
         }
         return done;
     };
