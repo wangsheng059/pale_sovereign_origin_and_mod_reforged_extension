@@ -32,17 +32,26 @@ local function screen(c, s, t) {
         + 0.13 * (t.Level - c.Origin.Level) - (t.IsBadTerrain ? 0.32 : 0) - 0.45 * ::Math.max(0, zones - 1);
 }
 local function summon(c, s, t) {
-    if (s.m.Used && !::Autopilot.conf("paleAutoExtraSummon")) return 0;
+    local freeLeft = "hasFreeUseLeft" in s ? s.hasFreeUseLeft() : !s.m.Used;
+    if (!freeLeft && !::Autopilot.conf("paleAutoExtraSummon")) return 0;
     local value = screen(c, s, t);
     if (value <= 0) return 0;
     if (S.isChief(c.Actor)) {
         if (::Autopilot.conf("bgpSmartFrontline")) {
-            // Round 1: Lich King (3 AP) + Skeleton (4 AP); Round 2: Zombie (4 AP) so Mentor gets Lich Ward + cover immediately on Round 1.
+            // Round 1: Lich King (3 AP) + Skeleton #1 (4 AP) + 2 AP cover step;
+            // Rounds 2-3+: deploy all remaining free Grandmaster summons (2 Skeletons + 2 Zombies) ahead of low-value fills!
             local bonus = s.getID() == "actives.pale_summon_skeleton" ? 18.0 : 17.0;
-            if (::Time.getRound() <= 2) return value + bonus;
-        } else if (::Time.getRound() <= 1) {
-            return value + 18.0;
+            if (::Time.getRound() <= 3 && freeLeft) return value + bonus;
+            if (freeLeft) return value + 10.0;
+        } else {
+            if (::Time.getRound() <= 1 || (freeLeft && ::Time.getRound() <= 3))
+                return value + 18.0;
+            if (freeLeft) return value + 10.0;
         }
+    } else if (freeLeft && ::Time.getRound() <= 3) {
+        return value + 14.0;
+    } else if (freeLeft) {
+        return value + 9.0;
     }
     return value;
 }

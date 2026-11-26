@@ -1,11 +1,11 @@
-// 召唤僵尸 / 召唤骷髅：在相邻空格召出一名临时亡灵仆从（战斗结束后消散），每场每种 1 次
+// 召唤僵尸 / 召唤骷髅：在相邻空格召出一名临时亡灵仆从（战斗结束后消散）
 // 1.6.8：召出的仆从必定有武器和护甲；施法者学会“死灵精通”后召出更强的种类、换上更好的装备；
-//        召唤僵尸也给普通死灵法师（背景 bgp_necromancer），召唤骷髅只给亡灵法师导师
-// 1.6.9：学会第 7 阶特技（不灭勇士或尸爆）后再升一档
+// 1.6.9：学会第 7 阶特技（不灭勇士、尸爆或亡灵法术大师）后再升一档；
+//        亡灵法师导师默认每场免费各 1 次，学会亡灵法术大师后各 +1（共 2 次）；普通死灵法师学会亡灵法术大师后解锁各 1 次
 this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
     m = {
         Script = "", MasteryScript = "", EliteScript = "", MinionName = "", MasteryName = "", EliteName = "", ForNecromancers = false,
-        Gear = null, MasteryGear = null, EliteGear = null, Used = false, ArtStem = "", FearInsteadOfOverwhelm = false, EliteExtraSkills = null, EliteExtraText = ""
+        Gear = null, MasteryGear = null, EliteGear = null, Used = false, FreeUsed = 0, ArtStem = "", FearInsteadOfOverwhelm = false, EliteExtraSkills = null, EliteExtraText = ""
     },
     function create()
     {
@@ -44,6 +44,30 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         return skills.hasSkill("perk.bgp_necro_mastery") ? 1 : 0;
     }
 
+    function isChiefCaster( _actor )
+    {
+        if (_actor == null)
+            return false;
+        local s = ::PaleSovereign;
+        return (s.isActive() && s.isChief(_actor)) || _actor.getSkills().hasSkill("background.pale_necromancer");
+    }
+
+    function getFreeUses()
+    {
+        local container = this.getContainer();
+        local actor = container == null ? null : container.getActor();
+        if (actor == null)
+            return 0;
+        local baseUses = this.isChiefCaster(actor) ? 1 : 0;
+        local bonus = actor.getSkills().hasSkill("perk.bgp_necro_grandmaster") ? 1 : 0;
+        return baseUses + bonus;
+    }
+
+    function hasFreeUseLeft()
+    {
+        return this.m.FreeUsed < this.getFreeUses();
+    }
+
     function getTooltip()
     {
         local ret = this.skill.getDefaultUtilityTooltip();
@@ -57,37 +81,46 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
             ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”，决心为施法者当前决心的一半，可获得战旗加成" });
         if (this.m.EliteExtraText != "")
             ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = this.m.EliteExtraText });
-        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗免费施放 1 次" });
+        local actor = this.getContainer().getActor();
+        local isChief = this.isChiefCaster(actor);
+        local freeMax = this.getFreeUses();
+        local freeLeft = ::Math.max(0, freeMax - this.m.FreeUsed);
+        local grandTag = freeMax > (isChief ? 1 : 0) ? (isChief ? "（亡灵法术大师 +1）" : "（亡灵法术大师解锁）") : "";
+        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗免费施放 " + freeMax + " 次" + grandTag + (this.m.FreeUsed > 0 ? "，剩余 " + freeLeft + " 次" : "") });
         local s = ::PaleSovereign;
-        if (s.isActive() && s.isChief(this.getContainer().getActor()))
+        if (s.isActive() && s.isChief(actor))
             ret.push({ id = 16, type = "text", icon = "ui/icons/special.png", text = "耗骸续召：免费次数用完后可再消耗 " + s.ExtraSummonCost + " 点防腐尸骸追加施放，每场共 " + s.extraSummonCap() + " 次（两种召唤共用）；续召仆从所穿戴的头甲、身甲各 +25 临时护甲" });
-        if (this.m.Used)
-            ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = s.canExtraSummon(this.getContainer().getActor()) ? "本场已经使用过，可耗骸续召" : "本场已经使用过" });
+        if (!this.hasFreeUseLeft())
+            ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = s.canExtraSummon(actor) ? "本场免费次数已用完，可耗骸续召" : "本场免费次数已用完" });
         return ret;
     }
 
     function isHidden()
     {
-        local actor = this.getContainer().getActor();
-        local s = ::PaleSovereign;
-        if (s.isActive() && s.isChief(actor))
+        local container = this.getContainer();
+        local actor = container == null ? null : container.getActor();
+        if (actor == null)
+            return true;
+        if (this.isChiefCaster(actor))
             return false;
-        return !this.m.ForNecromancers || !actor.getSkills().hasSkill("background.bgp_necromancer");
+        return !actor.getSkills().hasSkill("perk.bgp_necro_grandmaster");
     }
 
     function isUsable()
     {
-        return !this.isHidden() && (!this.m.Used || ::PaleSovereign.canExtraSummon(this.getContainer().getActor())) && this.skill.isUsable();
+        return !this.isHidden() && (this.hasFreeUseLeft() || ::PaleSovereign.canExtraSummon(this.getContainer().getActor())) && this.skill.isUsable();
     }
 
     function onCombatStarted()
     {
         this.m.Used = false;
+        this.m.FreeUsed = 0;
     }
 
     function onCombatFinished()
     {
         this.m.Used = false;
+        this.m.FreeUsed = 0;
     }
 
     function onVerifyTarget( _originTile, _targetTile )
@@ -118,13 +151,15 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         if (!this.isUsable() || !_targetTile.IsEmpty)
             return false;
         local rank = this.getRank();
-        local extraCast = this.m.Used;
+        local extraCast = !this.hasFreeUseLeft();
         if (extraCast && !s.payExtraSummon(_user))
             return false;
         local e = ::Tactical.spawnEntity([this.m.Script, this.m.MasteryScript, this.m.EliteScript][rank], _targetTile.Coords.X, _targetTile.Coords.Y);
         if (e == null)
             return false;
-        this.m.Used = true;
+        if (!extraCast)
+            ++this.m.FreeUsed;
+        this.m.Used = !this.hasFreeUseLeft();
         if (extraCast)
             e.getFlags().set("PaleExtraSummon", true);
         try { e.setFaction(::Const.Faction.PlayerAnimals); } catch (err) {}

@@ -1010,26 +1010,9 @@
 	return false;
 }
 
+// Legacy no-op kept for backward compatibility (Grandmaster Tier 7 now grants +1 free Zombie/Skeleton summon charge instead of Hex-Eater).
 ::BGP.Necro.ensureHunger <- function()
 {
-	if (!::BGP.isInBattle())
-		return;
-	if (::BGP.getBrosWithSkill("perk.bgp_necro_grandmaster").len() == 0)
-		return;
-	foreach (a in ::BGP.getAllActors())
-	{
-		if (!::BGP.Necro.isNonPermanentFriendlyUndead(a))
-			continue;
-		try
-		{
-			if (!a.getSkills().hasSkill("effects.bgp_necro_hunger"))
-				a.getSkills().add(::new("scripts/skills/effects/bgp_necro_hunger_effect"));
-		}
-		catch (e)
-		{
-			::logError("mod_bg_unique_perks: 添加嗜咒被动失败: " + e);
-		}
-	}
 }
 
 ::BGP.Necro.triggerGrandmasterPulse <- function( _caster )

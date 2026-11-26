@@ -723,15 +723,37 @@ mod.hook("scripts/skills/skill_container", function(q)
     };
 });
 
-// 1.6.8 普通死灵法师（中途加入、捕奴俘获）也会召唤僵尸
+// Ordinary necromancers receive both summon skills (hidden until Tier 7 perk.bgp_necro_grandmaster is learned).
+local function ensureGrandmasterSummons( _skills )
+{
+    if (_skills == null)
+        return;
+    foreach (summon in ["zombie", "skeleton"])
+        if (!_skills.hasSkill("actives.pale_summon_" + summon))
+            _skills.add(::new("scripts/skills/actives/pale_summon_" + summon));
+}
+
 mod.hook("scripts/skills/backgrounds/bgp_necromancer_background", function(q)
 {
     q.onAdded = @(__original) function()
     {
         __original();
-        local skills = this.getContainer();
-        if (!skills.hasSkill("actives.pale_summon_zombie"))
-            skills.add(::new("scripts/skills/actives/pale_summon_zombie"));
+        ensureGrandmasterSummons(this.getContainer());
+    };
+});
+
+// Ensure existing saves & any brother learning perk.bgp_necro_grandmaster receive both Summon Zombie and Summon Skeleton.
+mod.hook("scripts/skills/perks/perk_bgp_necro_grandmaster", function(q)
+{
+    q.onAdded = @(__original) function()
+    {
+        __original();
+        ensureGrandmasterSummons(this.getContainer());
+    };
+    q.onCombatStarted = @(__original) function()
+    {
+        ensureGrandmasterSummons(this.getContainer());
+        __original();
     };
 });
 

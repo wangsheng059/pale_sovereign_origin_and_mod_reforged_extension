@@ -90,9 +90,6 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
             priority += (0.55 - hpPct) * 0.95;
         if (_target.getArmorMax(::Const.BodyPart.Body) > 30 && _target.getArmor(::Const.BodyPart.Body) <= 10)
             priority += 0.25;
-        // Hex-Eater (嗜咒) synergy: non-permanent undead prioritize targets afflicted by necromantic debuffs (+10% armor pen, +6 fatigue/hit).
-        if (_actor.getSkills().hasSkill("effects.bgp_necro_hunger") && ::BGP.Autopilot.Frontline.hasNecroDebuff(_target))
-            priority += (_target.getArmor(::Const.BodyPart.Body) >= 120 ? 0.50 : 0.35);
         return priority;
     }
 

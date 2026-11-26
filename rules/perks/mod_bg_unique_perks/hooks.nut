@@ -299,11 +299,9 @@ foreach (entry in [
 			if (!::BGP.isInBattle())
 				return;
 			::BGP.onActorPlaced();
-			::BGP.Necro.ensureHunger();
 			::Time.scheduleEvent(::TimeUnit.Virtual, 1, function( _data )
 			{
 				try { ::BGP.onActorPlaced(); } catch (e) {}
-				try { ::BGP.Necro.ensureHunger(); } catch (e) {}
 			}, null);
 		}
 		catch (e)
