@@ -73,7 +73,7 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
         if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
             ++aliveUndead;
     }
-    // High urgency while building the first 4-5 undead meatshields; taper once >= 6 are already up so Mentor mixes in 3+ target Corpse Explosions!
+    // Prioritize Raise Dead while building the early undead frontline.
     local urgencyBonus = 0.0;
     if (::Autopilot.conf("bgpSmartFrontline") && ::Time.getRound() >= 2 && ::Time.getRound() <= 8)
         urgencyBonus = aliveUndead < 4 ? 1.6 : (aliveUndead < 6 ? 0.8 : 0.0);
@@ -105,8 +105,6 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
             ++lethalCount;
         }
     }
-    // Under 4 AP (3 AP with Mastery) and Grandmaster 2+2 free summons (5 starting undead with Lich),
-    // require a real raised undead screen (>= 6 undead) before blowing up corpses on non-lethal blasts!
     if (smart) {
         if (hits < 2 && lethalCount == 0)
             return 0;
@@ -117,13 +115,10 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
                 ++aliveUndead;
         }
         local totalCorpses = c.Behavior.targets(c, "Corpses").len();
-        // Never burn the last 1-2 corpses on non-lethal blasts before we have raised a real undead screen!
         if (lethalCount == 0 && aliveUndead < 5 && totalCorpses <= 2)
             return 0;
-        // Against pure Goblins, raised arrow-sponge zombies are worth far more than chip-damage blasts unless multi-kill or thick wall!
         if (goblinHits == hits && lethalCount < 2 && (hits < 4 || aliveUndead < 7))
             value *= 0.55;
-        // Against pure morale-immune Undead/Skeletons with no kills, preserve scarce corpses unless we already have a thick wall (>= 6) & huge 4+ clump!
         if (moraleVulnerableHits == 0 && lethalCount == 0) {
             if (hits >= 4 && aliveUndead >= 6) {
                 value += 1.6;
@@ -134,7 +129,6 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
                     value *= 0.45;
             }
         }
-        // Grant big armored-clump Corpse Explosion bonus once we have >= 6 alive undead (Lich + 4 summons + raised) or >= 5 corpses!
         if (hits >= 3 && (aliveUndead >= 6 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
             && (armoredHits >= 2 || lethalCount >= 1)) {
             value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
@@ -174,13 +168,10 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
     }
     if (smart) {
         if (hits < 2) return 0;
-        // Against Goblins, raising zombies / weakening Shamans beats 5-AP Curse unless 4+ goblins are stacked with no corpses to raise.
         if (nonGoblinHits == 0 && (hits < 4 || c.Behavior.targets(c, "Corpses").len() > 0)) return 0;
-        // Once >= 3 active enemies are already cursed, switch back to Raise Dead / Weaken / Corpse Explosion instead of spamming Curse!
         if (alreadyCursed >= 3) value *= 0.40;
         else if (hits >= 3 && armoredHits >= 2 && ::Time.getRound() >= 2)
             value = ::Math.minf(10.2, value + 1.4);
-        // Cap Curse peak score below urgent Raise Dead (~11-13) so Mentor keeps building the undead frontline first!
         value = ::Math.minf(10.2, value);
     }
     return value;
@@ -514,7 +505,7 @@ local F = A.Frontline <- {
         }
 
         local rangedAdvantage = enemyRanged <= 0.01 || enemyRanged < playerRanged;
-        // Never passively wait in HoldLine against Orc Charger packs (>= 3), Ancient Priests (Miasma/Horror from Round 1!), or past Round 1 against Enemy Necromancers!
+        // Disable passive HoldLine against charger packs, Miasma/Horror priests, or enemy necromancers.
         local casterPush = (enemyMiasmaPriests > 0) || (enemyUrgentCasters > 0 && round >= 2);
         local holdLine = rangedAdvantage && enemyChargers < 3 && !casterPush && !state.StallBroken && !state.MeleeJoined && activeEnemies > 0;
 
@@ -640,10 +631,7 @@ local F = A.Frontline <- {
         return best;
     },
 
-    // Fatigue-disciplined tank rule: a shieldbearer only spends fatigue attacking before Shieldwall when
-    // (1) an adjacent enemy can be finished off this hit (expectedHP >= HP and hit >= 50%), or
-    // (2) 1v1 melee with >= 60% hit and >= 30 fatigue left after Attack + Shieldwall, or
-    // (3) <= 2 enemies with >= 70% hit and >= 20 fatigue left after Attack + Shieldwall.
+    // Check whether an engaged shieldbearer should strike before raising Shieldwall.
     function shouldShieldbearerAttackFirst( _actor, _sw, _enemies, _zone )
     {
         if (_zone < 1 || _actor.getHitpointsPct() < 0.48)
@@ -656,7 +644,7 @@ local F = A.Frontline <- {
         local fatLeft = availFat - atk.getFatigueCost() - _sw.getFatigueCost();
         if (apLeft < 0 || fatLeft < 0)
             return false;
-        // If this Shieldbearer has Rotation and stands beside an engaged wounded unshielded brother, reserve Rotation fatigue instead of spending it on non-lethal pokes!
+        // Reserve Rotation fatigue when standing beside a wounded engaged unshielded ally.
         local rot = _actor.getSkills().getSkillByID("actives.rotation");
         local reserveRotFat = 0;
         if (rot != null && !rot.isHidden() && rot.isUsable())
@@ -695,10 +683,8 @@ local F = A.Frontline <- {
                 expectedHP = dmg.HitpointDamage + dmg.DirectDamage;
             } catch (e) {}
 
-            // Case 1: Lethal finish on wounded enemy (generates a corpse for Mentor immediately!).
             if (expectedHP >= foe.getHitpoints() && hit >= 40)
                 return true;
-            // Case 2: Good hit chance with healthy fatigue buffer (never into Riposte; tighter buffer for heavy Sipar tanks).
             if (!foe.getSkills().hasSkill("effects.riposte"))
             {
                 if (_zone == 1 && hit >= 60 && fatLeft >= 22)
@@ -822,9 +808,7 @@ local F = A.Frontline <- {
 
     function hasUnactedShieldAlly( _actor, _info )
     {
-        // Only yield phase 1 to an unacted shieldbearer on Round 1 against non-charger, non-heavy-ranged foes
-        // AND ONLY if that shieldbearer has enough Initiative (>= 45) to act BEFORE the enemy army!
-        // Waiting for a heavy BF Sipar tank with Ini 4-33 hands the entire enemy army a free round of charges/nets/arrows!
+        // Yield Round 1 only to nearby unacted shieldbearers fast enough to act before the enemy.
         if (::Time.getRound() > 1 || _info.EngagedBrothers > 0)
             return false;
         if (_info.EnemyProjectileRanged >= 3.0 || _info.EnemyChargers >= 3)
@@ -1385,10 +1369,7 @@ local F = A.Frontline <- {
         return false;
     },
 
-    // Safe 1-2 tile kiting retreat for Mentor (caster) or Ranged brothers ONLY when:
-    // (a) a LIVE backline threat (unengaged melee / polearm / Wolfrider) closes to <= 2 tiles, OR
-    // (b) Mentor is exposed to heavy enemy archers (EnemyProjectileRanged >= 3.0) inside range <= 7 without cover!
-    // Never panics Bow/Crossbow over enemies already pinned in our frontline ZoC, and keeps AP to shoot!
+    // Find a safe kiting tile for backline casters and ranged units under melee or sniper pressure.
     function findBacklineSafeTile( _behavior, _actor, _info )
     {
         local myTile = _actor.getTile();
@@ -1409,9 +1390,6 @@ local F = A.Frontline <- {
         if (!meleeDanger && !sniperDanger)
             return null;
 
-        // Mentor has MaxRange=99 on Raise Dead, so stepping 1-2 tiles out of Ambusher/Arbalester range still lets him raise corpses!
-        // Bug fix: when Mentor has leftover 2 AP after Round 1 summons (cannot cast any 3-AP spell anyway), spend that 2 AP to step back into cover!
-        // Ranged bros step at most 1 tile (2 AP) when they have >= 6 AP so they STILL fire their bow/crossbow this turn!
         local maxMoveAP = isCaster ? (meleeDanger ? ::Math.min(ap, 4) : (ap >= 7 ? 4 : (ap <= 2 ? ap : ::Math.min(ap - 3, 2))))
                                    : (ap >= 6 ? 2 : 0);
         if (maxMoveAP < 2)
@@ -1594,7 +1572,7 @@ local F = A.Frontline <- {
         return false;
     },
 
-    // Check if a target enemy is afflicted by any necromantic debuff (for Hex-Eater / 嗜咒 AI synergy).
+    // Check if a target enemy is afflicted by any necromantic debuff.
     function hasNecroDebuff( _target )
     {
         if (_target == null || ::MSU.isNull(_target)) return false;
@@ -1795,7 +1773,7 @@ local F = A.Frontline <- {
     };
 });
 
-// Prevent Shieldbearers with Reforged Line Breaker (破阵者) from breaking formation / diving into 3+ enemies and losing Phalanx cohesion.
+// Prevent shieldbearers with Reforged Line Breaker from breaking Phalanx cohesion or diving into surrounds.
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_line_breaker", function(q) {
     q.onEvaluate = @(__original) function( _entity ) {
         local score = __original(_entity);
@@ -1824,7 +1802,7 @@ local F = A.Frontline <- {
     };
 });
 
-// Prevent safe ranged/caster brothers rooted by Goblin Shamans from wasting 8 AP on Break Free when they can still shoot & cast freely!
+// Skip Break Free for safe backline ranged/caster units when no immediate threat is in range.
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_break_free", function(q) {
     q.onEvaluate = @(__original) function( _entity ) {
         if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")

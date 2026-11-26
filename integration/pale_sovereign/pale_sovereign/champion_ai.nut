@@ -102,7 +102,7 @@ S.championAttackScore <- function( _score, _actor, _target, _skill )
     if (_score <= 0 || _skill == null || !_skill.isAttack() || _target.isAlliedWith(_actor) || !_target.getTile().IsVisibleForEntity)
         return _score;
     if (_actor.isPlayerControlled()) return _score;
-    // 1.6.33 常驻亡灵交给自动战斗时（阵营是 Player）也优先攻击猎物
+    // Permanent player-faction undead under Autopilot also prioritize marked Prey.
     if (_actor.getFaction() != ::Const.Faction.PlayerAnimals)
     {
         if (this.Battle == null || !this.isFriendlyUndead(_actor) || !_target.getSkills().hasSkill("effects.pale_prey")) return _score;
@@ -213,8 +213,7 @@ S.planChampionEngagement <- function( _behavior, _actor )
     local routes = {};
     local smart = ::Autopilot.conf("bgpSmartFrontline");
     local isChamp = this.isChampionAI(_actor);
-    // Lich King plays disciplined edge-tanking (maxZones=1) so our irreplaceable Lv 4 Shield Champion never gets surrounded & killed;
-    // disposable zombies/skeletons aggressively dive into up to 3 ZoC to pin enemies & archers!
+    // Champion uses conservative edge-tanking; disposable summons dive deeper to pin enemies.
     local maxZones = smart ? (isChamp ? 1 : 3) : 1;
     local master = ::BGP.Necro.getMaster(_actor);
     if (master == null || ::MSU.isNull(master)) master = this.chief();

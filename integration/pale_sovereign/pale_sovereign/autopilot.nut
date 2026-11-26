@@ -38,8 +38,7 @@ local function summon(c, s, t) {
     if (value <= 0) return 0;
     if (S.isChief(c.Actor)) {
         if (::Autopilot.conf("bgpSmartFrontline")) {
-            // Round 1: Lich King (3 AP) + Skeleton #1 (4 AP) + 2 AP cover step;
-            // Rounds 2-3+: deploy all remaining free Grandmaster summons (2 Skeletons + 2 Zombies) ahead of low-value fills!
+            // Prioritize free summons during the opening rounds.
             local bonus = s.getID() == "actives.pale_summon_skeleton" ? 18.0 : 17.0;
             if (::Time.getRound() <= 3 && freeLeft) return value + bonus;
             if (freeLeft) return value + 10.0;
@@ -153,11 +152,10 @@ A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
         if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;
 
         local corpses = c.Behavior.targets(c, "Corpses");
-        // Avoid stacking a corpse right next to an existing corpse (<= 1), but DO allow seeding 2-3 spaced corpses across the frontline!
+        // Avoid stacking corpses on adjacent tiles while allowing spaced seeding across the frontline.
         foreach (corpse in corpses) if (corpse.getDistanceTo(t) <= 1) return 0;
 
-        // Early corpse-seeding mode: seed up to maxShots (default 3) spaced corpses across Rounds 1-3 whenever fewer than 3 corpses exist
-        // so Mentor snowballs Raise Dead immediately, without stealing 2H strike turns (nearest <= 2) or engaged melee turns!
+        // Early corpse-seeding when few corpses exist, without stealing close-range melee turns.
         local enemiesNear = A.countNear(c.Enemies, t);
         local myNearest = A.nearest(c.Enemies, c.Origin);
         local isPolearm = !::BGP.hasShield(c.Actor) && c.Actor.getIdealRange() >= 2;

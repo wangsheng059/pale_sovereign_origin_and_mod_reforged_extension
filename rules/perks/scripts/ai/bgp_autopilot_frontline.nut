@@ -1,9 +1,4 @@
-// Tactical opener and shield-vanguard behavior for Autopilot-controlled player brothers.
-// Coordinates:
-// 1. Holding position (Wait in phase 1, Idle in phase 2) when enemy ranged firepower is absent or weaker.
-// 2. Yielding phase 1 to unacted nearby shieldbearers so shieldbearers engage first.
-// 3. Stepping shieldbearers into contact while preserving AP/fatigue to raise Shieldwall the same turn.
-// 4. Executing a guaranteed same-turn move-and-attack step when holding and an enemy enters strike budget.
+// Tactical opener, shield-vanguard, kiting, hazard-escape, and rescue behavior for Autopilot-controlled player brothers.
 this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
     m = {
         Mode = null,
@@ -180,7 +175,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 2e. Crossbow Take Aim (仔细瞄准, 2 AP, 25 Fat): ignore cover & zero stray friendly fire ONLY when safe to stay put and we have fatigue to Shoot + Reload!
+        // 2e. Crossbow Take Aim when safe to stand still and shoot.
         if (isRanged && !inZoC && _entity.getActionPoints() >= 9 && !_entity.getSkills().hasSkill("effects.rf_take_aim")
             && F.nearestLiveBacklineThreatDist(_entity, info.Enemies) > 2)
         {
@@ -229,8 +224,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 3a. Spearwall opener for Spear Shieldbearers when >= 2 non-Orc-charger melee enemies approach at distance 2-3
-        // AND tank has ample usable fatigue (>= spw + 24) so Sipar tanks never gas out before Shieldwall!
+        // 3a. Early Spearwall opener against approaching non-charger melee enemies.
         if (isShield && !inZoC && !_entity.getSkills().hasSkill("effects.spearwall") && !_entity.getSkills().hasSkill("effects.shieldwall")
             && info.EnemyProjectileRanged < 3.0 && info.EnemyChargers < 3 && ::Time.getRound() <= 3)
         {
@@ -264,7 +258,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 3c. Reforged Shield Bash (4 AP, +25% Hit, 2-turn Daze -25% dmg/-25% ini/-25% fat) on undazed Champions & heavy melee threats (max once per round)!
+        // 3c. Reforged Shield Bash on undazed heavy melee threats (once per round).
         if (isShield && inZoC && _entity.getHitpointsPct() >= 0.45 && this.m.BashedRound != ::Time.getRound())
         {
             local bash = _entity.getSkills().getSkillByID("actives.rf_shield_bash");
@@ -308,10 +302,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 4. Shieldbearer Shieldwall: raise only when truly needed:
-        // - >= 2 dangerous adjacent melee enemies, OR
-        // - 1 adjacent melee enemy while low HP (<= 45%) or right after a vanguard opening intercept, OR
-        // - holding line at distance 2 when >= 2 melee enemies are about to crash in.
+        // 4. Shieldbearer Shieldwall under melee pressure or rooted ranged fire.
         if (isShield && !_entity.getSkills().hasSkill("effects.shieldwall"))
         {
             local sw = _entity.getSkills().getSkillByID("actives.shieldwall");
@@ -322,18 +313,13 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 local zone = myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions());
                 local lowHP = _entity.getHitpointsPct() <= 0.45;
                 local justIntercepted = this.m.MovedTileID != -1;
-                // Only raise Shieldwall while rooted under fire AFTER Break Free was attempted (<= 5 AP left) so we never block Break Free!
                 local rootedUnderFire = _entity.getCurrentProperties().IsRooted && meleeAdj == 0 && info.EnemyProjectileRanged >= 4.0 && _entity.getActionPoints() <= 5;
-                // Strict Shieldwall discipline: raise when >= 2 melee adjacent, OR 1 melee adjacent + low HP (<= 45%),
-                // OR Round 1-2 clash facing >= 2 enemies within 2 tiles, OR holding line vs >= 2 approaching melee.
                 local needSW = (meleeAdj >= 2)
                     || (meleeAdj == 1 && (lowHP || (::Time.getRound() <= 2 && meleeWithin2 >= 2)))
                     || (zone == 0 && info.HoldLine && meleeWithin2 >= 2)
                     || rootedUnderFire;
                 if (needSW)
                 {
-                    // Fatigue-disciplined shieldbearer rule: only attack before Shieldwall for a lethal finish
-                    // or a very high hit-chance swing with healthy fatigue cushion.
                     local attackFirst = meleeAdj > 0 && !lowHP && F.shouldShieldbearerAttackFirst(_entity, sw, info.Enemies, meleeAdj);
                     if (!attackFirst)
                     {
@@ -345,7 +331,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 4b. Indomitable for engaged frontliners facing heavy pressure/bruisers/low HP, OR pre-cast before incoming Orc Charge/Push (distance 2-3)!
+        // 4b. Indomitable under heavy melee pressure or incoming chargers.
         if (!isRanged && !isCaster && !_entity.getSkills().hasSkill("effects.indomitable"))
         {
             local indom = _entity.getSkills().getSkillByID("actives.indomitable");
@@ -357,8 +343,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     local heavyAdj = F.hasHeavyMeleeAdjacent(_entity, info.Enemies);
                     local atk = F.cheapestMeleeSkill(_entity);
                     local hasSW = _entity.getSkills().hasSkill("effects.shieldwall");
-                    // 2H Greatsword (6 AP) cannot attack + Indomitable (5 AP) in 9 AP: NEVER steal a healthy 2H Greatsword's attack turn unless truly in lethal danger!
-                    // 1H Duelist (4 AP) CAN attack (4 AP) + Indomitable (5 AP) = 9 AP, so keep his swing-then-Indomitable combo!
+                    // Only combine attack + Indomitable when weapon AP and Indomitable AP fit in one turn.
                     local canComboWithAtk = atk != null && (_entity.getActionPointsMax() >= atk.getActionPointCost() + indom.getActionPointCost());
                     local lowHP = _entity.getHitpointsPct() <= (isShield ? 0.50 : (canComboWithAtk ? 0.65 : 0.45));
                     local needIndom = lowHP || (hasSW ? meleeAdj >= 3 : (canComboWithAtk ? (meleeAdj >= 2 || (heavyAdj && _entity.getHitpointsPct() <= 0.80))
