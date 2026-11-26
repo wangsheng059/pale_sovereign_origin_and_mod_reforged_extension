@@ -1,13 +1,14 @@
-// Hunger passive granted to non-permanent friendly undead (undead pets & raised/summoned undead)
-// when any ally has Tier 7 perk.bgp_necro_grandmaster.
-// Heals 10% max HP at turn start if adjacent (distance 1) to an enemy, plus 10% max HP on attack hit.
+// Hex-Eater (嗜咒) passive granted to non-permanent friendly undead (undead pets, Lich King,
+// Eternal Guard, summoned zombies/skeletons, and raised undead) when any ally has Tier 7 perk.bgp_necro_grandmaster.
+// Against targets afflicted by necromantic debuffs (Weaken, Curse of Ages, Corpse Explosion Stagger,
+// Corpse Poison, or Prey): +10 percentage points armor penetration (DamageDirectAdd +0.10) and +6 fatigue on hit.
 this.bgp_necro_hunger_effect <- ::inherit("scripts/skills/skill", {
 	m = {},
 	function create()
 	{
 		this.m.ID = "effects.bgp_necro_hunger";
-		this.m.Name = "饥渴";
-		this.m.Description = "它不知饱足，只要贴近活物便本能地撕咬进食，借鲜血修补残躯。";
+		this.m.Name = "嗜咒";
+		this.m.Description = "死灵诅咒在敌人身上撕开破绽，使这具亡灵的攻势更具穿透与耗竭之力。";
 		this.m.Icon = "skills/bgp_necro_hunger.png";
 		this.m.IconMini = "";
 		this.m.Type = ::Const.SkillType.StatusEffect;
@@ -21,29 +22,41 @@ this.bgp_necro_hunger_effect <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getTooltip();
-		ret.push({ id = 10, type = "text", icon = "ui/icons/health.png", text = "与敌人贴身（距离 1 格）时，每回合开始恢复最大生命的 " + ::MSU.Text.colorPositive("10%") });
-		ret.push({ id = 11, type = "text", icon = "ui/icons/health.png", text = "攻击命中敌人时，额外恢复最大生命的 " + ::MSU.Text.colorPositive("10%") });
+		ret.push({
+			id = 10,
+			type = "text",
+			icon = "ui/icons/direct_damage.png",
+			text = "攻击处于死灵减益（衰弱术、岁月诅咒、尸爆踉跄、尸毒、猎物）的敌人时，护甲穿透 " + ::MSU.Text.colorPositive("+10 个百分点")
+		});
+		ret.push({
+			id = 11,
+			type = "text",
+			icon = "ui/icons/fatigue.png",
+			text = "命中上述目标后，额外使其疲劳 " + ::MSU.Text.colorNegative("+6")
+		});
 		return ret;
 	}
 
-	function hasAdjacentEnemy( _actor )
+	function hasNecroDebuff( _actor, _target )
 	{
+		if (_actor == null || ::MSU.isNull(_actor) || _target == null || ::MSU.isNull(_target))
+			return false;
 		try
 		{
-			if (!_actor.isPlacedOnMap())
+			if (!_target.isAlive() || _target.isDying() || _target.isAlliedWith(_actor))
 				return false;
-			local tile = _actor.getTile();
-			for (local d = 0; d < 6; ++d)
-			{
-				if (!tile.hasNextTile(d))
-					continue;
-				local next = tile.getNextTile(d);
-				if (!next.IsOccupiedByActor)
-					continue;
-				local other = next.getEntity();
-				if (other != null && other.isAlive() && !other.isDying() && !other.isAlliedWith(_actor))
-					return true;
-			}
+			local skills = _target.getSkills();
+			if (skills == null)
+				return false;
+			if (skills.hasSkill("effects.pale_weaken")
+				|| skills.hasSkill("effects.bgp_curse_of_ages")
+				|| skills.hasSkill("effects.pale_corpse_poison")
+				|| skills.hasSkill("effects.bgp_undead_poison")
+				|| skills.hasSkill("effects.pale_prey"))
+				return true;
+			local stagger = skills.getSkillByID("effects.staggered");
+			if (stagger != null && ("BGP_FromCorpseExplosion" in stagger.m) && stagger.m.BGP_FromCorpseExplosion)
+				return true;
 		}
 		catch (e)
 		{
@@ -51,49 +64,42 @@ this.bgp_necro_hunger_effect <- ::inherit("scripts/skills/skill", {
 		return false;
 	}
 
-	function healTenPct( _actor, _reason )
+	function onAnySkillUsed( _skill, _targetEntity, _properties )
 	{
-		local maxHP = _actor.getHitpointsMax();
-		local missing = maxHP - _actor.getHitpoints();
-		if (missing <= 0 || maxHP <= 0)
+		if (_skill == null || !_skill.isAttack() || _targetEntity == null)
 			return;
-		local amt = ::Math.max(1, ::Math.floor(maxHP * 0.10));
-		local heal = ::Math.min(missing, amt);
-		if (heal > 0)
-		{
-			::BGP.heal(_actor, heal);
-			::BGP.log(_actor, _reason + "，因饥渴回复了 " + heal + " 点生命");
-		}
-	}
-
-	function onTurnStart()
-	{
 		local c = this.getContainer();
 		if (c == null || ::MSU.isNull(c))
 			return;
 		local actor = c.getActor();
 		if (!::BGP.isValid(actor))
 			return;
-		if (this.hasAdjacentEnemy(actor))
-			this.healTenPct(actor, "贴身接敌");
+		if (this.hasNecroDebuff(actor, _targetEntity))
+			_properties.DamageDirectAdd += 0.10;
 	}
 
 	function onTargetHit( _skill, _targetEntity, _bodyPart, _damageInflictedHitpoints, _damageInflictedArmor )
 	{
+		if (_skill == null || !_skill.isAttack() || _targetEntity == null)
+			return;
 		local c = this.getContainer();
 		if (c == null || ::MSU.isNull(c))
 			return;
 		local actor = c.getActor();
 		if (!::BGP.isValid(actor))
 			return;
-		if (_skill == null || !_skill.isAttack())
+		if (!this.hasNecroDebuff(actor, _targetEntity))
 			return;
-		if (_targetEntity == null || ::MSU.isNull(_targetEntity))
-			return;
-		local allied = false;
-		try { allied = _targetEntity.isAlliedWith(actor); } catch (e) { allied = false; }
-		if (allied)
-			return;
-		this.healTenPct(actor, "命中敌人");
+		try
+		{
+			local cur = _targetEntity.getFatigue();
+			local maxF = _targetEntity.getFatigueMax();
+			local next = ::Math.min(maxF, cur + 6);
+			if (next > cur)
+				_targetEntity.setFatigue(next);
+		}
+		catch (e)
+		{
+		}
 	}
 });

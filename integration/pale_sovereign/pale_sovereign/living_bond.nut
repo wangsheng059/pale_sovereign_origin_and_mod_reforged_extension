@@ -309,9 +309,10 @@ S.VictoryHooks.push(function()
 
 S.convertPanel <- function( _event, _screen )
 {
+    local tier2 = this.canUseTierSystem();
     local list = this.pendingList("Convert");
     _screen.Text = "战死的老兵还没有凉透。只要导师点头，他们可以带着生前的名字和本事，换一副不会疼的身体回到队列里。\n\n"
-        + "（转为中阶常驻亡灵：清除全部永久伤势，保留名字、击杀数、约 70% 的等级与较高的天赋星，继承 1 个生前特质，并获得【旧日同袍】。"
+        + "（转为" + (tier2 ? "中阶" : "") + "常驻亡灵：清除全部永久伤势，保留名字、击杀数、约 70% 的等级与较高的天赋星，继承 1 个生前特质，并获得【旧日同袍】。"
         + "每名消耗 " + this.ConvertCost.Reserve + " 点防腐尸骸 + 1 枚古代魂玉或 1 条缚魂锁链；签过【生前死契】的只要 " + this.ConvertCost.Indenture + " 点防腐尸骸）\n" + this.resourceLine();
     foreach (i, rec in list)
     {
@@ -348,7 +349,7 @@ S.convertPending <- function( _index, _pay )
         this.removeMaterial("chain");
     local rec = list.remove(_index);
     this.savePendingList("Convert", list);
-    local bro = this.convertToUndead(rec, true);
+    local bro = this.convertToUndead(rec, this.canUseTierSystem());
     return "黑气灌进冷透的躯体，断掉的筋骨一节节接回原处。" + bro.getName() + " 睁开眼，眼窝里亮起了魂火，第一件事是去摸自己用惯的兵器。\n\n（"
         + bro.getName() + " 转为【" + bro.getBackground().getName() + "】，" + bro.getLevel() + " 级，获得【旧日同袍】。其余活人兄弟的心情随之起伏）";
 };

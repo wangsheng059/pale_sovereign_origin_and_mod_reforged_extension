@@ -88,14 +88,22 @@ S.grantVisage <- function( _actor, _tree )
 // 1.7.0 活人转化为中阶亡灵时免费升阶（不检查等级与材料、不扣材料）
 S.FreeTier <- false;
 
+// Permanent undead tier ascension is exclusive to the Champion oath route.
+S.canUseTierSystem <- function()
+{
+    return this.isActive() && this.oath() == this.Oath.Champion;
+};
+
 S.tierCanPromote <- function( _bro, _branch )
 {
+    if (!this.canUseTierSystem())
+        return false;
     if (this.FreeTier)
     {
         local baseBg = this.getUndeadBackground(_bro);
         return _bro != null && this.isUndead(_bro) && baseBg != null && _branch in this.TierBranches && this.tierChoicesFor(baseBg).find(_branch) != null;
     }
-    if (!this.isActive() || _bro == null || !_bro.isAlive()
+    if (_bro == null || !_bro.isAlive()
         || !this.isUndead(_bro) || _bro.getFlags().has("PaleSoulbound") || _bro.getLevel() < this.TierCost.Level
         || this.undead().find(_bro) == null || !(_branch in this.TierBranches))
         return false;

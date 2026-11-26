@@ -114,7 +114,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 			}
 			catch (e)
 			{
-				::logError("mod_bg_unique_perks: 亡灵仆从添加饥渴失败: " + e);
+				::logError("mod_bg_unique_perks: 亡灵仆从添加嗜咒失败: " + e);
 			}
 		}
 		try { actor.getSkills().update(); } catch (e) {}

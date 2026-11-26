@@ -275,10 +275,11 @@ foreach (beastClass in ["ghoul", "direwolf", "hyena", "wolf", "alp", "schrat", "
 	};
 });
 
-// Tier 7 Grandmaster: extend staggered_effect duration when applied by Corpse Explosion.
+// Tier 7 Grandmaster: extend staggered_effect duration & mark Corpse Explosion origin for Hex-Eater (嗜咒).
 ::BGP.HooksMod.hook("scripts/skills/effects/staggered_effect", function(q)
 {
 	q.m.BGP_ExtraTurns <- 0;
+	q.m.BGP_FromCorpseExplosion <- false;
 
 	q.getTooltip = @(__original) function()
 	{

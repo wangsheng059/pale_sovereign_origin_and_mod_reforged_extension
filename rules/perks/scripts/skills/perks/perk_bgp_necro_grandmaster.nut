@@ -1,6 +1,6 @@
 // Tier 7 necromancy grandmaster perk (shared by Champion & Scourge routes).
 // Unlocks undead taming & bind (Resolve-scaled), grants non-permanent friendly undead
-// the Hunger passive, extends necromancy spell buff/debuff durations by +1 turn,
+// the Hex-Eater (嗜咒) passive, extends necromancy spell buff/debuff durations by +1 turn,
 // and pulses +8 HP / +5 Melee & Ranged Skill within 4 tiles once per round on spell cast.
 this.perk_bgp_necro_grandmaster <- ::inherit("scripts/skills/skill", {
 	m = {

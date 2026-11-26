@@ -2,6 +2,8 @@ local S = ::PaleSovereign;
 
 S.tierLedgerTargets <- function()
 {
+    if (!this.canUseTierSystem())
+        return [];
     local units = this.undead().filter(@(_, bro) bro.isAlive() && bro.getLevel() >= S.TierCost.Level
         && !bro.getFlags().has("PaleSoulbound") && S.getUndeadTier(bro) > 0 && S.getUndeadTier(bro) < 3);
     units.sort(@(a, b) b.getLevel() <=> a.getLevel());
@@ -10,6 +12,11 @@ S.tierLedgerTargets <- function()
 
 S.tierLedgerPanel <- function( _event, _screen )
 {
+    if (!this.canUseTierSystem())
+    {
+        _screen.Text = "常驻亡灵升阶为【亡灵勇士】路线专属机制，当前路线无法为常驻亡灵升阶。";
+        return;
+    }
     local units = this.tierLedgerTargets();
     local page = ::Math.min(_event.m.TierPage, ::Math.max(0, (units.len() - 1) / 4));
     _screen.Text = "空地上以骨灰与粗盐画好重铸法阵。历经血战、达到 7 级的常驻骷髅与行尸可以踏入其中，拆去旧骨、重塑更凶悍的亡者形骸。\n\n"
@@ -52,7 +59,7 @@ S.tierBranchPanel <- function( _event, _screen )
         local chosen = _event.m.TierBranch;
         local branch = this.TierBranches[chosen];
         _screen.Text += "\n\n" + this.tierBranchSummary(chosen)
-            + "\n\n升阶将重置基础属性、已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、特质（含宝石眼窝）、装备和中阶专长；旧阶段的魂玉统领与镀金骨甲清空，升阶后可再次进行。"
+            + "\n\n升阶将重置基础属性、已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、特质（含宝石眼窝）、装备和中阶专长；旧阶段的镀金骨甲清空，升阶后可再次进行。"
             + (background.m.PaleRanged ? "\n\n远程升阶从 1 级开始。已有合用武器会继续使用；若需换装，配发分支武器和适用的弹药，换下的装备送入仓库。" : "")
             + "\n\n消耗古代魂玉 " + this.TierCost.Jade + " 枚、防腐尸骸 " + this.tierReserveCost() + " 点、" + this.TierCost.Money + " 克朗。";
         if (this.tierCanPromote(target, chosen))

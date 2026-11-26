@@ -1,13 +1,12 @@
-// 尸爆：4 行动点、20 疲劳、6 格。摧毁目标格的一具尸体（之后不能再复活），对该格及相邻 1 格内的所有敌人（不伤友军）：
-//   钝器伤害 = 尸体生前最大生命 × 35%（对护甲效率 100%）；
+// 尸爆：基础 4 行动点、12 疲劳、6 格（死灵精通再 -1 行动点、-25% 疲劳，即 3 行动点、9 疲劳）。
+// 摧毁目标格的一具尸体（之后不能再复活），对该格及相邻 1 格内的所有敌人（不伤友军）：
+//   按施放者决心 W（当前决心 - 20）：钝器伤害 = 尸体生前最大生命 ×(20% + W/4 %)（对护甲效率 100%）；
 //   尸体死亡时头甲 + 身甲还有剩余耐久时，再加一次劈砍伤害 = 剩余耐久总和 × 25%（对护甲效率 150%）；
-//   命中的敌人陷入“踉跄”（原版效果，下回合行动顺位延后）。
-// 1.6.4 起基础消耗改为 3 行动点、8 疲劳（死灵精通再 -1 行动点、-25% 疲劳）。
-// 1.6.2 起按施放者决心 W：钝器伤害改为生前最大生命 ×(20% + W/4 %)（原 35%）；被炸到还活着的敌人做一次士气检定，难度 -W/4。
+//   命中的敌人陷入“踉跄”（标记为尸爆踉跄，供嗜咒判定），还活着的敌人做一次士气检定，难度 -W/5。
 this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 	m = {
-		BaseAP = 3,
-		BaseFatigue = 8,
+		BaseAP = 4,
+		BaseFatigue = 12,
 		HitpointsPct = 0.2,
 		ArmorPct = 0.25,
 		ArmorEfficiency = 1.5
@@ -141,6 +140,8 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 						stagger = ::new("scripts/skills/effects/staggered_effect");
 						target.getSkills().add(stagger);
 					}
+					// Mark staggered as originating from Corpse Explosion for Hex-Eater (嗜咒) synergy.
+					stagger.m.BGP_FromCorpseExplosion = true;
 					if (extra > 0)
 						stagger.m.BGP_ExtraTurns = ::Math.max(stagger.m.BGP_ExtraTurns, extra);
 				}

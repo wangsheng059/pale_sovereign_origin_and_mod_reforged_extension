@@ -4,6 +4,7 @@ local page = ::Autopilot.msu.ModSettings.getPage("背景与亡灵");
 page.addElement(::MSU.Class.BooleanSetting("paleAutoChampion", true, "导师自动放出勇士", "第一回合召唤僵尸和骷髅，第二回合起放出饰品栏勇士并优先支配它。"));
 page.addElement(::MSU.Class.BooleanSetting("paleAutoExtraSummon", false, "导师自动耗骸续召", "允许导师在每场免费召唤用完后消耗防腐尸骸续召僵尸和骷髅；关闭时每场默认各免费召唤 1 次。"));
 page.addElement(::MSU.Class.BooleanSetting("paleAutoCorpseShot", true, "自动投掷防腐尸骸", "有尸骸储备时，可向敌群投掷尸弹。优先利用战场已有的尸体。"));
+page.addRangeSetting("paleAutoCorpseShotLimit", 3, 0, 20, 1, "尸弹每场允许使用次数", "自动战斗中每场战斗最多允许投掷尸弹的次数（默认 3 次；0 表示自动战斗不投掷）。不影响手动操作。");
 page.addElement(::MSU.Class.BooleanSetting("paleAutoChain", false, "自动使用缚魂锁链", "允许导师标记可吞魂的强敌，或用一条锁链复活可收编的亡灵强敌。"));
 
 local function screen(c, s, t) {
@@ -127,6 +128,10 @@ A.add("pale_soul_chain", "Enemies", @(c, s, t) ::Autopilot.conf("paleAutoChain")
 A.add("pale_soul_bind", "Corpses", @(c, s, t) ::Autopilot.conf("paleAutoChain") ? 8.0 + A.corpseValue(t) : 0);
 A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
     if (!::Autopilot.conf("paleAutoCorpseShot") || ::BGP.Necro.getCorpse(t) != null || A.countNear(c.Enemies, t) < 2) return 0;
+    local maxShots = 3;
+    try { maxShots = ::Autopilot.conf("paleAutoCorpseShotLimit").tointeger(); } catch (e) {}
+    local usedShots = (S.Battle != null && "CorpseShots" in S.Battle) ? S.Battle.CorpseShots : 0;
+    if (maxShots <= 0 || usedShots >= maxShots) return 0;
     if (::Autopilot.conf("bgpSmartFrontline")) {
         // Dedicated archers/crossbowmen, engaged melee units, frontline shieldbearers near contact, and fatigued bros must use their real weapons/defenses instead of 20-30 dmg corpse throws.
         if (c.Actor.isArmedWithRangedWeapon() || c.Engaged) return 0;
@@ -158,6 +163,15 @@ A.add("pale_arrow_rain", "Centers", function(c, s, t) {
         ++count;
     }
     return count >= 2 ? value : 0;
+});
+
+S.Mod.hook("scripts/skills/actives/pale_corpse_shot", function(q) {
+    q.onUse = @(__original) function(_user, _tile) {
+        local ret = __original(_user, _tile);
+        if (ret && S.Battle != null)
+            S.Battle.CorpseShots = ("CorpseShots" in S.Battle ? S.Battle.CorpseShots : 0) + 1;
+        return ret;
+    };
 });
 
 S.Mod.hook("scripts/ai/tactical/behaviors/ai_engage_ranged", function(q) {

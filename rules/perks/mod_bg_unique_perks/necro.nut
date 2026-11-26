@@ -878,9 +878,9 @@
 	IronPct = function( _w ) { return 0.1 + _w / 400.0; },
 	// 岁月诅咒：每次挨打头甲、身甲各 -(10 + W/4)
 	CurseDecay = function( _w ) { return 10 + ::Math.floor(_w / 4.0); },
-	// 尸爆：钝器伤害 = 生前最大生命 ×(20% + W/4 %)；被炸到的敌人士气检定难度 -W/4
+	// 尸爆：钝器伤害 = 生前最大生命 ×(20% + W/4 %)；被炸到的敌人士气检定难度 -W/5
 	BlastPct = function( _w ) { return 0.2 + _w / 400.0; },
-	BlastMorale = function( _w ) { return ::Math.floor(_w / 4.0); }
+	BlastMorale = function( _w ) { return ::Math.floor(_w / 5.0); }
 };
 
 ::BGP.Necro.pctText <- function( _ratio )
@@ -1027,7 +1027,7 @@
 		}
 		catch (e)
 		{
-			::logError("mod_bg_unique_perks: 添加饥渴被动失败: " + e);
+			::logError("mod_bg_unique_perks: 添加嗜咒被动失败: " + e);
 		}
 	}
 }
