@@ -10,7 +10,7 @@ this.bgp_seal_center_skill <- ::inherit("scripts/skills/actives/bgp_seal_skill",
 		this.m.IconDisabled = "skills/bgp_seal_center_skill_sw.png";
 		this.m.EffectScript = "scripts/skills/effects/bgp_seal_center_effect";
 		this.m.Lines = [
-			"相邻的友军受到伤害 " + ::MSU.Text.colorPositive("-20%"),
+			"相邻其他战团成员（不含另一枚中军印与野兽/召唤物）受到伤害 " + ::MSU.Text.colorPositive("-20%"),
 			"自身受到伤害 " + ::MSU.Text.colorPositive("-10%"),
 			"敌人更倾向于攻击他（吸引敌方注意 ×2）"
 		];

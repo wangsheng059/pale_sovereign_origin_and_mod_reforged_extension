@@ -21,9 +21,9 @@ this.bgp_seal_center_effect <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getTooltip();
-		ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "相邻的友军受到伤害 " + ::MSU.Text.colorPositive("-20%") });
+		ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "相邻其他战团成员（不含另一枚中军印与野兽/召唤物）受到伤害 " + ::MSU.Text.colorPositive("-20%") });
 		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "自身受到伤害 " + ::MSU.Text.colorPositive("-10%") });
-		ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "敌人更倾向于攻击他" });
+		ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "敌人更倾向于攻击他（吸引敌方注意 ×2）" });
 		return ret;
 	}
 

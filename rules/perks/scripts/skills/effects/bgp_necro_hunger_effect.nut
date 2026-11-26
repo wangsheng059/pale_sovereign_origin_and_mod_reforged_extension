@@ -7,7 +7,7 @@ this.bgp_necro_hunger_effect <- ::inherit("scripts/skills/skill", {
 	{
 		this.m.ID = "effects.bgp_necro_hunger";
 		this.m.Name = "饥渴";
-		this.m.Description = "死灵法术大师的饥渴律令让这具非永久的亡灵对生者血肉与残魂格外贪婪。";
+		this.m.Description = "亡灵法术大师的饥渴律令让这具非永久的亡灵对生者血肉与残魂格外贪婪。";
 		this.m.Icon = "skills/bgp_necro_hunger.png";
 		this.m.IconMini = "";
 		this.m.Type = ::Const.SkillType.StatusEffect;

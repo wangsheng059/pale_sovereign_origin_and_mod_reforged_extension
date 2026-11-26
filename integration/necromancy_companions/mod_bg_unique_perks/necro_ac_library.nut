@@ -19,7 +19,7 @@ foreach (d in ::BGP.NecroPet.Defs)
 			Type = C.TypeList[key],
 			Name = makeName(d.Display),
 			NameUnleashed = "棺椁",
-			Description = "一具以铜箍封紧的木棺，里面封着一个被死灵法术束缚的" + ::BGP.Necro.CategoryNames[d.Category] + "（" + d.Display + "）。可在战斗中放出，让它为你而战；它会像宠物一样积累经验、成长，并学会新的特质。只有亡灵法师能装备。",
+			Description = "一具以铜箍封紧的木棺，里面封着一个被死灵法术束缚的" + ::BGP.Necro.CategoryNames[d.Category] + "（" + d.Display + "）。可在战斗中放出，让它为你而战；它会像宠物一样积累经验、成长，并学会新的特质。活人兄弟皆可装备（常驻亡灵无法装备）。",
 			DescriptionUnleashed = "棺盖已启，棺中空空。原本受缚于此的亡灵正在战场上为你而战。",
 			IconLeashed = function( variant ) { return "tools/bgp_necro_vessel_70x70.png"; },
 			IconUnleashed = "tools/bgp_necro_vessel_empty_70x70.png",

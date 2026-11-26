@@ -10,7 +10,7 @@ this.bgp_seal_shadow_skill <- ::inherit("scripts/skills/actives/bgp_seal_skill",
 		this.m.IconDisabled = "skills/bgp_seal_shadow_skill_sw.png";
 		this.m.EffectScript = "scripts/skills/effects/bgp_seal_shadow_effect";
 		this.m.Lines = [
-			"攻击本场还没攻击过他的敌人时：穿甲伤害比例 " + ::MSU.Text.colorPositive("+20%") + "，近战攻击无视目标盾牌的近战防御",
+			"攻击本场还没攻击过他的敌人时：穿甲伤害比例 " + ::MSU.Text.colorPositive("+20%") + "，近战攻击无视目标盾牌的近战防御（盾墙额外防御按一半计算）",
 			"击杀后直到他下一回合开始，敌人不太会把他当作目标（吸引敌方注意 ×0.3）"
 		];
 	}

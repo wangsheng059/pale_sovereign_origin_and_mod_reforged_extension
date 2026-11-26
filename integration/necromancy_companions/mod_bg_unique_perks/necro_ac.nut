@@ -543,14 +543,57 @@
 		return true;
 	try
 	{
-		local bg = _actor.getBackground();
-		return bg != null && bg.getID() == "background.bgp_necromancer";
+		// Living brothers (including the Mentor) can equip undead pet coffins; permanent undead cannot.
+		if ("PaleSovereign" in ::getroottable())
+		{
+			if (::PaleSovereign.isChief(_actor))
+				return true;
+			if (::PaleSovereign.isUndead(_actor))
+				return false;
+		}
+		if (_actor.getFlags().has("undead"))
+			return false;
+		return true;
 	}
 	catch (e)
 	{
 	}
-	// 没有背景的单位（非战团成员）不限制
+	// Non-company actors without flags are unrestricted.
 	return true;
+}
+
+// Enable temporary combat injuries for undead pets (using Reforged's undead exclusion lists).
+// Post-combat AC only persists item.m.Wounds (% HP), so temporary injuries naturally vanish after battle.
+::BGP.NecroPet.ensureInjurySupport <- function( _e )
+{
+	try
+	{
+		local b = _e.getBaseProperties();
+		b.IsAffectedByInjuries = true;
+		b.IsAffectedByFreshInjuries = true;
+		local skills = _e.getSkills();
+		local receiver = skills.getSkillByID("special.rf_undead_injury_receiver");
+		if (receiver == null)
+		{
+			receiver = ::new("scripts/skills/special/rf_undead_injury_receiver");
+			skills.add(receiver);
+		}
+		receiver.m.ThresholdToReceiveInjuryMult = 1.0;
+
+		if ("ExcludedInjuries" in ::Const.Injury && "RF_Undead" in ::Const.Injury.ExcludedInjuries)
+		{
+			local listId = _e.getFlags().has("skeleton") ? ::Const.Injury.ExcludedInjuries.RF_Skeleton : ::Const.Injury.ExcludedInjuries.RF_Undead;
+			foreach (inj in ::Const.Injury.ExcludedInjuries.get(listId))
+			{
+				if (_e.m.ExcludedInjuries.find(inj) == null)
+					_e.m.ExcludedInjuries.push(inj);
+			}
+		}
+	}
+	catch (e)
+	{
+		::logError("mod_bg_unique_perks: 死灵宠物临时伤支持初始化失败: " + e);
+	}
 }
 
 // 把场上的单位直接移出地图（配件兄弟驯服成功时也是这样处理，不走死亡流程、不留尸体）
@@ -677,6 +720,8 @@
 		b.RangedSkill = a.RangedSkill;
 		b.MeleeDefense = a.MeleeDefense;
 		b.RangedDefense = a.RangedDefense;
+		b.IsAffectedByInjuries = true;
+		b.IsAffectedByFreshInjuries = true;
 		_e.m.CurrentProperties = clone b;
 		_e.m.Hitpoints = b.Hitpoints;
 	}
@@ -684,6 +729,8 @@
 	{
 		::logError("mod_bg_unique_perks: 死灵宠物属性缩放失败: " + e);
 	}
+
+	::BGP.NecroPet.ensureInjurySupport(_e);
 
 	try
 	{
@@ -730,6 +777,10 @@
 		{
 			::logError("mod_bg_unique_perks: 死灵宠物挂仆从效果失败: " + e);
 		}
+	}
+	if ("syncGrandmasterHunger" in ::BGP.Necro)
+	{
+		try { ::BGP.Necro.syncGrandmasterHunger(); } catch (e) {}
 	}
 	try { _e.getSkills().update(); } catch (e) {}
 }

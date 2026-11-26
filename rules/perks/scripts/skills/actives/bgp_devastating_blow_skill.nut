@@ -74,15 +74,15 @@ this.bgp_devastating_blow_skill <- ::inherit("scripts/skills/skill", {
 		local ret = this.getDefaultTooltip();
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "总伤害 " + ::MSU.Text.colorPositive("+40%") + "，穿甲伤害比例 " + ::MSU.Text.colorPositive("+30%") + "，命中头部几率 " + ::MSU.Text.colorPositive("+35%") },
-			{ id = 11, type = "text", icon = "ui/icons/special.png", text = "震荡波：主目标和它身后 1 格内的敌人被震退 1 格，并随机陷入眩晕或踉跄" },
-			{ id = 12, type = "text", icon = "ui/icons/special.png", text = "需要双手近战武器；和另一种毁灭技能共用冷却，用后冷却 2 回合" }
+			{ id = 11, type = "text", icon = "ui/icons/special.png", text = "震荡波：无论是否命中，主目标和它身后 1 格内的敌人被震退 1 格，并随机陷入眩晕或踉跄（免疫眩晕的改为踉跄）" },
+			{ id = 12, type = "text", icon = "ui/icons/special.png", text = "需要双手近战武器；和另一种毁灭技能共用冷却，每 3 回合可用一次（间隔 2 回合）" }
 		]);
 		if (this.m.IsSweep)
 			ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "扇形攻击：同时攻击目标和它两侧与你相邻的敌人（不伤友军）" });
 
 		local perk = this.getPerk();
 		if (perk != null && perk.isOnCooldown())
-			ret.push({ id = 20, type = "text", icon = "ui/tooltips/warning.png", text = ::MSU.Text.colorNegative("冷却中，还要 " + perk.getCooldownLeft() + " 回合") });
+			ret.push({ id = 20, type = "text", icon = "ui/tooltips/warning.png", text = ::MSU.Text.colorNegative("冷却中，还需等待 " + perk.getCooldownLeft() + " 回合（含本回合）") });
 		if (this.getWeapon() == null)
 			ret.push({ id = 21, type = "text", icon = "ui/tooltips/warning.png", text = ::MSU.Text.colorNegative("需要装备双手近战武器") });
 		return ret;

@@ -21,7 +21,7 @@
 		beast = "野兽",
 		undead = "亡灵",
 		orc = "兽人",
-		goblin = "哥布林"
+		goblin = "地精"
 	},
 	// 心灵交融：只复制这些被动的防御 / 属性类特技
 	MindMeldPerks = [
@@ -646,6 +646,62 @@
 	return restored;
 }
 
+// Flesh of Iron: restore damaged armor on raised units; on undead pets or already-full slots,
+// grant equal temporary natural armor in BaseProperties (absorbed before equipped armor, gone after battle).
+::BGP.Necro.applyFleshOfIron <- function( _actor, _pct, _forceTemp = false )
+{
+	local tempAdded = { Head = 0, Body = 0 };
+	local changed = false;
+	local parts = [
+		{ Slot = ::Const.ItemSlot.Head, BodyPart = ::Const.BodyPart.Head, Key = "Head" },
+		{ Slot = ::Const.ItemSlot.Body, BodyPart = ::Const.BodyPart.Body, Key = "Body" }
+	];
+	foreach (part in parts)
+	{
+		try
+		{
+			local piece = _actor.getItems().getItemAtSlot(part.Slot);
+			local b = _actor.getBaseProperties();
+			local baseCur = b.Armor[part.BodyPart];
+			local baseMax = b.ArmorMax[part.BodyPart];
+			local pieceCur = piece != null ? piece.getArmor() : 0;
+			local pieceMax = piece != null ? piece.getArmorMax() : 0;
+
+			if (!_forceTemp && piece != null && pieceCur < pieceMax)
+			{
+				piece.setArmor(::Math.min(pieceMax, pieceCur + pieceMax * _pct));
+				changed = true;
+			}
+			else if (!_forceTemp && piece == null && baseCur < baseMax)
+			{
+				b.Armor[part.BodyPart] = ::Math.min(baseMax, baseCur + baseMax * _pct);
+				changed = true;
+			}
+			else
+			{
+				local totalMax = baseMax + pieceMax;
+				local bonus = ::Math.floor(totalMax * _pct);
+				if (bonus > 0)
+				{
+					b.Armor[part.BodyPart] += bonus;
+					b.ArmorMax[part.BodyPart] += bonus;
+					tempAdded[part.Key] = bonus;
+					changed = true;
+				}
+			}
+		}
+		catch (e)
+		{
+		}
+	}
+	if (changed)
+	{
+		try { _actor.getSkills().update(); } catch (e) {}
+		try { _actor.setDirty(true); } catch (e) {}
+	}
+	return tempAdded;
+}
+
 // 复活类（bgp_undead_*）的 create / onInit 里调用
 ::BGP.Necro.onMinionCreate <- function( _e )
 {
@@ -1001,7 +1057,7 @@
 		}
 		catch (e)
 		{
-			::logError("mod_bg_unique_perks: 死灵法术大师余波失败: " + e);
+			::logError("mod_bg_unique_perks: 亡灵法术大师余波失败: " + e);
 		}
 	}
 	if (count > 0)

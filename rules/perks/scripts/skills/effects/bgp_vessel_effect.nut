@@ -55,7 +55,7 @@ this.bgp_vessel_effect <- ::inherit("scripts/skills/skill", {
 		switch (this.m.Kind)
 		{
 			case 0:
-				ret.push({ id = 10, type = "text", icon = "ui/icons/fatigue.png", text = "技能疲劳消耗 " + ::MSU.Text.colorPositive("-30%") });
+				ret.push({ id = 10, type = "text", icon = "ui/icons/fatigue.png", text = "使用技能与受击产生的疲劳 " + ::MSU.Text.colorPositive("-30%") });
 				if (tier > 0)
 					ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "受到的伤害 " + ::MSU.Text.colorPositive("-" + (::Math.min(6, tier) * 2) + "%") + "（信徒阶位 " + tier + "）" });
 				break;

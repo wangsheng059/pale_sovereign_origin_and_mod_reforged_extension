@@ -284,6 +284,7 @@
 		data.Gear = ::BGP.Champion.captureGear(_actor);
 	_corpse.BGP_Guard <- data;
 	try { _corpse.IsResurrectable = false; } catch (e) {}
+	try { _corpse.IsConsumable = false; } catch (e) {}
 }
 
 ::BGP.Champion.getGuardCorpse <- function( _user, _tile )

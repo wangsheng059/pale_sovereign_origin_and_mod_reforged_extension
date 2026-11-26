@@ -51,16 +51,16 @@ this.pale_summon_undead <- ::inherit("scripts/skills/skill", {
         local names = [this.m.MinionName, this.m.MasteryName, this.m.EliteName];
         ret.push({ id = 10, type = "text", icon = "ui/backgrounds/" + this.m.ArtStem + "_" + rank + ".png",
             text = "在相邻的空格召出一名" + names[rank] + "，自带武器和护甲，由 AI 控制，战斗结束后消散" });
-        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会死灵精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
+        ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "学会亡灵法术精通（第 4 阶）后召出" + this.m.MasteryName + (rank >= 1 ? "（已生效）" : "")
             + "；学会第 7 阶特技（不灭冠军、尸爆或亡灵法术大师）后召出" + this.m.EliteName + (rank >= 2 ? "（已生效）" : "") });
         if (this.m.FearInsteadOfOverwhelm)
             ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "召出的僵尸用“恐惧”取代“压制”，决心为施法者当前决心的一半，可获得战旗加成" });
         if (this.m.EliteExtraText != "")
             ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = this.m.EliteExtraText });
-        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗限 1 次" });
+        ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "每场战斗免费施放 1 次" });
         local s = ::PaleSovereign;
         if (s.isActive() && s.isChief(this.getContainer().getActor()))
-            ret.push({ id = 16, type = "text", icon = "ui/icons/special.png", text = "耗骸续召：用完后可再消耗 " + s.ExtraSummonCost + " 点防腐尸骸追加施放，每场共 " + s.extraSummonCap() + " 次（两种召唤共用），续召的仆从头、身各 +25 护甲" });
+            ret.push({ id = 16, type = "text", icon = "ui/icons/special.png", text = "耗骸续召：免费次数用完后可再消耗 " + s.ExtraSummonCost + " 点防腐尸骸追加施放，每场共 " + s.extraSummonCap() + " 次（两种召唤共用）；续召仆从所穿戴的头甲、身甲各 +25 临时护甲" });
         if (this.m.Used)
             ret.push({ id = 13, type = "text", icon = "ui/icons/warning.png", text = s.canExtraSummon(this.getContainer().getActor()) ? "本场已经使用过，可耗骸续召" : "本场已经使用过" });
         return ret;

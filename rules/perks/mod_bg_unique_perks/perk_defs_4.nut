@@ -4,10 +4,10 @@
 ::BGP.PerkNames.NecroArts <- "死灵法术";
 ::BGP.PerkNames.NecroPossess <- "支配亡灵";
 ::BGP.PerkNames.NecroRegeneration <- "不死再生";
-::BGP.PerkNames.NecroMastery <- "死灵精通";
+::BGP.PerkNames.NecroMastery <- "亡灵法术精通";
 ::BGP.PerkNames.NecroMindMeld <- "心灵交融";
 ::BGP.PerkNames.NecroBloodSucking <- "嗜血者";
-::BGP.PerkNames.NecroInfusion <- "死灵灌注";
+::BGP.PerkNames.NecroInfusion <- "冥府活力";
 ::BGP.PerkNames.NecroFleshOfIron <- "钢铁之躯";
 ::BGP.PerkNames.CorpseExplosion <- "尸爆";
 // 1.6.0
@@ -53,13 +53,12 @@
 });
 
 ::BGP.PerkDescriptions.NecroMastery <- ::UPD.getDescription({
-	Fluff = "熟能生巧，死灵法术也一样。",
+	Fluff = "熟能生巧，亡灵法术也一样。",
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
 			"亡灵冠军、亡灵天灾两组共用（不参与两组互斥）。",
-			"亡灵法师的主动技能（复活死者、支配亡灵、死灵灌注、尸爆、血肉重铸、不灭号令、岁月诅咒）行动点消耗 " + ::MSU.Text.colorPositive("-1") + "、疲劳消耗 " + ::MSU.Text.colorPositive("-25%") + "。",
-			"（注：驯服亡灵与“驱役亡灵”已移至第 7 层“亡灵法术大师”。）"
+			"亡灵法师的主动技能（复活死者、支配亡灵、冥府活力、尸爆、血肉重铸、不灭号令、岁月诅咒）行动点消耗 " + ::MSU.Text.colorPositive("-1") + "、疲劳消耗 " + ::MSU.Text.colorPositive("-25%") + "。"
 		]
 	}]
 });
@@ -86,12 +85,12 @@
 });
 
 ::BGP.PerkDescriptions.NecroInfusion <- ::UPD.getDescription({
-	Fluff = "再多给它一点死灵之力。",
+	Fluff = "冥府的寒流灌入枯骨，催它疾行如风。",
 	Effects = [{
 		Type = ::UPD.EffectType.Active,
 		Description = [
-			"解锁“死灵灌注”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("12") + " 疲劳，目标为 8 格内的一名友方亡灵。",
-			"目标立刻回复 " + ::MSU.Text.colorPositive("10 + W/4") + " 点生命、减少 " + ::MSU.Text.colorPositive("10 + W/6") + " 点疲劳，行动点数 " + ::MSU.Text.colorPositive("+4") + "，持续 2 回合。",
+			"解锁“冥府活力”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("12") + " 疲劳，目标为 8 格内的一名友方亡灵。",
+			"目标立刻回复 " + ::MSU.Text.colorPositive("10 + W/4") + " 点生命、减少 " + ::MSU.Text.colorPositive("10 + W/6") + " 点疲劳；在接下来的 2 个回合里，行动点数 " + ::MSU.Text.colorPositive("+4") + "、主动值 " + ::MSU.Text.colorPositive("+75") + "、移动时行动点消耗 " + ::MSU.Text.colorPositive("-1") + "（最少 1）。",
 			"（W = 亡灵法师当前决心 − 20，含装备和光环，施放时计算）"
 		]
 	}]
@@ -102,7 +101,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"你复活单位或放出死灵宠物时，它的头甲、身甲各恢复上限的 " + ::MSU.Text.colorPositive("10% + W/4 %") + "（W = 当时你的当前决心 − 20）。",
+			"你复活单位时，它的头甲、身甲各恢复上限的 " + ::MSU.Text.colorPositive("10% + W/4 %") + "（W = 当时你的当前决心 − 20）；放出死灵宠物时，改为获得等量的临时护甲（先于装备受损，战后消失）。",
 			"同时有“不死再生”时，这些亡灵每回合开始时头甲、身甲再各恢复 " + ::MSU.Text.colorPositive("7%") + "。"
 		]
 	}]
@@ -187,9 +186,9 @@
 			"亡灵冠军、亡灵天灾两组共用（不参与两组互斥）。",
 			"（需要配件兄弟）解锁亡灵驯服与“驱役亡灵”（亡灵主宰导师双路线学会后皆可用，但仍不能驯服野兽）：可用“驯服野兽”驯服亡灵（成功率随决心提升，饰品栏空着直接装备；导师已有死灵宠物时放进仓库）。",
 			"（需要配件兄弟）“驱役亡灵”可收服 6 格内自己复活的友军（不限血量），或仍存活且生命不高于最大生命 " + ::MSU.Text.colorPositive("5% + ⌊(当前决心 − 20) / 8⌋%") + "（上限 " + ::MSU.Text.colorPositive("30%") + "）的敌方亡灵；亡灵宠物沿用目标属性与装备，升级走亡灵特质池。",
-			"给予所有非永久友方亡灵（亡灵宠物、永恒禁卫、复活与召唤的亡灵，不含常驻亡灵）被动“饥渴”：与敌人贴身（距离 1 格）时每回合开始恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "，攻击命中敌人时额外恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "。",
-			"你施放的亡灵法术所附加的增益或减益效果（死灵灌注、岁月诅咒、衰弱术、冠军猎物、尸爆“趔趄”、千魂回响“玉骨盾”）持续时间 " + ::MSU.Text.colorPositive("+1") + " 回合。",
-			"每施放一次亡灵法术，自身 " + ::MSU.Text.colorPositive("4") + " 格内所有友方亡灵（含常驻亡灵、冠军宠物、临时仆从）回复 " + ::MSU.Text.colorPositive("8") + " 点生命，并在本回合获得 " + ::MSU.Text.colorPositive("+5") + " 近战技能与远程技能（不叠加，每回合最多触发 1 次）。"
+			"给予所有非永久友方亡灵（死灵宠物、永恒禁卫、复活与召唤的亡灵，不含常驻亡灵）被动“饥渴”：与敌人贴身（距离 1 格）时每回合开始恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "，攻击命中敌人时额外恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "。",
+			"你施放的亡灵法术所附加的增益或减益效果（支配亡灵、冥府活力、岁月诅咒、衰弱术、冠军猎物、尸爆“趔趄”、千魂回响“玉骨盾”）持续时间 " + ::MSU.Text.colorPositive("+1") + " 回合。",
+			"每轮首次施放亡灵法术时，自身 " + ::MSU.Text.colorPositive("4") + " 格内所有友方亡灵（含常驻亡灵、冠军宠物、临时仆从）回复 " + ::MSU.Text.colorPositive("8") + " 点生命，并获得 " + ::MSU.Text.colorPositive("+5") + " 近战技能与远程技能，持续至本轮结束（不叠加）。"
 		]
 	}]
 });

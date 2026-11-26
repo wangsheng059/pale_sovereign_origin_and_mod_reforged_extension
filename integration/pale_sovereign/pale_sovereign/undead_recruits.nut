@@ -343,6 +343,8 @@ S.createUndead <- function( _kind, _roster = null, _purify = true )
     bro.getFlags().set("PaleUndeadKind", this.undeadKindOf(_kind));
     bro.getFlags().set("PalePermanentUndead", true);
     bro.getFlags().set("undead", true);
+    if ("ensureUndeadInjurySupport" in this)
+        this.ensureUndeadInjurySupport(bro);
     try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 常驻亡灵天赋: " + e); }
     this.addUndeadTraits(bro, kind.Skeleton, null, _purify);
     bro.m.Attributes = [];
@@ -417,7 +419,7 @@ S.recruitPanel <- function( _screen )
         return;
     }
     _screen.Text = "在 " + site.Name + " 选择要从盐封棺里唤起的亡灵，花费 " + this.recruitCost() + " 点防腐尸骸，每处登记地点只能征召一次。属性按种类在范围内随机，另有天赋星和 1–2 个特质，升阶后特质保留。"
-        + (this.undeadTraitsPurified() ? "队伍里等级最高的亡灵法师已学会死灵精通，新唤起的亡灵不会带负面特质。" : "队伍里等级最高的亡灵法师学会死灵精通后，新唤起的亡灵不再带负面特质。");
+        + (this.undeadTraitsPurified() ? "队伍里等级最高的亡灵法师已学会亡灵法术精通，新唤起的亡灵不会带负面特质。" : "队伍里等级最高的亡灵法师学会亡灵法术精通后，新唤起的亡灵不再带负面特质。");
     foreach (kind in this.UndeadKindOrder)
     {
         local recruitKind = kind;

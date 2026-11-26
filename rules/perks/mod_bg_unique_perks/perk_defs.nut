@@ -138,7 +138,7 @@
 			Type = ::UPD.EffectType.Passive,
 			Description = [
 				"只要战团里有人拥有此特技：全队每日薪水 " + ::MSU.Text.colorPositive("-10%") + "；战斗中获得的经验 " + ::MSU.Text.colorPositive("+10%") + "；扎营时生命恢复速度和装备修理速度 " + ::MSU.Text.colorPositive("+20%") + "。多人拥有时不叠加。",
-				"你的主动指挥类技能（集结部队、发号施令、稳住阵线、冲击阵线、提振）行动点数消耗 " + ::MSU.Text.colorPositive("-1") + "（最少 1 点），疲劳消耗 " + ::MSU.Text.colorPositive("-30%") + "。"
+				"你的主动指挥类技能（集结部队、发号施令、稳住阵线、冲击阵线、激励、识骨相人）行动点数消耗 " + ::MSU.Text.colorPositive("-1") + "（最少 1 点），疲劳消耗 " + ::MSU.Text.colorPositive("-30%") + "。"
 			]
 		}]
 	})

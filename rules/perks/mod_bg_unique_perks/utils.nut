@@ -285,6 +285,25 @@
 	return n;
 }
 
+// Count total bleeding stacks (handles both Reforged single-instance m.Stacks and vanilla multi-instance bleeding).
+::BGP.countBleedingStacks <- function( _actor )
+{
+	local total = 0;
+	try
+	{
+		foreach (s in _actor.getSkills().m.Skills)
+		{
+			if (!s.isGarbage() && s.getID() == "effects.bleeding")
+				total += ("Stacks" in s.m && s.m.Stacks != null) ? s.m.Stacks : 1;
+		}
+	}
+	catch (e)
+	{
+		return 0;
+	}
+	return total;
+}
+
 // “战争艺术”：贵族的主动指挥类技能
 ::BGP.CommandSkillIDs <- [
 	"actives.rally_the_troops",

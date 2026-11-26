@@ -20,7 +20,7 @@ this.bgp_necro_surge_effect <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getTooltip();
-		ret.push({ id = 10, type = "text", icon = "ui/icons/melee_skill.png", text = ::MSU.Text.colorPositive("+5") + " 近战技能、" + ::MSU.Text.colorPositive("+5") + " 远程技能（持续至本回合结束，不叠加）" });
+		ret.push({ id = 10, type = "text", icon = "ui/icons/melee_skill.png", text = ::MSU.Text.colorPositive("+5") + " 近战技能、" + ::MSU.Text.colorPositive("+5") + " 远程技能（持续至本轮结束，不叠加）" });
 		return ret;
 	}
 

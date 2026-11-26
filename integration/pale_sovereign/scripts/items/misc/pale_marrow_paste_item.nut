@@ -23,7 +23,7 @@ this.pale_marrow_paste_item <- ::inherit("scripts/items/item", {
             { id = 66, type = "text", text = this.getValueString() },
             { id = 3, type = "image", image = this.getIcon() },
             { id = 10, type = "text", icon = "ui/icons/health.png", text = "放进背包后，战斗中花 4 行动点对相邻的常驻亡灵或冠军使用：恢复 25% 最大生命，清除流血、酸液、燃烧" },
-            { id = 11, type = "text", icon = "ui/icons/special.png", text = "盗墓贼、解剖师、死灵法师使用时行动点 −1，治疗量 +25%" }
+            { id = 11, type = "text", icon = "ui/icons/special.png", text = "盗墓贼、解剖师、死灵法师、亡灵法师导师使用时行动点 −1，治疗量 +25%" }
         ];
         return ret;
     }

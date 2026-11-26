@@ -38,12 +38,53 @@ local oldCanRaiseAll = ::BGP.Necro.canRaiseAll;
     return S.isChief(_actor) || oldCanRaiseAll(_actor);
 };
 
+// Enable temporary combat injuries for permanent undead using Reforged's undead exclusion lists.
+S.ensureUndeadInjurySupport <- function( _actor )
+{
+    if (_actor == null || ::MSU.isNull(_actor))
+        return;
+    local bg = null;
+    try { bg = _actor.getBackground(); } catch (e) { bg = null; }
+    if (!this.isUndead(_actor) && (bg == null || !::isKindOf(bg, "pale_undead_background")))
+        return;
+    try
+    {
+        local b = _actor.getBaseProperties();
+        b.IsAffectedByInjuries = true;
+        b.IsAffectedByFreshInjuries = true;
+        local skills = _actor.getSkills();
+        local receiver = skills.getSkillByID("special.rf_undead_injury_receiver");
+        if (receiver == null)
+        {
+            receiver = ::new("scripts/skills/special/rf_undead_injury_receiver");
+            skills.add(receiver);
+        }
+        receiver.m.ThresholdToReceiveInjuryMult = 1.0;
+
+        if ("ExcludedInjuries" in ::Const.Injury && "RF_Undead" in ::Const.Injury.ExcludedInjuries)
+        {
+            local isSkel = _actor.getFlags().has("skeleton");
+            if (!isSkel && bg != null)
+            {
+                try { isSkel = bg.m.PaleSkeleton == true; } catch (e) {}
+            }
+            local listId = isSkel ? ::Const.Injury.ExcludedInjuries.RF_Skeleton : ::Const.Injury.ExcludedInjuries.RF_Undead;
+            foreach (inj in ::Const.Injury.ExcludedInjuries.get(listId))
+            {
+                if (_actor.m.ExcludedInjuries.find(inj) == null)
+                    _actor.m.ExcludedInjuries.push(inj);
+            }
+        }
+    }
+    catch (e)
+    {
+        ::logError("[PaleSovereign] ensureUndeadInjurySupport: " + e);
+    }
+};
+
 local oldEquip = ::BGP.NecroPet.canEquip;
 ::BGP.NecroPet.canEquip = function( _actor, _item )
 {
-    // 1.6.33 亡灵主宰战役里活人兄弟也能装备棺椁（常驻亡灵仍不行）
-    if (S.isActive() && ::BGP.NecroPet.isOwnItem(_item) && (S.isChief(_actor) || !S.isUndead(_actor)))
-        return true;
     return oldEquip(_actor, _item);
 };
 
@@ -223,6 +264,7 @@ mod.hook("scripts/entity/tactical/player", function(q)
             this.m.MoraleState = ::Const.MoraleState.Ignore;
             S.restoreTierSkills(this);
             S.applyUndeadLook(this);
+            S.ensureUndeadInjurySupport(this);
         }
     };
 
@@ -739,8 +781,21 @@ mod.hook("scripts/skills/actives/bgp_necro_bind_skill", function(q)
     q.getTooltip = @(__original) function()
     {
         local ret = __original();
-        if (S.isActive() && S.isChief(this.getContainer().getActor()))
-            ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = S.StashRule });
+        local actor = this.getContainer().getActor();
+        if (S.isActive() && S.isChief(actor))
+        {
+            local acc = actor.getItems().getItemAtSlot(::Const.ItemSlot.Accessory);
+            local stashFull = acc != null && ::BGP.NecroPet.isOwnItem(acc) && !::World.Assets.getStash().hasEmptySlot();
+            foreach (row in ret)
+            {
+                if (!("id" in row))
+                    continue;
+                if (row.id == 11)
+                    row.text = "饰品栏空着时收服并直接装备（本场不能再放出）；饰品栏已有死灵宠物时可继续收服并放进仓库；属性、名字、伤势沿用这个单位";
+                else if (row.id == 20 && stashFull)
+                    row.text = ::MSU.Text.colorNegative("仓库已满，无法收进仓库");
+            }
+        }
         return ret;
     };
 });
@@ -780,7 +835,16 @@ mod.hook("scripts/companions/player/companions_tame", function(q)
         local ret = __original();
         local actor = this.getContainer().getActor();
         if (S.isActive() && S.isChief(actor) && actor.getSkills().hasSkill("perk.bgp_necro_grandmaster"))
-            ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = S.StashRule + "（只能驯服亡灵）" });
+        {
+            foreach (row in ret)
+            {
+                if ("id" in row && row.id == 2)
+                {
+                    row.text = "以亡灵法术驯服敌方亡灵（导师无法驯服野兽）。饰品栏空着时收服并直接装备；饰品栏已有死灵宠物时可继续收服并放进仓库。";
+                    break;
+                }
+            }
+        }
         return ret;
     };
 

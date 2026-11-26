@@ -121,7 +121,7 @@ this.bgp_command_link_effect <- ::inherit("scripts/skills/skill", {
 				{
 				}
 				_properties.MoraleCheckBravery[::Const.MoraleCheckType.MentalAttack] += 20;
-				this.m.Lines.push("愚昧即虔诚：士气不会降到崩溃或溃逃；精神攻击的决心检定 " + ::MSU.Text.colorPositive("+20") + "；近战攻击无视目标盾牌的近战防御");
+				this.m.Lines.push("愚昧即虔诚：士气不会降到崩溃或溃逃；精神攻击的决心检定 " + ::MSU.Text.colorPositive("+20") + "；近战攻击无视目标盾牌的近战防御（盾墙额外防御按一半计算）");
 			}
 
 			local n = 0;
@@ -174,7 +174,7 @@ this.bgp_command_link_effect <- ::inherit("scripts/skills/skill", {
 		this.m.Count = 0;
 		try { this.m.Count = this.getOneFleshCount(); } catch (e) { this.m.Count = 0; }
 		if (this.m.Count >= 3)
-			this.m.Lines.push("千面归一（" + this.m.Count + " 种兵器）：每回合第一次换武器不消耗行动点" + (this.m.SwapSpent ? "（本回合已用）" : ""));
+			this.m.Lines.push("千面归一（" + this.m.Count + " 种兵器）：每回合首次切换任意装备不消耗行动点" + (this.m.SwapSpent ? "（本回合已用）" : ""));
 		if (this.m.Count >= 5)
 			this.m.Lines.push("苦痛转嫁：低阶成员生命跌破 25% 或阵亡时，高阶成员获得狂热");
 		if (this.m.Count >= 7)

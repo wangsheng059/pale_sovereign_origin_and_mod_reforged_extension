@@ -90,7 +90,7 @@ this.bgp_beast_link_effect <- ::inherit("scripts/skills/skill", {
 	{
 		if (_targetEntity == null)
 			return;
-		this.m.BleedBefore[_targetEntity.getID()] <- ::BGP.countSkillByID(_targetEntity, "effects.bleeding");
+		this.m.BleedBefore[_targetEntity.getID()] <- ::BGP.countBleedingStacks(_targetEntity);
 	}
 
 	function onTargetHit( _skill, _targetEntity, _bodyPart, _damageInflictedHitpoints, _damageInflictedArmor )
@@ -105,8 +105,11 @@ this.bgp_beast_link_effect <- ::inherit("scripts/skills/skill", {
 
 		if (!_targetEntity.isAlive() || _targetEntity.isDying())
 			return;   // 击杀由 onTargetKilled 处理，避免同一次攻击算两次
+		local actor = this.getContainer().getActor();
+		if (_targetEntity.isAlliedWith(actor))
+			return;
 
-		if (::BGP.countSkillByID(_targetEntity, "effects.bleeding") > before)
+		if (::BGP.countBleedingStacks(_targetEntity) > before)
 			::BGP.triggerHuntingFever();
 	}
 

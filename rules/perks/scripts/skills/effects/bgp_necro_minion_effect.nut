@@ -9,6 +9,9 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		HasRegen = false,
 		HasArmorRegen = false,
 		HasBloodSucking = false,
+		IronApplied = false,
+		TempHeadArmor = 0,
+		TempBodyArmor = 0,
 		Will = 0,
 		MeldedPerks = []
 	},
@@ -60,8 +63,15 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		this.m.HasArmorRegen = this.m.HasRegen && s.hasSkill("perk.bgp_necro_flesh_of_iron");
 		this.m.Will = ::BGP.Necro.getWill(_master);
 
-		if (s.hasSkill("perk.bgp_necro_flesh_of_iron"))
-			::BGP.Necro.restoreArmorPct(actor, ::BGP.Necro.WillScale.IronPct(this.m.Will));
+		if (s.hasSkill("perk.bgp_necro_flesh_of_iron") && !this.m.IronApplied)
+		{
+			local isPet = false;
+			try { isPet = actor.m.Item != null; } catch (e) { isPet = false; }
+			local temp = ::BGP.Necro.applyFleshOfIron(actor, ::BGP.Necro.WillScale.IronPct(this.m.Will), isPet);
+			this.m.TempHeadArmor = temp.Head;
+			this.m.TempBodyArmor = temp.Body;
+			this.m.IronApplied = true;
+		}
 
 		if (s.hasSkill("perk.bgp_necro_blood_sucking") && !actor.getSkills().hasSkill("racial.vampire"))
 		{
@@ -113,13 +123,18 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 	function getTooltip()
 	{
 		local ret = this.skill.getTooltip();
+		local actor = this.getContainer().getActor();
+		local isPet = false;
+		try { isPet = actor.m.Item != null; } catch (e) { isPet = false; }
 		if (this.m.MasterName != "")
 			ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "听命于" + this.m.MasterName });
-		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "不会出血、中毒，不受伤势和夜晚影响，没有士气" });
+		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = isPet ? "不会出血、中毒，不受夜晚影响，没有士气；战中会受临时伤（战后仅保留生命损失，不保留伤势）" : "不会出血、中毒，不受夜晚影响，没有士气" });
 		if (this.m.HasRegen)
 			ret.push({ id = 12, type = "text", icon = "ui/icons/health.png", text = "每回合开始时回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.Regen(this.getWill())) + " 点生命（W = 主人决心 − " + ::BGP.Necro.WillOffset + " = " + this.m.Will + "）" });
 		if (this.m.HasArmorRegen)
 			ret.push({ id = 13, type = "text", icon = "ui/icons/armor_body.png", text = "每回合开始时头甲、身甲各回复上限的 " + ::MSU.Text.colorPositive("7%") });
+		if (this.m.TempHeadArmor > 0 || this.m.TempBodyArmor > 0)
+			ret.push({ id = 16, type = "text", icon = "ui/icons/armor_body.png", text = "钢铁之躯临时护甲：头甲 " + ::MSU.Text.colorPositive("+" + this.m.TempHeadArmor) + "、身甲 " + ::MSU.Text.colorPositive("+" + this.m.TempBodyArmor) + "（先于装备受损，战后消失）" });
 		if (this.m.HasBloodSucking)
 			ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "嗜血者：攻击造成生命伤害时吸血" });
 		if (this.m.MeldedPerks.len() > 0)
@@ -130,6 +145,18 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 			ret.push({ id = 15, type = "text", icon = "ui/icons/special.png", text = "心灵交融：" + names });
 		}
 		return ret;
+	}
+
+	function onAfterUpdate( _properties )
+	{
+		local actor = this.getContainer().getActor();
+		local isPet = false;
+		try { isPet = actor.m.Item != null; } catch (e) { isPet = false; }
+		if (isPet)
+		{
+			_properties.IsAffectedByInjuries = true;
+			_properties.IsAffectedByFreshInjuries = true;
+		}
 	}
 
 	// 1.6.1 腐毒蝇群：召唤亡灵移动或倒下后，周围敌人的减益要重算

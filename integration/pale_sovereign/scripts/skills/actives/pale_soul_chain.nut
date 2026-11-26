@@ -25,7 +25,7 @@ this.pale_soul_chain <- ::inherit("scripts/skills/skill", {
     {
         local ret = this.getDefaultUtilityTooltip();
         local count = ::PaleSovereign.countItems("misc.pale_chain");
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "标记 6 格内生命不高于 " + ::PaleSovereign.markThreshold() + "% 的强敌（亡灵精锐、兽人督军、林德蠕龙、巨魔、树人、剑术大师、骑士等，见吞魂特质表）。战胜并保全遗骸（头颅完整）后可注魂，每战限一名。" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "无需视野。标记 6 格内生命不高于 " + ::PaleSovereign.markThreshold() + "% 的强敌（敌阵中带有【可缚之魂】提示的目标），同时附加【锁链牵制】（无法溃逃、近战防御 −10、对导师伤害 −20%）。战胜并保全遗骸（头颅完整）后可注魂，每战限一名。" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = "战团持有 " + count + " 条锁链。需由导师放出冠军后使用，完成注魂时才消耗。" });
         return ret;
     }

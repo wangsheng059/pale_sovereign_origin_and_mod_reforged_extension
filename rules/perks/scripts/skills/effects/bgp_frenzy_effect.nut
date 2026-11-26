@@ -32,7 +32,7 @@ this.bgp_frenzy_effect <- ::inherit("scripts/skills/skill", {
 		if (this.m.PendingAP)
 			ret.push({ id = 11, type = "text", icon = "ui/icons/action_points.png", text = "下一个回合行动点 " + ::MSU.Text.colorPositive("+" + this.m.BonusAP) });
 		if (this.m.ApplyNow)
-			ret.push({ id = 11, type = "text", icon = "ui/icons/action_points.png", text = "本回合行动点 " + ::MSU.Text.colorPositive("+" + this.m.BonusAP) });
+			ret.push({ id = 12, type = "text", icon = "ui/icons/action_points.png", text = "本回合行动点 " + ::MSU.Text.colorPositive("+" + this.m.BonusAP) });
 		return ret;
 	}
 

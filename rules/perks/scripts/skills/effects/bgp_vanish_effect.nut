@@ -31,7 +31,7 @@ this.bgp_vanish_effect <- ::inherit("scripts/skills/skill", {
 			ret.push({ id = 11, type = "text", icon = "ui/icons/ranged_defense.png", text = "远程防御 " + ::MSU.Text.colorPositive("+" + this.m.Defense) + "（到下一回合开始）" });
 		}
 		if (this.m.HasZOC)
-			ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "下一次离开敌人控制区时不会受到借机攻击" });
+			ret.push({ id = 12, type = "text", icon = "ui/icons/special.png", text = "下一次移动免疫敌人控制区（不限回合，移动后消耗）" });
 		return ret;
 	}
 

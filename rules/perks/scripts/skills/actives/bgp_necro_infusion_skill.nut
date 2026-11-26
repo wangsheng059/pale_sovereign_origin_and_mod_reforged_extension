@@ -10,8 +10,8 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 	function create()
 	{
 		this.m.ID = "actives.bgp_necro_infusion";
-		this.m.Name = "死灵灌注";
-		this.m.Description = "把死灵之力灌进一具亡灵的躯体，修补伤口、驱散僵硬，让它在接下来的两个回合里动得更快。";
+		this.m.Name = "冥府活力";
+		this.m.Description = "把冥府的阴冷死气灌进一具亡灵的躯体，修补伤势、驱散僵硬，大幅提升它的行动能力与机动性。";
 		this.m.Icon = "skills/bgp_necro_infusion_skill.png";
 		this.m.IconDisabled = "skills/bgp_necro_infusion_skill_sw.png";
 		this.m.Overlay = "";
@@ -45,7 +45,7 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "目标为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格内的一名友方亡灵（不需要视野）" },
 			{ id = 11, type = "text", icon = "ui/icons/health.png", text = "立刻回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionHeal(w)) + " 点生命" + ::BGP.Necro.willText(w) },
 			{ id = 12, type = "text", icon = "ui/icons/fatigue.png", text = "立刻减少 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.InfusionFatigue(w)) + " 点疲劳" + ::BGP.Necro.willText(w) },
-			{ id = 13, type = "text", icon = "ui/icons/action_points.png", text = "行动点数 " + ::MSU.Text.colorPositive("+4") + "，持续 " + turns + " 回合（再次灌注会刷新持续时间，不叠加）" }
+			{ id = 13, type = "text", icon = "ui/icons/action_points.png", text = "在接下来的 " + ::MSU.Text.colorPositive(turns) + " 个回合里，行动点数 " + ::MSU.Text.colorPositive("+4") + "、主动值 " + ::MSU.Text.colorPositive("+75") + "、移动时行动点消耗 " + ::MSU.Text.colorPositive("-1") + "（最少 1；再次施放会刷新持续时间，不叠加）" }
 		]);
 		return ret;
 	}
@@ -89,11 +89,11 @@ this.bgp_necro_infusion_skill <- ::inherit("scripts/skills/skill", {
 			target.getSkills().update();
 			target.setDirty(true);
 			if (!_user.isHiddenToPlayer())
-				::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + "向" + ::Const.UI.getColorizedEntityName(target) + "灌注了死灵之力");
+				::Tactical.EventLog.log(::Const.UI.getColorizedEntityName(_user) + "对" + ::Const.UI.getColorizedEntityName(target) + "施放了冥府活力");
 		}
 		catch (e)
 		{
-			::logError("mod_bg_unique_perks: 死灵灌注失败: " + e);
+			::logError("mod_bg_unique_perks: 冥府活力失败: " + e);
 		}
 		return true;
 	}

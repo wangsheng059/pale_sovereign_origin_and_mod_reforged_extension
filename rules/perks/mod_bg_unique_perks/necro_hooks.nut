@@ -104,11 +104,32 @@
 // 支配亡灵：支配中的效果不在战斗结束时移除的话，下一场开局不能再支配（mod_necro 的修正）
 ::BGP.HooksMod.hook("scripts/skills/effects/possessing_undead_effect", function(q)
 {
+	q.m.BGP_KeepWhilePossessed <- false;
+
 	q.create = @(__original) function()
 	{
 		__original();
 		this.m.IsRemovedAfterBattle = true;
 	}
+
+	// Keep caster possession active across turn starts while a Grandmaster-extended target still has turns left.
+	q.onTurnStart = @(__original) function()
+	{
+		if (this.m.BGP_KeepWhilePossessed)
+		{
+			local p = null;
+			try { p = this.m.Possessed; } catch (e) { p = null; }
+			if (p != null && !::MSU.isNull(p) && p.isAlive() && !p.isDying())
+			{
+				local pfx = null;
+				try { pfx = p.getSkills().getSkillByID("effects.possessed_undead"); } catch (e) { pfx = null; }
+				if (pfx != null && !pfx.isGarbage() && pfx.m.BGP_TurnsLeft > 0)
+					return;
+			}
+		}
+		__original();
+	}
+
 	q.onRemoved = @(__original) function()
 	{
 		local container = this.getContainer();
@@ -136,6 +157,20 @@
 ::BGP.HooksMod.hook("scripts/skills/effects/possessed_undead_effect", function(q)
 {
 	q.m.BGP_Will <- null;
+	q.m.BGP_TurnsLeft <- 1;
+	q.m.BGP_Extended <- false;
+
+	q.onTurnEnd = @(__original) function()
+	{
+		if (this.m.BGP_TurnsLeft > 1)
+		{
+			this.m.BGP_TurnsLeft--;
+			try { this.getContainer().getActor().setDirty(true); } catch (e) {}
+			return;
+		}
+		this.m.BGP_TurnsLeft = 0;
+		__original();
+	}
 
 	q.onUpdate = @(__original) function( _properties )
 	{
@@ -163,18 +198,21 @@
 	q.getTooltip = @(__original) function()
 	{
 		local ret = __original();
-		if (this.m.BGP_Will == null)
-			return ret;
-		local w = this.m.BGP_Will;
-		foreach (row in ret)
+		if (this.m.BGP_Will != null)
 		{
-			if (!("id" in row))
-				continue;
-			if (row.id == 11)
-				row.text = ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + " 近战技能（W = 施放者决心 − " + ::BGP.Necro.WillOffset + " = " + w + "）";
-			else if (row.id == 16)
-				row.text = "受到的所有伤害降低 " + ::MSU.Text.colorPositive(::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + "（W = 施放者决心 − " + ::BGP.Necro.WillOffset + " = " + w + "）";
+			local w = this.m.BGP_Will;
+			foreach (row in ret)
+			{
+				if (!("id" in row))
+					continue;
+				if (row.id == 11)
+					row.text = ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + " 近战技能（W = 施放者决心 − " + ::BGP.Necro.WillOffset + " = " + w + "）";
+				else if (row.id == 16)
+					row.text = "受到的所有伤害降低 " + ::MSU.Text.colorPositive(::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + "（W = 施放者决心 − " + ::BGP.Necro.WillOffset + " = " + w + "）";
+			}
 		}
+		if (this.m.BGP_Extended && this.m.BGP_TurnsLeft > 0)
+			ret.push({ id = 17, type = "text", icon = "ui/icons/special.png", text = "亡灵法术大师延长支配：还剩 " + ::MSU.Text.colorPositive(this.m.BGP_TurnsLeft) + " 个回合" });
 		return ret;
 	}
 });

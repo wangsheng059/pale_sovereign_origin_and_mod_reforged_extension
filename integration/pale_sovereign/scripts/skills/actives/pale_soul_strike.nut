@@ -31,14 +31,11 @@ this.pale_soul_strike <- ::inherit("scripts/skills/skill", {
         local actor = this.getContainer().getActor();
         local resolve = ::BGP.Necro.getResolve(actor);
         local bonus = ::Math.floor(::BGP.Necro.getWill(actor) * 0.20);
-        local staff = actor.getMainhandItem();
-        local low = staff == null ? 0 : staff.m.RegularDamage, high = staff == null ? 0 : staff.m.RegularDamageMax;
-        ret.push({ id = 11, type = "text", icon = "ui/icons/direct_damage.png", text = "距离 1–2 格。伤害 = 法杖伤害 " + low + "–" + high
-            + "（其中 " + ::Math.round(this.m.DirectDamageMult * 100) + "% 无视护甲）+ 追加 ⌊(决心 − " + ::BGP.Necro.WillOffset + ") × 20%⌋ 点无视护甲伤害。"
-            + "当前决心 " + resolve + "，追加 " + bonus + " 点。命中后目标疲劳 +5。" });
-        ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "命中后把目标标记为猎物（2 回合，同一时间只有一个）：亡灵宠物与仆从优先攻击它，导师与冠军对其命中 +10、伤害 +20%。" });
+        local turns = 2 + ::BGP.Necro.spellDurationBonus(actor);
+        ret.push({ id = 11, type = "text", icon = "ui/icons/direct_damage.png", text = "距离 1–2 格。命中时额外追加 ⌊(决心 − " + ::BGP.Necro.WillOffset + ") × 20%⌋ 点无视护甲伤害（当前决心 " + resolve + "，追加 " + bonus + " 点），并使目标疲劳 +5。" });
+        ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "命中后把目标标记为猎物（" + turns + " 回合，同一时间只有一个）：所有友方亡灵优先攻击它，导师与所有友方亡灵对其命中 +10、伤害 +20%。" });
         if (!actor.getCurrentProperties().IsSpecializedInPolearms)
-            ret.push({ id = 12, type = "text", icon = "ui/icons/hitchance.png", text = "贴身命中 −15。长柄专精取消此惩罚并降低疲劳消耗。" });
+            ret.push({ id = 12, type = "text", icon = "ui/icons/hitchance.png", text = "贴身命中 −15。长柄专精取消此惩罚、降低疲劳消耗" + (this.m.Champion ? "，并将行动点消耗降为 4 点。" : "。") });
         return ret;
     }
 
@@ -73,7 +70,7 @@ this.pale_soul_strike <- ::inherit("scripts/skills/skill", {
             return;
         target.setFatigue(::Math.min(target.getFatigueMax(), target.getFatigue() + 5));
         if (::PaleSovereign.isEnemy(_info.User, target.getTile()))
-            ::PaleSovereign.markPrey(target);
+            ::PaleSovereign.markPrey(target, 2 + ::BGP.Necro.spellDurationBonus(_info.User));
         local spell = strike.getContainer().getSkillByID("actives.pale_weaken");
         ::PaleSovereign.directDamage(_info.User, spell, target, ::BGP.Necro.getWill(_info.User) * 0.20);
     }

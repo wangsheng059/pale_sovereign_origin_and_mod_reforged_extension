@@ -38,8 +38,8 @@ S.addSummonPlating <- function( _e, _amount )
 // 召唤 / 复活出新的临时亡灵时（术法淬玉等在别处覆盖）
 S.onPaleSummoned <- function( _user, _e ) {};
 
-// 盗墓贼 / 解剖师 / 死灵法师（活人）：骨髓膏与尸弹 AP −1、治疗 +25%
-S.NecroHandlerBackgrounds <- ["background.graverobber", "background.anatomist", "background.bgp_necromancer"];
+// 盗墓贼 / 解剖师 / 死灵法师 / 亡灵法师导师（活人）：骨髓膏与尸弹 AP −1、治疗 +25%
+S.NecroHandlerBackgrounds <- ["background.graverobber", "background.anatomist", "background.bgp_necromancer", "background.pale_necromancer"];
 S.isNecroHandler <- function( _actor )
 {
     if (_actor == null || ::MSU.isNull(_actor) || this.isUndead(_actor))

@@ -22,14 +22,19 @@ this.bgp_necro_possess_skill <- ::inherit("scripts/skills/actives/possess_undead
 	function getTooltip()
 	{
 		local ret = this.possess_undead_skill.getTooltip();
-		local w = ::BGP.Necro.getWill(this.getContainer().getActor());
+		local actor = this.getContainer().getActor();
+		local w = ::BGP.Necro.getWill(actor);
 		ret.push({ id = 12, type = "text", icon = "ui/icons/bravery.png", text = "被支配者 近战技能 " + ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + "、受到的伤害 " + ::MSU.Text.colorPositive("-" + ::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + ::BGP.Necro.willText(w) + "，代替原来的 +15 和 -25%" });
+		local extra = ::BGP.Necro.spellDurationBonus(actor);
+		if (extra > 0)
+			ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "亡灵法术大师：支配持续至目标第 " + ::MSU.Text.colorPositive(1 + extra) + " 个回合结束（施放者受重伤或目标阵亡仍会提前中断）" });
 		return ret;
 	}
 
 	function onUse( _user, _targetTile )
 	{
 		local w = ::BGP.Necro.getWill(_user);
+		local extra = ::BGP.Necro.spellDurationBonus(_user);
 		local target = _targetTile.getEntity();
 		local ret = this.possess_undead_skill.onUse(_user, _targetTile);
 		try
@@ -38,8 +43,19 @@ this.bgp_necro_possess_skill <- ::inherit("scripts/skills/actives/possess_undead
 			if (fx != null)
 			{
 				fx.m.BGP_Will = w;
+				if (extra > 0)
+				{
+					fx.m.BGP_TurnsLeft = 1 + extra;
+					fx.m.BGP_Extended = true;
+				}
 				target.getSkills().update();
 				target.setDirty(true);
+			}
+			if (extra > 0)
+			{
+				local pfx = _user.getSkills().getSkillByID("effects.possessing_undead");
+				if (pfx != null)
+					pfx.m.BGP_KeepWhilePossessed = true;
 			}
 		}
 		catch (e)

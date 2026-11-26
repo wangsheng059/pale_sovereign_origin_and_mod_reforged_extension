@@ -39,7 +39,7 @@ this.pale_undead_background <- ::inherit("scripts/skills/backgrounds/character_b
     function getTooltip()
     {
         local ret = this.character_background.getTooltip();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "常驻亡灵。零薪水、零粮耗，免疫常规士气变化。受伤时需要用防腐尸骸修复。" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "常驻亡灵。零薪水、零粮耗，免疫常规士气变化；战中会受临时伤，生命受伤时需要用防腐尸骸修复。" });
         if (this.m.PaleRanged)
             ret.push({ id = 12, type = "text", icon = "skills/pale_night_archer.png",
                 text = "夜间视野 −1、远程技能 −15%，为通常惩罚的一半。装备守夜人的骨灯时免除此惩罚。" });
@@ -51,6 +51,15 @@ this.pale_undead_background <- ::inherit("scripts/skills/backgrounds/character_b
         this.character_background.onAdded();
         if (this.m.PaleSkeleton && !this.getContainer().hasSkill("racial.skeleton"))
             this.getContainer().add(::new("scripts/skills/racial/skeleton_racial"));
+        if ("ensureUndeadInjurySupport" in ::PaleSovereign)
+            ::PaleSovereign.ensureUndeadInjurySupport(this.getContainer().getActor());
+    }
+
+    function onCombatStarted()
+    {
+        this.character_background.onCombatStarted();
+        if ("ensureUndeadInjurySupport" in ::PaleSovereign)
+            ::PaleSovereign.ensureUndeadInjurySupport(this.getContainer().getActor());
     }
 
     function onUpdate( _properties )
@@ -58,8 +67,6 @@ this.pale_undead_background <- ::inherit("scripts/skills/backgrounds/character_b
         this.character_background.onUpdate(_properties);
         _properties.IsAffectedByDyingAllies = false;
         _properties.IsAffectedByFleeingAllies = false;
-        _properties.IsAffectedByFreshInjuries = false;
-        _properties.IsAffectedByInjuries = false;
         _properties.IsAffectedByLosingHitpoints = false;
         _properties.IsAffectedByNight = false;
         local battle = ::PaleSovereign.Battle;
@@ -76,5 +83,11 @@ this.pale_undead_background <- ::inherit("scripts/skills/backgrounds/character_b
             _properties.Hitpoints += 20;
             _properties.DamageTotalMult *= 1.1;
         }
+    }
+
+    function onAfterUpdate( _properties )
+    {
+        _properties.IsAffectedByInjuries = true;
+        _properties.IsAffectedByFreshInjuries = true;
     }
 });
