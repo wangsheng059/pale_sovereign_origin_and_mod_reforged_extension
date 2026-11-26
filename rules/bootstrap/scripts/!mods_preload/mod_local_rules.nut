@@ -29,7 +29,7 @@
 
 ::BGP <- {
 	ID = "mod_local_rules",
-	Version = "1.6.15",
+	Version = "1.6.16",
 	Name = "本地玩法规则",
 	HasAC = false
 };
