@@ -12,7 +12,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         WeaponToEquip = null,
         IsMoving = false,
         MovedTileID = -1,
-        BlockedRound = -1
+        BlockedRound = -1,
+        BashedRound = -1
     },
 
     function create()
@@ -91,10 +92,10 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return 500.0;
         }
 
-        // 2b. Player brother Rotation rescue: pull critically wounded or fragile/Mentor ally out of enemy ZoC.
+        // 2b. Player brother Rotation rescue: pull Mentor or critically wounded/fragile ally out of enemy ZoC.
         local rot = _entity.getSkills().getSkillByID("actives.rotation");
         if (rot != null && !rot.isHidden() && rot.isUsable() && rot.isAffordable()
-            && _entity.getHitpointsPct() >= 0.55 && !_entity.getCurrentProperties().IsRooted)
+            && _entity.getHitpointsPct() >= 0.40 && !_entity.getCurrentProperties().IsRooted)
         {
             local myZone = myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions());
             local bestRotTile = null;
@@ -110,10 +111,11 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 local allyZone = nt.getZoneOfControlCountOtherThan(ally.getAlliedFactions());
                 if (allyZone <= myZone) continue;
                 local allyHP = ally.getHitpointsPct();
-                local fragile = F.isRangedRole(ally) || F.isCasterRole(ally);
-                if (fragile || allyHP <= 0.50)
+                local isMentor = F.isCasterRole(ally);
+                local fragile = isMentor || F.isRangedRole(ally);
+                if (isMentor || (_entity.getHitpointsPct() >= 0.55 && (fragile || allyHP <= 0.50)))
                 {
-                    local s = (fragile ? 930.0 : 880.0) + (1.0 - allyHP) * 180.0;
+                    local s = (isMentor ? 1250.0 : (fragile ? 940.0 : 880.0)) + (1.0 - allyHP) * 180.0;
                     if (s > bestRotScore) { bestRotScore = s; bestRotTile = nt; }
                 }
             }
@@ -162,10 +164,70 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
+        // 2e. Crossbow Take Aim (仔细瞄准, 2 AP): ignore all zombie/ally cover & zero stray friendly fire when sniping HVT on a full 9 AP turn!
+        if (isRanged && !inZoC && _entity.getActionPoints() >= 9 && !_entity.getSkills().hasSkill("effects.rf_take_aim"))
+        {
+            local takeAim = _entity.getSkills().getSkillByID("actives.rf_take_aim");
+            local shoot = _entity.getSkills().getSkillByID("actives.shoot_bolt");
+            local availFat = _entity.getFatigueMax() - _entity.getFatigue();
+            if (takeAim != null && shoot != null && !takeAim.isHidden() && takeAim.isUsable() && takeAim.isAffordable()
+                && !shoot.isHidden() && shoot.isUsable() && availFat >= 48)
+            {
+                local needAim = false;
+                local maxRng = shoot.getMaxRange();
+                foreach (foe in info.Enemies)
+                {
+                    if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                    local ft = foe.getTile();
+                    local dist = myTile.getDistanceTo(ft);
+                    if (dist < 2 || dist > maxRng || !shoot.isUsableOn(ft, myTile)) continue;
+                    // Check if at least one actor stands adjacent to target blocking line of fire (classic zombie-wall cover).
+                    local blocked = false;
+                    for (local d = 0; d < 6; ++d)
+                    {
+                        if (!ft.hasNextTile(d)) continue;
+                        local bt = ft.getNextTile(d);
+                        if (bt.IsOccupiedByActor && bt.getDistanceTo(myTile) < dist) { blocked = true; break; }
+                    }
+                    if (!blocked) continue;
+                    local fs = foe.getSkills();
+                    local isHVT = foe.isArmedWithRangedWeapon() || fs.hasSkill("racial.champion")
+                        || fs.hasSkill("actives.raise_undead") || fs.hasSkill("actives.root")
+                        || fs.hasSkill("actives.rally_the_troops") || foe.getHitpointsPct() <= 0.55;
+                    if (isHVT) { needAim = true; break; }
+                }
+                if (needAim)
+                {
+                    this.m.Mode = "take_aim";
+                    this.m.Skill = takeAim;
+                    return 840.0;
+                }
+            }
+        }
+
+        // 3a. Spearwall opener for Spear Shieldbearers when >= 2 melee enemies approach at distance 2-3 (blocks Barbarian/Orc/Undead charges; never stalls vs heavy enemy archers!).
+        if (isShield && !inZoC && !_entity.getSkills().hasSkill("effects.spearwall") && !_entity.getSkills().hasSkill("effects.shieldwall")
+            && info.EnemyProjectileRanged < 3.0 && ::Time.getRound() <= 3)
+        {
+            local spw = _entity.getSkills().getSkillByID("actives.spearwall");
+            if (spw != null && !spw.isHidden() && spw.isUsable() && spw.isAffordable())
+            {
+                local meleeDist23 = F.countDangerousMeleeWithin(_entity, info.Enemies, 3);
+                local availFat = _entity.getFatigueMax() - _entity.getFatigue();
+                if (meleeDist23 >= 2 && availFat >= spw.getFatigueCost() + 18)
+                {
+                    this.m.Mode = "spearwall";
+                    this.m.Skill = spw;
+                    return 870.0;
+                }
+            }
+        }
+
         // 3. Shieldbearer vanguard intercept MUST run before Shieldwall (moving cancels Shieldwall in BB).
         // Never slow-crawl against enemy archers; advance full speed when HoldLine is off and no enemy is within 2 tiles!
         if (isShield && !inZoC && !_entity.getCurrentProperties().IsRooted
             && !_entity.getSkills().hasSkill("effects.shieldwall")
+            && !_entity.getSkills().hasSkill("effects.spearwall")
             && this.m.BlockedRound != ::Time.getRound())
         {
             local intercept = F.findShieldInterceptTile(this, _entity, info);
@@ -174,6 +236,47 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.Mode = "vanguard_move";
                 this.m.TargetTile = intercept;
                 return 850.0;
+            }
+        }
+
+        // 3c. Reforged Shield Bash (4 AP, +25% Hit, 2-turn Daze -25% dmg/-25% ini/-25% fat) on undazed Champions & heavy melee threats (max once per round)!
+        if (isShield && inZoC && _entity.getHitpointsPct() >= 0.45 && this.m.BashedRound != ::Time.getRound())
+        {
+            local bash = _entity.getSkills().getSkillByID("actives.rf_shield_bash");
+            if (bash != null && !bash.isHidden() && bash.isUsable() && bash.isAffordable())
+            {
+                local sw = _entity.getSkills().getSkillByID("actives.shieldwall");
+                local hasSW = _entity.getSkills().hasSkill("effects.shieldwall");
+                local meleeAdj = F.countDangerousMeleeAdjacent(_entity, info.Enemies);
+                local availFat = _entity.getFatigueMax() - _entity.getFatigue();
+                local canFollowSW = hasSW || meleeAdj <= 1 || (sw != null && !sw.isHidden() && sw.isUsable()
+                    && _entity.getActionPoints() >= bash.getActionPointCost() + sw.getActionPointCost()
+                    && availFat >= bash.getFatigueCost() + sw.getFatigueCost() + 8);
+                if (canFollowSW)
+                {
+                    local bestBashTile = null;
+                    local bestBashScore = 0.0;
+                    foreach (foe in info.Enemies)
+                    {
+                        if (!F.isHeavyMeleeThreat(foe)) continue;
+                        if (foe.getCurrentProperties().IsImmuneToDaze || foe.getSkills().hasSkill("effects.dazed")) continue;
+                        local ft = foe.getTile();
+                        if (myTile.getDistanceTo(ft) != 1 || !bash.isUsableOn(ft, myTile)) continue;
+                        local hit = 0;
+                        try { hit = bash.getHitchance(foe); } catch (e) {}
+                        if (hit < 55) continue;
+                        local sc = hit + (foe.getSkills().hasSkill("racial.champion") ? 45.0 : 20.0) + (foe.getHitpointsPct() >= 0.50 ? 15.0 : 0.0);
+                        if (sc > bestBashScore) { bestBashScore = sc; bestBashTile = ft; }
+                    }
+                    if (bestBashTile != null)
+                    {
+                        this.m.Mode = "shield_bash";
+                        this.m.Skill = bash;
+                        this.m.TargetTile = bestBashTile;
+                        // Higher than Shieldwall (900) when we still have AP to Bash (4 AP) + Shieldwall (4 AP) in the same turn!
+                        return 915.0;
+                    }
+                }
             }
         }
 
@@ -313,7 +416,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "shieldwall" || this.m.Mode == "indomitable")
+        if (this.m.Mode == "shieldwall" || this.m.Mode == "indomitable" || this.m.Mode == "spearwall" || this.m.Mode == "take_aim")
         {
             local sw = this.m.Skill;
             this.m.Mode = null;
@@ -326,6 +429,27 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                         this.getAgent().declareAction();
                     if (sw.getDelay() != 0)
                         this.getAgent().declareEvaluationDelay(sw.getDelay());
+                }
+            }
+            return true;
+        }
+
+        if (this.m.Mode == "shield_bash")
+        {
+            local bash = this.m.Skill;
+            local dest = this.m.TargetTile;
+            this.m.Mode = null;
+            this.m.Skill = null;
+            this.m.TargetTile = null;
+            if (bash != null && dest != null && bash.isUsable() && bash.isAffordable() && bash.isUsableOn(dest))
+            {
+                this.m.BashedRound = ::Time.getRound();
+                if (bash.use(dest))
+                {
+                    if (!_entity.isHiddenToPlayer())
+                        this.getAgent().declareAction();
+                    if (bash.getDelay() != 0)
+                        this.getAgent().declareEvaluationDelay(bash.getDelay());
                 }
             }
             return true;

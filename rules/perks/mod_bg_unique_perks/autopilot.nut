@@ -76,21 +76,44 @@ A.add("bgp_necro_eternal_command", "Corpses", @(c, s, t) 8.0);
 A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
     local blast = s.getBlast(::BGP.Necro.getCorpse(t), c.Actor);
     if (blast == null) return 0;
+    local smart = ::Autopilot.conf("bgpSmartFrontline");
     local value = 0.0;
+    local hits = 0;
+    local lethalCount = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
+        ++hits;
         value += 1.1 + ::Math.minf(1.8, (blast.Blunt + blast.Cutting * 0.45) / 35.0);
-        if (enemy.getHitpoints() <= blast.Blunt * 0.65) value += 1.6;
+        if (enemy.getHitpoints() <= blast.Blunt * 0.65) {
+            value += 1.6;
+            ++lethalCount;
+        }
     }
+    // Under 4 AP (3 AP with Mastery), avoid burning a raisable corpse & 3 AP on a single healthy enemy.
+    if (smart && hits < 2 && lethalCount == 0)
+        return 0;
     return value;
 });
 A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
+    local smart = ::Autopilot.conf("bgpSmartFrontline");
     local value = 0.0;
+    local hits = 0;
     foreach (tile in c.Enemies) {
-        if (tile.getDistanceTo(t) > 1 || tile.getEntity().getSkills().hasSkill("effects.bgp_curse_of_ages")) continue;
-        value += 1.45 + ::Math.minf(0.9, tile.getEntity().getHitpointsMax() / 140.0);
+        if (tile.getDistanceTo(t) > 1) continue;
+        local enemy = tile.getEntity();
+        if (enemy.getMoraleState() == ::Const.MoraleState.Fleeing || enemy.getSkills().hasSkill("effects.bgp_curse_of_ages")) continue;
+        ++hits;
+        local w = 1.45 + ::Math.minf(0.9, enemy.getHitpointsMax() / 140.0);
+        if (smart) {
+            // High synergy with Hex-Eater (嗜咒) & armor decay (-30/hit) against Champions and armored melee elites!
+            if (enemy.getSkills().hasSkill("racial.champion") || enemy.getArmor(::Const.BodyPart.Body) >= 150 || enemy.getHitpointsMax() >= 140)
+                w += 0.95;
+        }
+        value += w;
     }
+    if (smart && hits >= 3 && ::Time.getRound() >= 2)
+        value += 2.2 + 0.6 * ::Math.min(3, hits - 2);
     return value;
 });
 A.add("possess_undead", "Allies", function(c, s, t) {
@@ -699,9 +722,9 @@ local F = A.Frontline <- {
 
     function hasUnactedShieldAlly( _actor, _info )
     {
-        // Only yield phase 1 during the opening clash before melee contact is established;
-        // once brothers are already engaged, DPS must strike immediately instead of giving enemies free turns.
-        if (_info.EngagedBrothers > 0)
+        // Yield phase 1 during the opening clash (Rounds 1-2 while <= 1 bro engaged) so shieldbearers anchor first
+        // instead of unshielded flank 2H/1H brothers (e.g. Greatsword / 1H Mace) diving ahead and getting surrounded.
+        if (_info.EngagedBrothers > 1 || (_info.EngagedBrothers > 0 && ::Time.getRound() > 2))
             return false;
         local myTile = _actor.getTile();
         foreach (foe in _info.Enemies)
@@ -849,8 +872,8 @@ local F = A.Frontline <- {
             return false;
         if (::Tactical.State.isAutoRetreat() || _actor.getMoraleState() == ::Const.MoraleState.Fleeing)
             return false;
-        // Never walk away and cancel an active Shieldwall raised this turn.
-        if (_actor.getSkills().hasSkill("effects.shieldwall"))
+        // Never walk away and cancel an active Shieldwall or Spearwall raised this turn.
+        if (_actor.getSkills().hasSkill("effects.shieldwall") || _actor.getSkills().hasSkill("effects.spearwall"))
             return true;
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Hold)
@@ -1214,7 +1237,7 @@ local F = A.Frontline <- {
         local meleeDanger = curMeleeDist <= 2;
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
         local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies) : true;
-        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 3.0 && curArcherDist <= 7 && (!hasCoverNow || curArcherDist <= 6);
+        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= 7 && (!hasCoverNow || curArcherDist <= 6);
 
         if (!meleeDanger && !sniperDanger)
             return null;
@@ -1298,7 +1321,7 @@ local F = A.Frontline <- {
         return bestTile;
     },
 
-    // Check if an unshielded 1-tile melee engage destination dives solo into >= 3 active melee enemies with zero adjacent allies.
+    // Check if an unshielded melee engage destination dives into dangerous surround without sufficient allied support.
     function isSuicidalSoloDive( _actor, _destTile )
     {
         if (_destTile == null || ::BGP.hasShield(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
@@ -1307,6 +1330,7 @@ local F = A.Frontline <- {
             return false;
         local adjEnemies = 0;
         local adjAllies = 0;
+        local adjShieldAllies = 0;
         for (local d = 0; d < 6; ++d)
         {
             if (!_destTile.hasNextTile(d)) continue;
@@ -1315,13 +1339,246 @@ local F = A.Frontline <- {
             local occ = adj.getEntity();
             if (occ.getID() == _actor.getID() || !occ.isAlive()) continue;
             if (occ.isAlliedWith(_actor))
+            {
                 ++adjAllies;
+                if (::BGP.hasShield(occ)) ++adjShieldAllies;
+            }
             else if (this.isDangerousMeleeEnemy(occ))
                 ++adjEnemies;
         }
-        return adjEnemies >= 3 && adjAllies == 0;
+        local skills = _actor.getSkills();
+        local hasDefPerk = skills.hasSkill("perk.battle_forged") || skills.hasSkill("perk.nimble");
+        // Never allow an unshielded flank bro to step into 3+ enemies without strong line support (>= 2 allies, or BF + shield ally at high HP).
+        if (adjEnemies >= 3)
+        {
+            if (adjAllies == 0) return true;
+            if (!hasDefPerk) return true;
+            if (adjAllies < 2 && (adjShieldAllies == 0 || _actor.getHitpointsPct() < 0.80)) return true;
+        }
+        // Unshielded melee without BF/Nimble (e.g. light-med 1H Mace) should avoid stepping solo into 2+ dangerous melee with zero adjacent allies.
+        if (!hasDefPerk && adjEnemies >= 2 && adjAllies == 0)
+            return true;
+        return false;
+    },
+
+    // Check if a target enemy is afflicted by any necromantic debuff (for Hex-Eater / 嗜咒 AI synergy).
+    function hasNecroDebuff( _target )
+    {
+        if (_target == null || ::MSU.isNull(_target)) return false;
+        local skills = _target.getSkills();
+        if (skills == null) return false;
+        if (skills.hasSkill("effects.pale_weaken") || skills.hasSkill("effects.bgp_curse_of_ages")
+            || skills.hasSkill("effects.pale_corpse_poison") || skills.hasSkill("effects.bgp_undead_poison")
+            || skills.hasSkill("effects.pale_prey"))
+            return true;
+        local st = skills.getSkillByID("effects.staggered");
+        return st != null && ("BGP_FromCorpseExplosion" in st.m) && st.m.BGP_FromCorpseExplosion;
+    },
+
+    // Smart evaluation & tile selection for regular combat pets (warhounds, dreadwolves, beasts - NOT Pale Sovereign Lich King).
+    // Holds pets during the opening so they don't suicide on Round 1-2 and feed enemy Confident morale;
+    // unleashes when: (1) owner is surrounded / low HP needing survival peel, (2) owner needs surround hit-chance bonus
+    // against a tough/high-value engaged enemy and can attack same turn, or (3) late battle / enemy routing cleanup.
+    function evaluateSmartPetUnleash( _behavior, _entity, _skill )
+    {
+        local myTile = _entity.getTile();
+        local info = this.assessBattle(_entity, _behavior.getAgent());
+        if (info.Enemies.len() == 0)
+            return { Score = 0.0, Tile = null };
+
+        local round = ::Time.getRound();
+        local ap = _entity.getActionPoints();
+        local unleashAP = _skill.getActionPointCost();
+        local hpPct = _entity.getHitpointsPct();
+        local hasInjury = _entity.getSkills().hasSkillOfType(::Const.SkillType.TemporaryInjury);
+        local isShield = ::BGP.hasShield(_entity);
+        local meleeAdj = this.countDangerousMeleeAdjacent(_entity, info.Enemies);
+        local alliesAdj = 0;
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!myTile.hasNextTile(d)) continue;
+            local nt = myTile.getNextTile(d);
+            if (nt.IsOccupiedByActor && nt.getEntity().isAlliedWith(_entity) && nt.getEntity().isAlive())
+                ++alliesAdj;
+        }
+
+        // Count active vs fleeing enemies & detect any threatened fragile/Mentor ally nearby.
+        local activeEnemies = 0;
+        local fleeingEnemies = 0;
+        foreach (foe in info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) ++fleeingEnemies;
+            else ++activeEnemies;
+        }
+        local fragileThreatTile = null;
+        foreach (bro in info.Brothers)
+        {
+            if (bro.getID() == _entity.getID()) continue;
+            if (!(this.isCasterRole(bro) || this.isRangedRole(bro) || bro.getHitpointsPct() <= 0.40)) continue;
+            local bt = bro.getTile();
+            if (myTile.getDistanceTo(bt) > 2) continue;
+            if (bt.getZoneOfControlCountOtherThan(bro.getAlliedFactions()) > 0)
+            {
+                fragileThreatTile = bt;
+                break;
+            }
+        }
+
+        // Trigger 1: Emergency survival / peel (surrounded, hurt in melee, or rescuing trapped Mentor/fragile ally).
+        local emergencySurvival = (meleeAdj >= 3)
+            || (meleeAdj >= 2 && (!isShield || hpPct <= 0.65 || alliesAdj == 0))
+            || (meleeAdj >= 1 && (hpPct <= 0.50 || (hasInjury && hpPct <= 0.65)))
+            || (fragileThreatTile != null && round >= 2);
+
+        // Trigger 2: Surround hit-chance bonus against a tough/evasive/high-value engaged enemy (mid-battle, Round >= 2, melee joined).
+        local surroundTarget = null;
+        local surroundNeed = false;
+        if (!emergencySurvival && round >= 2 && meleeAdj >= 1 && info.EngagedBrothers >= 1)
+        {
+            local atk = this.cheapestMeleeSkill(_entity);
+            local canComboAtk = atk != null && (ap - unleashAP >= atk.getActionPointCost());
+            local bestTargetScore = 0.0;
+            foreach (foe in info.Enemies)
+            {
+                if (!this.isDangerousMeleeEnemy(foe)) continue;
+                local ft = foe.getTile();
+                if (myTile.getDistanceTo(ft) != 1 || ::Math.abs(myTile.Level - ft.Level) > 1) continue;
+                local hit = 70;
+                if (atk != null) { try { hit = atk.getHitchance(foe); } catch (e) {} }
+                local tough = foe.getSkills().hasSkill("racial.champion") || foe.isArmedWithShield()
+                    || foe.getHitpointsMax() >= 115 || foe.getCurrentProperties().getMeleeDefense() >= 20;
+                if ((hit <= 68 || tough) && (canComboAtk || round >= 3))
+                {
+                    local ts = (100 - hit) + (tough ? 25.0 : 0.0) + (foe.getSkills().hasSkill("racial.champion") ? 30.0 : 0.0);
+                    if (ts > bestTargetScore) { bestTargetScore = ts; surroundTarget = foe; }
+                }
+            }
+            if (surroundTarget != null)
+                surroundNeed = true;
+        }
+
+        // Trigger 3: Safe late-battle cleanup or enemy routing chase.
+        local safeCleanup = ::Tactical.Entities.isEnemyRetreating()
+            || (fleeingEnemies >= 2 && fleeingEnemies >= activeEnemies)
+            || (round >= 5 && activeEnemies > 0 && activeEnemies <= 5 && info.EngagedBrothers >= 1);
+
+        if (!emergencySurvival && !surroundNeed && !safeCleanup)
+            return { Score = 0.0, Tile = null };
+
+        // Score every valid adjacent empty tile for optimal surround & pet survivability.
+        local bestTile = null;
+        local bestTileScore = -9999.0;
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!myTile.hasNextTile(d)) continue;
+            local tile = myTile.getNextTile(d);
+            if (!tile.IsEmpty || !_skill.onVerifyTarget(myTile, tile)) continue;
+            if (_behavior.hasNegativeTileEffect(tile, _entity)) continue;
+
+            local adjDang = 0;
+            local adjAllies = 0;
+            local adjToSurround = (surroundTarget != null && tile.getDistanceTo(surroundTarget.getTile()) == 1 && ::Math.abs(tile.Level - surroundTarget.getTile().Level) <= 1);
+            local adjToAnyMelee = false;
+            local screensFragile = (fragileThreatTile != null && tile.getDistanceTo(fragileThreatTile) <= 2);
+            for (local d2 = 0; d2 < 6; ++d2)
+            {
+                if (!tile.hasNextTile(d2)) continue;
+                local n = tile.getNextTile(d2);
+                if (!n.IsOccupiedByActor || ::Math.abs(n.Level - tile.Level) > 1) continue;
+                local occ = n.getEntity();
+                if (!occ.isAlive()) continue;
+                if (occ.isAlliedWith(_entity)) ++adjAllies;
+                else if (this.isDangerousMeleeEnemy(occ)) { ++adjDang; adjToAnyMelee = true; }
+            }
+
+            // For non-emergency surround/cleanup, NEVER drop a fragile pet directly adjacent to 3+ dangerous enemies!
+            if (!emergencySurvival && adjDang >= 3)
+                continue;
+            // For surround trigger, require the pet tile to actually flank the target (or at least an adjacent enemy).
+            if (surroundNeed && !emergencySurvival && !adjToSurround && !adjToAnyMelee)
+                continue;
+
+            local ts = 20.0 + ::Math.min(3, adjAllies) * 6.0;
+            if (adjToSurround) ts += 40.0;
+            else if (adjToAnyMelee) ts += 18.0;
+            if (screensFragile) ts += 28.0;
+            if (adjDang >= 3) ts -= (adjDang - 2) * 35.0;
+            else if (adjDang == 2) ts -= 8.0;
+            if (tile.IsBadTerrain) ts -= 8.0;
+
+            if (ts > bestTileScore)
+            {
+                bestTileScore = ts;
+                bestTile = tile;
+            }
+        }
+
+        if (bestTile == null)
+            return { Score = 0.0, Tile = null };
+
+        // Score above normal weapon attack (~150-400) so owner unleashes FIRST to gain +5% surround hit bonus before swinging,
+        // while staying below emergency Rotation / Shieldwall (~900) unless truly critical.
+        local finalScore = 0.0;
+        if (emergencySurvival)
+            finalScore = (hpPct <= 0.45 || meleeAdj >= 3) ? 820.0 : 620.0;
+        else if (surroundNeed)
+            finalScore = 540.0;
+        else if (safeCleanup)
+            finalScore = 460.0;
+
+        return { Score = finalScore, Tile = bestTile };
     }
 };
+
+// Smart pet unleash timing for Autopilot (replaces vanilla Round 1 "Playing with dog" / suicidal "Bullying with dog").
+::BGP.HooksMod.hook("scripts/ai/autopilot_unleash_dog", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        if (!::Autopilot.isUnderAIControl(_entity) || !::Autopilot.conf("bgpSmartFrontline"))
+            return __original(_entity);
+        // Never interfere with Pale Sovereign Mentor's Lich King (handled by pale_sovereign/autopilot.nut).
+        if ("PaleSovereign" in ::getroottable() && ::PaleSovereign.isChief(_entity) && ::PaleSovereign.mainPet() != null)
+            return ::Const.AI.Behavior.Score.Zero;
+        this.m.Skill = null;
+        this.m.TargetTile = null;
+        if (_entity.getActionPoints() < ::Const.Movement.AutoEndTurnBelowAP)
+            return ::Const.AI.Behavior.Score.Zero;
+        if (_entity.getMoraleState() == ::Const.MoraleState.Fleeing || ::Tactical.State.isAutoRetreat())
+            return ::Const.AI.Behavior.Score.Zero;
+        this.m.Skill = this.selectSkill(this.m.PossibleSkills);
+        if (this.m.Skill == null)
+            return ::Const.AI.Behavior.Score.Zero;
+        local plan = F.evaluateSmartPetUnleash(this, _entity, this.m.Skill);
+        if (plan.Tile == null || plan.Score <= 0.0)
+        {
+            this.m.Skill = null;
+            return ::Const.AI.Behavior.Score.Zero;
+        }
+        this.m.TargetTile = plan.Tile;
+        return plan.Score;
+    };
+});
+
+// Prevent Shieldbearers with Reforged Line Breaker (破阵者) from breaking formation / diving into 3+ enemies and losing Phalanx cohesion.
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_line_breaker", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        local score = __original(_entity);
+        if (score <= 0 || !::Autopilot.isUnderAIControl(_entity) || !::Autopilot.conf("bgpSmartFrontline"))
+            return score;
+        if (::BGP.hasShield(_entity))
+        {
+            // Never push out of an active Shieldwall/Spearwall or dive solo into 3+ enemies.
+            if (_entity.getSkills().hasSkill("effects.shieldwall") || _entity.getSkills().hasSkill("effects.spearwall"))
+                return ::Const.AI.Behavior.Score.Zero;
+            if (this.m.TargetTile != null)
+            {
+                local destZones = this.m.TargetTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions());
+                if (destZones >= 3 || _entity.getSkills().hasSkill("perk.rf_phalanx"))
+                    return ::Const.AI.Behavior.Score.Zero;
+            }
+        }
+        return score;
+    };
+});
 
 // Focus-fire target scoring for Autopilot-controlled player brothers.
 ::BGP.HooksMod.hook("scripts/ai/tactical/behavior", function(q) {
