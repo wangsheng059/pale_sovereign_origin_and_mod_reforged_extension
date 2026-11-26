@@ -59,7 +59,7 @@ S.tierBranchPanel <- function( _event, _screen )
         local chosen = _event.m.TierBranch;
         local branch = this.TierBranches[chosen];
         _screen.Text += "\n\n" + this.tierBranchSummary(chosen)
-            + "\n\n升阶将重置基础属性、已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、特质（含宝石眼窝）、装备和中阶专长；旧阶段的镀金骨甲清空，升阶后可再次进行。"
+            + "\n\n升阶将重置基础属性、普通已学特技和动态特技树，退回新等级对应的属性升级次数和特技点。保留天赋星、特质（含宝石眼窝）、已学会的常驻亡灵专属特技组技能、装备和中阶专长；旧阶段的镀金骨甲清空，升阶后可再次进行。"
             + (background.m.PaleRanged ? "\n\n远程升阶从 1 级开始。已有合用武器会继续使用；若需换装，配发分支武器和适用的弹药，换下的装备送入仓库。" : "")
             + "\n\n消耗古代魂玉 " + this.TierCost.Jade + " 枚、防腐尸骸 " + this.tierReserveCost() + " 点、" + this.TierCost.Money + " 克朗。";
         if (this.tierCanPromote(target, chosen))

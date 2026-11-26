@@ -30,6 +30,11 @@ this.pale_tier_background <- ::inherit("scripts/skills/backgrounds/pale_undead_b
         local groups = {};
         foreach (i, collection in S.TierPerkCollections)
             groups[collection] <- branch.Groups[i].map(@(group) "pg.rf_" + group);
+        local undeadGroup = this.m.PaleSkeleton ? "pg.pale_undead_skeleton" : "pg.pale_undead_zombie";
+        if (!("pgc.rf_exclusive_1" in groups))
+            groups["pgc.rf_exclusive_1"] <- [];
+        if (groups["pgc.rf_exclusive_1"].find(undeadGroup) == null)
+            groups["pgc.rf_exclusive_1"].push(undeadGroup);
         return ::new(::DynamicPerks.Class.PerkTree).init({ DynamicMap = groups });
     }
 

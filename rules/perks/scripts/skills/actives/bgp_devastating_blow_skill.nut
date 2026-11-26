@@ -27,7 +27,7 @@ this.bgp_devastating_blow_skill <- ::inherit("scripts/skills/skill", {
 			"sounds/combat/round_swing_hit_03.wav"
 		];
 		this.m.Type = ::Const.SkillType.Active;
-		this.m.Order = ::Const.SkillOrder.OffensiveTargeted;
+		this.m.Order = ::Const.SkillOrder.OffensiveTargeted + 100;
 		this.m.IsSerialized = false;
 		this.m.IsActive = true;
 		this.m.IsTargeted = true;

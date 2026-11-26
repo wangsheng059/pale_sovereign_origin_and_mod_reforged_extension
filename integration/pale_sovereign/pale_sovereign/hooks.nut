@@ -480,6 +480,8 @@ mod.hook("scripts/states/world_state", function(q)
             S.refreshUndeadLore();
             if ("repairSoulboundRoster" in S)
                 S.repairSoulboundRoster();
+            if ("ensureUndeadPerkGroups" in S)
+                S.ensureUndeadPerkGroups();
         }
         return ret;
     };

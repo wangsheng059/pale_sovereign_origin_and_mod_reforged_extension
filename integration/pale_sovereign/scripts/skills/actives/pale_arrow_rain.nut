@@ -5,7 +5,7 @@ this.pale_arrow_rain <- ::inherit("scripts/skills/effects/pale_tier_passive", {
     {
         this.pale_tier_passive.create();
         this.m.Type = ::Const.SkillType.Active;
-        this.m.Order = ::Const.SkillOrder.OffensiveTargeted;
+        this.m.Order = ::Const.SkillOrder.OffensiveTargeted + 100;
         this.m.IsActive = true;
         this.m.IsAttack = true;
         this.m.IsRanged = true;

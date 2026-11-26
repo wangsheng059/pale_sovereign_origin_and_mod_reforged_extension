@@ -46,6 +46,16 @@ this.pale_undead_background <- ::inherit("scripts/skills/backgrounds/character_b
         return ret;
     }
 
+    function createPerkTreeBlueprint()
+    {
+        local tree = this.character_background.createPerkTreeBlueprint();
+        if (tree.m.DynamicMap == null)
+            tree.m.DynamicMap = {};
+        local group = this.m.PaleSkeleton ? "pg.pale_undead_skeleton" : "pg.pale_undead_zombie";
+        tree.m.DynamicMap["pgc.rf_exclusive_1"] <- [group];
+        return tree;
+    }
+
     function onAdded()
     {
         this.character_background.onAdded();

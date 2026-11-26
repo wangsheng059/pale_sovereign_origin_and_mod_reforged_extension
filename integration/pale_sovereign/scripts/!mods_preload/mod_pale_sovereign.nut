@@ -30,7 +30,7 @@
 {
     if (!::BGP.HasAC)
         return;
-    foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "undead_lore", "guard_lore", "tier_data", "tier_ranged_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "tier_ranged_combat", "lich", "undead_events", "soulbound", "battle_art", "embalm_craft", "ledger_pages", "reserve_ops", "jade_ops", "chain_ops", "living_bond", "living_events"])
+    foreach (file in ["company", "combat", "souls", "sites", "undead_recruits", "undead_lore", "guard_lore", "undead_perks", "tier_data", "tier_ranged_data", "tier_promotion", "tier_ledger", "events", "hooks", "champion_ai", "battle_loading", "loading", "ambition_data", "ambitions", "battle_rewards", "tier_combat", "tier_ranged_combat", "lich", "undead_events", "soulbound", "battle_art", "embalm_craft", "ledger_pages", "reserve_ops", "jade_ops", "chain_ops", "living_bond", "living_events"])
         ::include("pale_sovereign/" + file);
     ::include("pale_sovereign/formation_ai");
     if ("Stronghold" in ::getroottable())
@@ -45,11 +45,13 @@
         ::include("pale_sovereign/captives");
 });
 
-// Register Soulbound DynamicPerks perk groups in AfterHooks after DynamicPerks VeryLate initializes PerkGroupIDs.
+// Register Soulbound and Permanent Undead DynamicPerks perk groups in AfterHooks after DynamicPerks VeryLate initializes PerkGroupIDs.
 ::PaleSovereign.Mod.queue([">mod_local_necromancy_companions", ">mod_AC", ">mod_reforged", ">mod_dynamic_perks"], function()
 {
     if ("registerSoulboundPerkGroups" in ::PaleSovereign)
         ::PaleSovereign.registerSoulboundPerkGroups();
+    if ("registerUndeadPerkGroups" in ::PaleSovereign)
+        ::PaleSovereign.registerUndeadPerkGroups();
 }, ::Hooks.QueueBucket.AfterHooks);
 
 ::PaleSovereign.Mod.queue([">mod_local_rules", ">mod_autopilot_new"], function()

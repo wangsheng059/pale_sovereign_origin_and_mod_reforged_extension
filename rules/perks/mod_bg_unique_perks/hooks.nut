@@ -309,3 +309,82 @@ foreach (entry in [
 		}
 	}
 });
+
+// Ensure active skills natively owned by the equipped mainhand weapon always sort before non-weapon active skills.
+::BGP.isOwnedWeaponActive <- function( _skill, _mainhand )
+{
+	if (_mainhand == null)
+		return false;
+	local item = null;
+	try { item = _skill.m.Item; } catch (e) { item = null; }
+	if (item == null || ::MSU.isNull(item))
+		return false;
+	if (typeof item == "instance")
+		item = item.get();
+	return item != null && ::MSU.isEqual(item, _mainhand);
+}
+
+::BGP.orderActiveWeaponSkillsFirst <- function( _container )
+{
+	if (_container == null || _container.m.IsUpdating)
+		return;
+	local actor = null;
+	try { actor = _container.getActor(); } catch (e) { actor = null; }
+	if (actor == null || ::MSU.isNull(actor))
+		return;
+	local isPlayer = false;
+	try { isPlayer = ::isKindOf(actor, "player") || actor.isPlayerControlled(); } catch (e) { isPlayer = false; }
+	if (!isPlayer)
+		return;
+	local items = null;
+	try { items = actor.getItems(); } catch (e) { items = null; }
+	if (items == null)
+		return;
+	local mainhand = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
+	if (mainhand == null || !::isKindOf(mainhand, "weapon"))
+		return;
+
+	local skills = _container.m.Skills;
+	local indices = [];
+	local weaponActives = [];
+	local otherActives = [];
+	foreach (i, s in skills)
+	{
+		if (s.isGarbage() || !s.isActive())
+			continue;
+		indices.push(i);
+		if (::BGP.isOwnedWeaponActive(s, mainhand))
+			weaponActives.push(s);
+		else
+			otherActives.push(s);
+	}
+	if (weaponActives.len() == 0 || otherActives.len() == 0)
+		return;
+
+	// Preserve the weapon's own skill registration order first, then any remaining weapon skills, then non-weapon actives.
+	local orderedWeapon = [];
+	try
+	{
+		foreach (ws in mainhand.getSkills())
+			if (weaponActives.find(ws) != null && orderedWeapon.find(ws) == null)
+				orderedWeapon.push(ws);
+	}
+	catch (e) {}
+	foreach (ws in weaponActives)
+		if (orderedWeapon.find(ws) == null)
+			orderedWeapon.push(ws);
+
+	local merged = orderedWeapon;
+	merged.extend(otherActives);
+	foreach (k, idx in indices)
+		skills[idx] = merged[k];
+}
+
+::BGP.HooksMod.hook("scripts/skills/skill_container", function(q)
+{
+	q.update = @(__original) function()
+	{
+		__original();
+		try { ::BGP.orderActiveWeaponSkillsFirst(this); } catch (e) {}
+	}
+});

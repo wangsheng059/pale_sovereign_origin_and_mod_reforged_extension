@@ -8,7 +8,7 @@ this.bgp_undead_poison_effect <- ::inherit("scripts/skills/skill", {
 		this.m.ID = "effects.bgp_undead_poison";
 		this.m.Name = "尸毒";
 		this.m.Description = "尸毒在血管里蔓延，四肢发沉，出手无力。";
-		this.m.Icon = "ui/perks/bgp_quirk_plague.png";
+		this.m.Icon = "skills/bgp_undead_poison_status.png";
 		this.m.IconMini = "status_effect_54_mini";
 		this.m.Overlay = "status_effect_54";
 		this.m.Type = ::Const.SkillType.StatusEffect;

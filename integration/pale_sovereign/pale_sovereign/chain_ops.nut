@@ -243,7 +243,7 @@ local releaseItemChain = ::BGP.NecroPet.releaseItem;
 S.RecallCost <- { Chain = 1, Reserve = 4 };
 S.RecallFields <- ["Name", "Title", "Background", "Kind", "Level", "XP", "Stats", "Traits", "Talents", "Flags", "Kills", "Soulbound", "ExtraPerks", "ChampionRacial", "LegacyScript"];
 S.RecallStatKeys <- ["Hitpoints", "Stamina", "Bravery", "Initiative", "MeleeSkill", "RangedSkill", "MeleeDefense", "RangedDefense", "ActionPoints"];
-S.RecallFlagKeys <- ["PaleUndeadKind", "PaleMiddleBranch", "PaleHeadVariant", "PaleBodyVariant", "PaleDetailVariant", "PaleLeader", "PaleLimitBreak", "PaleGraftCount", "PaleStripCount", "PaleSoulbound", "PaleLegacy", "PaleLegacyScript", "PaleCaptiveChampion", "PaleGilded", "PaleGemEyes", "PaleWash", "PaleFormerLiving", "PaleFormerGraverobber", "PaleLoreOrigin", "PaleLoreForm", "PaleLoreCamp", "PaleLoreVer", "PaleTitleTrait"];
+S.RecallFlagKeys <- ["PaleUndeadKind", "PaleMiddleBranch", "PaleRetainedPerks", "PaleHeadVariant", "PaleBodyVariant", "PaleDetailVariant", "PaleLeader", "PaleLimitBreak", "PaleGraftCount", "PaleStripCount", "PaleSoulbound", "PaleLegacy", "PaleLegacyScript", "PaleCaptiveChampion", "PaleGilded", "PaleGemEyes", "PaleWash", "PaleFormerLiving", "PaleFormerGraverobber", "PaleLoreOrigin", "PaleLoreForm", "PaleLoreCamp", "PaleLoreVer", "PaleTitleTrait"];
 
 S.canRecall <- function( _bro )
 {

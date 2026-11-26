@@ -5,7 +5,7 @@ this.pale_soul_elite_effect <- ::inherit("scripts/skills/skill", {
     {
         this.m.ID = "effects.pale_soul_elite";
         this.m.Name = "可缚之魂";
-        this.m.Icon = "skills/pale_mark_bound.png";
+        this.m.Icon = "skills/pale_mark_soul_elite.png";
         this.m.Type = ::Const.SkillType.StatusEffect;
         this.m.IsSerialized = false;
         this.m.IsRemovedAfterBattle = true;

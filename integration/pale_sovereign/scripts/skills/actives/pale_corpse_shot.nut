@@ -8,7 +8,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
         this.m.Icon = "skills/pale_corpse_shot.png";
         this.m.IconDisabled = "skills/pale_corpse_shot_sw.png";
         this.m.Type = ::Const.SkillType.Active;
-        this.m.Order = ::Const.SkillOrder.OffensiveTargeted;
+        this.m.Order = ::Const.SkillOrder.UtilityTargeted;
         this.m.IsActive = true;
         this.m.IsTargeted = true;
         this.m.IsRanged = true;

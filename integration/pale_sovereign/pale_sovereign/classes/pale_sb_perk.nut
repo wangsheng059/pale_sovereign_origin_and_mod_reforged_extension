@@ -4,6 +4,12 @@ this.pale_sb_perk <- ::inherit("scripts/skills/skill", {
 
     function create()
     {
+        if (this.m.DamageType == null)
+        {
+            this.m.DamageType = ::MSU.Class.DamageType();
+            this.m.DamageType.setSkill(this);
+            this.m.DamageType.doInit();
+        }
         local def = ::PaleSovereign.SoulPerks[this.m.PaleKey];
         this.m.ID = "perk.pale_sb_" + this.m.PaleKey;
         this.m.Name = def.Name;

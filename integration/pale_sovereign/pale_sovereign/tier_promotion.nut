@@ -30,7 +30,11 @@ S.tierNewLevel <- function( _bro, _background )
 S.restoreTierSkills <- function( _bro )
 {
     local background = this.getUndeadBackground(_bro);
-    if (background == null || background.m.PaleTier < 2)
+    if (background == null)
+        return;
+    if ("restoreRetainedUndeadPerks" in this)
+        this.restoreRetainedUndeadPerks(_bro);
+    if (background.m.PaleTier < 2)
         return;
     local branch = this.TierBranches[background.m.PaleBranch];
     local keys = clone branch.Skills;
@@ -291,11 +295,32 @@ S.tierPromote <- function( _bro, _branch )
         return "升阶仪式未能完成，材料仍在账簿中。";
     }
 
+    local retainedKeys = "retainedUndeadPerkKeys" in this ? this.retainedUndeadPerkKeys(_bro) : [];
     local perks = skills.getSkillsByFunction(@(skill) skill.isType(::Const.SkillType.Perk) && ::MSU.isNull(skill.getItem()));
     foreach (perk in perks)
     {
+        if ("isRetainedUndeadPerk" in this && this.isRetainedUndeadPerk(perk))
+        {
+            try { perk.m.IsRefundable = false; } catch (e) {}
+            local key = "PaleKey" in perk.m ? perk.m.PaleKey : perk.getID().slice(13);
+            if ("UndeadPerks" in this && key in this.UndeadPerks && retainedKeys.find(key) == null)
+                retainedKeys.push(key);
+            continue;
+        }
         if (!::MSU.isIn("PaleTierSkill", perk.m, true) || !perk.m.PaleTierSkill)
             perk.removeSelf();
+    }
+    if ("saveRetainedUndeadPerkKeys" in this)
+        this.saveRetainedUndeadPerkKeys(_bro, retainedKeys);
+    local retainedNote = "";
+    if (retainedKeys.len() > 0 && "UndeadPerks" in this)
+    {
+        local names = "";
+        foreach (i, key in retainedKeys)
+            if (key in this.UndeadPerks)
+                names += (names == "" ? "" : "、") + "【" + this.UndeadPerks[key].Name + "】";
+        if (names != "")
+            retainedNote = "，并保留常驻亡灵专属特技：" + names;
     }
     local count;
     do
@@ -333,7 +358,7 @@ S.tierPromote <- function( _bro, _branch )
     ::World.State.updateTopbarAssets();
     return "法阵里的碧火熄灭时，旧骨已重锻为新的形骸。" + _bro.getName() + " 拄着兵刃缓缓起身，眼窝里的魂火比从前更冷、也更沉。\n\n（"
         + _bro.getName() + " 已升阶为【" + next.Name + "】。等级 " + oldLevel + " → " + level
-        + "，可重新分配 " + _bro.getLevelUps() + " 次属性增长与 " + _bro.getPerkPoints() + " 点特技）";
+        + "，可重新分配 " + _bro.getLevelUps() + " 次属性增长与 " + _bro.getPerkPoints() + " 点特技" + retainedNote + "）";
 };
 
 S.Mod.hook("scripts/entity/tactical/player", function(q)
