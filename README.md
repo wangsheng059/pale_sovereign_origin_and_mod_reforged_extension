@@ -2,7 +2,16 @@
 
 [中文说明](README.zh-CN.md)
 
+Current source snapshot: early development release V1.3.0 (2026-11-26), Pale Sovereign 1.7.12 and Background Perks 1.6.16.
+
 A Battle Brothers mod collection built around the Pale Sovereign origin and extensions for Reforged. The origin follows a necromancer rebuilding a company with permanent undead, branching progression, original events, skills, artwork, and campaign mechanics.
+
+## Features
+
+- Choose between the Champion and Scourge paths, each with its own undead progression and resources. Permanent undead promotion is exclusive to the Champion path.
+- Recruit and develop permanent undead, with dedicated perks, traits, stories, and promotion branches.
+- Explore original events, ambitions, artwork, skills, and campaign mechanics, including an undead stronghold.
+- Use the bundled Autopilot improvements for coordinated combat and Pale Sovereign abilities.
 
 This repository contains the source and build tooling for four local bundles:
 
@@ -14,6 +23,10 @@ This repository contains the source and build tooling for four local bundles:
 | `zz_local_interface.zip` | Interface and utility mods |
 
 The collection was developed for the GOG release of Battle Brothers 1.5.2.3 with Reforged 0.9.3, Modern Hooks 0.7.0, and the other dependencies listed in [Readme.txt](Readme.txt). The existing `Readme.txt` describes a separate prebuilt distribution; its installation instructions and included files do not describe this source repository.
+
+## Distribution versions
+
+The separate V1.3.0 prebuilt distribution is described in [Readme.txt](Readme.txt) and has two variants: one uses the bundled launcher and `zdata_cn.zip`; the launcher-free variant uses a customized Chinese localization ZIP and runs the game's native Win32 client. These prebuilt packages and their dependencies are not included in this source repository. Refer to `Readme.txt` for the requirements and installation steps for each variant.
 
 ## Source layout
 
