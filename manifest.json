@@ -1471,6 +1471,12 @@
         "ui/mods/career_stats_perma/lph_chart_overlay.js"
       ],
       "output": "zz_local_campaign.zip"
+    },
+    {
+      "directory": "campaign/hsc_champion",
+      "source": "捕奴modv5.zip",
+      "members": [],
+      "output": "zz_local_campaign.zip"
     }
   ],
   "patches": [
