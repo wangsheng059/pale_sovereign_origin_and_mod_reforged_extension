@@ -231,12 +231,12 @@
 			desc = ::HSC_ChampionRules.replaceText(
 				desc,
 				"冠军：是（保留冠军特质）",
-				"冠军：是（招募后获得「蒙尘冠军」特质；队伍蒙尘冠军人数大于等于两人时，会有意想不到的负面结果。）"
+				"冠军：是（招募后获得「蒙尘冠军」特质；队伍冠军人数大于等于两人时，会有意想不到的负面结果。）"
 			);
 			desc = ::HSC_ChampionRules.replaceText(
 				desc,
 				"Champion: yes (keeps the Champion trait)",
-				"Champion: yes (gains the Tarnished Champion trait; having two or more Tarnished Champions in the company will lead to unexpected negative consequences.)"
+				"Champion: yes (gains the Tarnished Champion trait; having two or more Champions in the company will lead to unexpected negative consequences.)"
 			);
 			return desc;
 		};
@@ -251,8 +251,8 @@
 					type = "hint",
 					icon = "ui/icons/warning.png",
 					text = this.HSC_L(
-						"队伍蒙尘冠军人数大于等于两人时，会有意想不到的负面结果。",
-						"Having two or more Tarnished Champions in the company will lead to unexpected negative consequences."
+						"队伍冠军人数大于等于两人时，会有意想不到的负面结果。",
+						"Having two or more Champions in the company will lead to unexpected negative consequences."
 					)
 				});
 			}

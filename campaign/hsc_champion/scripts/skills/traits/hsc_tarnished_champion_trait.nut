@@ -133,8 +133,8 @@ this.hsc_tarnished_champion_trait <- this.inherit("scripts/skills/traits/charact
 				type = "hint",
 				icon = "ui/icons/warning.png",
 				text = en
-					? "Having two or more Tarnished Champions in the company will lead to unexpected negative consequences."
-					: "队伍蒙尘冠军人数大于等于两人时，会有意想不到的负面结果。"
+					? "Having two or more Champions in the company will lead to unexpected negative consequences."
+					: "队伍冠军人数大于等于两人时，会有意想不到的负面结果。"
 			}
 		];
 	},
