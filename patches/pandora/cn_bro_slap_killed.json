@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_bro_slap.nut",
+  "before": "932886cf6a57e2204746fb892d945239e7f224d604a277aaad8d19e84845c6d9",
+  "after": "d79202ae5444747a67251c9852cd90a33c182e189debce629265129968cb0049",
+  "old": "this.m.KilledString = \"Slapped\";",
+  "new": "this.m.KilledString = \"被扇死\";"
+}

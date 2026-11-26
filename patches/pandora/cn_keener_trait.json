@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/traits/ph_keener_trait.nut",
+  "before": "2325e3a83b66bedf6e803b4d16c2518602363cf49f581ed446e4f64c4d83b128",
+  "after": "d0929252d3de9e0f82e2a8166bf5b3a6e329801046f424c8338292100208e919",
+  "old": "\"Hitpoints\",\n\t\t\t\"Resolve\",\n\t\t\t\"最大疲劳\",\n\t\t\t\"Initiative\",",
+  "new": "\"生命值\",\n\t\t\t\"决心\",\n\t\t\t\"最大疲劳\",\n\t\t\t\"主动值\","
+}

@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_vivisect.nut",
+  "before": "78ce940f7108f31a9c8b0eb574967e4f9a6854d5b72a86ad18b956d7958460c5",
+  "after": "49e6aa3bd0dde9833b934951ca93f38f421a3a604e884667d09fb40664a5a8c4",
+  "old": "this.m.KilledString = \"Vivisected\";",
+  "new": "this.m.KilledString = \"被活体解剖\";"
+}

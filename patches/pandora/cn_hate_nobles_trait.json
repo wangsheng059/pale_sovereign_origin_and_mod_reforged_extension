@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/traits/ph_hate_nobles_trait.nut",
+  "before": "dcf74abeadde664164abd2038c33e269896377b6d33c5f276274adf9e44fd31e",
+  "after": "44ce464ea42d5fd1312f3bce2e817863a1a411d3239ab61fb488f30a9e420a93",
+  "old": "\"Kingslayer\",\n\t\t\t\"Proletariat\"",
+  "new": "\"弑君者\",\n\t\t\t\"抗贵者\""
+}

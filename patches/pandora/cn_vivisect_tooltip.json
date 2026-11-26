@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_vivisect.nut",
+  "before": "49e6aa3bd0dde9833b934951ca93f38f421a3a604e884667d09fb40664a5a8c4",
+  "after": "c8383f0b93ca99cc67b01e3c5c6b22f2f48a652dd57572276785af220555554f",
+  "old": "text = \"Has \" + ::MSU.Text.colorNegative(this.m.AccMod) + \" 命中率。匕首大师和解剖学家会使命中率提高 \" + ::MSU.Text.colorPositive(\"5%\") + \" each.\"",
+  "new": "text = \"基础命中率 \" + ::MSU.Text.colorNegative(this.m.AccMod) + \"。匕首专精和解剖学家背景可各额外提高 \" + ::MSU.Text.colorPositive(\"5%\") + \" 命中率。\""
+}

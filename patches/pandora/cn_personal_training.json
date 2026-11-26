@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/effects/ph_personal_training_effect.nut",
+  "before": "1d8e59e1177ec010b22f3864fad272725980a4872bee886147ce0b53121b917f",
+  "after": "43a789ace1886357272591155cd77ff6efdf1cba3a2c894f571fbf8f79f30575",
+  "old": "\"Hitpoints\",\n\t\t\t\"Resolve\",\n\t\t\t\"最大疲劳\",\n\t\t\t\"Initiative\",",
+  "new": "\"生命值\",\n\t\t\t\"决心\",\n\t\t\t\"最大疲劳\",\n\t\t\t\"主动值\","
+}

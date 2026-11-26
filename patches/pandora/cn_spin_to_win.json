@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_spin_to_win.nut",
+  "before": "6e056e296e145afe2f7dea09c03710c42b048823249f011c815fd981c915abe8",
+  "after": "9a78157855f418e2891db24e6b3f68554bd902b5105d7abe7c47a570c18192dc",
+  "old": "this.m.KilledString = \"Crushed\";",
+  "new": "this.m.KilledString = \"被碾碎\";"
+}

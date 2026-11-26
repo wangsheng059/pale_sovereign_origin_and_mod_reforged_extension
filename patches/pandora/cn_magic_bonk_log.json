@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_magic_bonk.nut",
+  "before": "8179046439433aedbbf61da53a5ee2095069160befe6752494d2df79e867cb4c",
+  "after": "cf43abf4665478508f1b418a51c0c0ae79bb1fa2cb211f7a37fbd3cf0b661984",
+  "old": "this.Const.UI.getColorizedEntityName(_user) + \" hexes \" + this.Const.UI.getColorizedEntityName(target)",
+  "new": "this.Const.UI.getColorizedEntityName(_user) + \" 诅咒了 \" + this.Const.UI.getColorizedEntityName(target)"
+}

@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "mod_pandoras_hobby/hooks/skills/injury_permanent/permanent_injury.nut",
+  "before": "3d7ef2d0d8188861c475f437a538fe1916263a93e0308a221708376de0cd77a7",
+  "after": "b0035571f80cac8a119ea143877e87826775bef0a18a27f916fac505166c9868",
+  "old": "d = \"将在 \" + ht.Min + \" days\";\n\t\t\t\t}\n\t\t\t\telse if (ht.Max > 1)\n\t\t\t\t{\n\t\t\t\t\td = \"将在 \" + ht.Min + \" to \" + ht.Max + \" days\";",
+  "new": "d = \"将在 \" + ht.Min + \" 天后痊愈\";\n\t\t\t\t}\n\t\t\t\telse if (ht.Max > 1)\n\t\t\t\t{\n\t\t\t\t\td = \"将在 \" + ht.Min + \" 至 \" + ht.Max + \" 天后痊愈\";"
+}

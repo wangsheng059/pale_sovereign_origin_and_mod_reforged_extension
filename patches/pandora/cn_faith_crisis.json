@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/injury_permanent/ph_faith_crisis.nut",
+  "before": "085bfb69705e91152815191e5b6702b785628eeed5de34c3a3a2c9f7dd55a9b9",
+  "after": "d1b751cac7968e53ee9461c0586b816447b8d992e836c89a37b87b148211a444",
+  "old": "]-15%[/color] Initiative\"",
+  "new": "]-15%[/color] 主动值\""
+}

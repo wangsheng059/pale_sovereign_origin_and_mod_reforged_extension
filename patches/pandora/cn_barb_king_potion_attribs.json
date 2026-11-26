@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/effects/ph_barb_king_potion_effect.nut",
+  "before": "28ac1507a99d032ea2a308d64d261f3642c562b4a2f6607eee73113a72e07284",
+  "after": "4a992114c44adea53dad72579ba490ae096127b997b7c0373f31af4855238c0a",
+  "old": "\"Hitpoints\",\n\t\t\t\"Resolve\",\n\t\t\t\"最大疲劳\",\n\t\t\t\"Initiative\",",
+  "new": "\"生命值\",\n\t\t\t\"决心\",\n\t\t\t\"最大疲劳\",\n\t\t\t\"主动值\","
+}

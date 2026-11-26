@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "mod_pandoras_hobby/hooks/skills/effects/apotheosis_potion_effect.nut",
+  "before": "bfd59dad7618792997b170f8e96cf5dac8d98d3bb6e0c6725a33fae9c4966ad7",
+  "after": "61be13b52cc81a33f9e116070d649194e189dd111ae35389bfb69e5637d5647f",
+  "old": "[/color] Hitpoints\"",
+  "new": "[/color] 生命值\""
+}

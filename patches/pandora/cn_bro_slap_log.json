@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_bro_slap.nut",
+  "before": "d79202ae5444747a67251c9852cd90a33c182e189debce629265129968cb0049",
+  "after": "fc8aa6fd6d23aecf7706aa4a0c57187c57c8eb0cb01e251369077d0c4a03b189",
+  "old": "this.Const.UI.getColorizedEntityName(actor) + \" boosted \" + this.Const.UI.getColorizedEntityName(_targetEntity) + \"的士气，用兄弟耳光扇在脸上。\"",
+  "new": "this.Const.UI.getColorizedEntityName(actor) + \" 用兄弟耳光抽醒并提振了 \" + this.Const.UI.getColorizedEntityName(_targetEntity) + \" 的士气。\""
+}

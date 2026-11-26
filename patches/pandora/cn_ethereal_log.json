@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/ph_champs/ethereal.nut",
+  "before": "13a430ef441b23600bed475e31cc356d3188b298233485d8c380b2a0e94268ed",
+  "after": "4c7710aefc692d6fabfb7ff9d277ba6063fb3f79e810a4518ff4e5fa1c550028",
+  "old": "\"恢复 \" + healthAdded + \" points\"",
+  "new": "\"恢复了 \" + healthAdded + \" 点生命值\""
+}

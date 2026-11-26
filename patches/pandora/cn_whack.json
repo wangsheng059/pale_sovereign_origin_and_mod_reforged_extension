@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_whack.nut",
+  "before": "eb3f66016ecb4b09373ec69f55a46af344a570f815d6632edc9bb9ffae4e2112",
+  "after": "3b2f6e9cd937fc791f9a526684edb899432d0bf69ec16a5bfc21368f8ceea314",
+  "old": "this.m.KilledString = \"Whacked\";",
+  "new": "this.m.KilledString = \"被重击致死\";"
+}

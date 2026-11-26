@@ -1,0 +1,8 @@
+{
+  "source": "Pandoras_Hobby_汉化_1_2_18.zip",
+  "member": "scripts/skills/actives/ph_scalpel_stab.nut",
+  "before": "a7547c4422ecae1d426cd7f87a60cf3ca2ab83836dd2b756162611fec5be2e9a",
+  "after": "cb25b22ccb4530fdfa2607ad2a5bb16707421af43cc09d2534f6f57d7849a323",
+  "old": "this.m.KilledString = \"Perforated\";",
+  "new": "this.m.KilledString = \"被刺穿\";"
+}
