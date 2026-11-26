@@ -215,12 +215,12 @@
 	return null;
 }
 
-// 1.6.0 死灵法术并入背景：死灵法师背景（或旧角色身上的“死灵法术”特技）能复活野兽 / 亡灵 / 兽人 / 地精
+// 1.6.0 死灵法术并入背景：死灵法师背景能复活野兽 / 亡灵 / 兽人 / 地精
 ::BGP.Necro.canRaiseAll <- function( _user )
 {
 	try
 	{
-		if (_user.getSkills().hasSkill("background.bgp_necromancer") || _user.getSkills().hasSkill("perk.bgp_necro_arts"))
+		if (_user.getSkills().hasSkill("background.bgp_necromancer"))
 			return true;
 	}
 	catch (e)

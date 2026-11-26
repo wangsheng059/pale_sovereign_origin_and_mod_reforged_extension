@@ -134,7 +134,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		if (this.m.HasArmorRegen)
 			ret.push({ id = 13, type = "text", icon = "ui/icons/armor_body.png", text = "每回合开始时头甲、身甲各回复上限的 " + ::MSU.Text.colorPositive("7%") });
 		if (this.m.TempHeadArmor > 0 || this.m.TempBodyArmor > 0)
-			ret.push({ id = 16, type = "text", icon = "ui/icons/armor_body.png", text = "钢铁之躯临时护甲：头甲 " + ::MSU.Text.colorPositive("+" + this.m.TempHeadArmor) + "、身甲 " + ::MSU.Text.colorPositive("+" + this.m.TempBodyArmor) + "（先于装备受损，战后消失）" });
+			ret.push({ id = 16, type = "text", icon = "ui/icons/armor_body.png", text = "钢铁之躯临时护甲：头甲 " + ::MSU.Text.colorPositive("+" + this.m.TempHeadArmor) + "、身甲 " + ::MSU.Text.colorPositive("+" + this.m.TempBodyArmor) + "（先于装备受损）" });
 		if (this.m.HasBloodSucking)
 			ret.push({ id = 14, type = "text", icon = "ui/icons/special.png", text = "嗜血者：攻击造成生命伤害时吸血" });
 		if (this.m.MeldedPerks.len() > 0)

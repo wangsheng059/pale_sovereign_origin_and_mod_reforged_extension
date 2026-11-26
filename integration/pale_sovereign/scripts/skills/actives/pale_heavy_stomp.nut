@@ -23,7 +23,7 @@ this.pale_heavy_stomp <- ::inherit("scripts/skills/actives/pale_tier_attack", {
         local actor = this.getContainer().getActor();
         ret.push({ id = 12, type = "text", icon = "ui/icons/regular_damage.png", text = "基础伤害 = 最大生命 ÷ 4 + 头甲与身甲的疲劳惩罚之和。当前为 "
             + ::Math.floor(actor.getHitpointsMax() / 4.0) + " + " + this.getArmorWeight(actor) + " = " + this.getStompDamage(actor) + "。" });
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "命中时使主目标眩晕 1 回合。主目标身旁随机一名敌人承受一半伤害并踉跄，行动推迟至回合末。" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "命中时使主目标眩晕 1 回合。主目标身旁随机一名敌人承受一半伤害并陷入踉跄。" });
         ret.push({ id = 11, type = "text", icon = "ui/icons/hitchance.png", text = "无视主目标一半的盾牌防御加成。" });
         return ret;
     }

@@ -1,7 +1,6 @@
 // 1.4.0 死灵法师组：死灵法术、支配亡灵、不死再生、死灵精通、心灵交融、嗜血者、死灵灌注、钢铁之躯、尸爆
 // 参考 Nectomancy（死灵法术 perk）1.0 和 mod_necro 0.4.0（Proper Necro），按重铸重写
 
-::BGP.PerkNames.NecroArts <- "死灵法术";
 ::BGP.PerkNames.NecroPossess <- "支配亡灵";
 ::BGP.PerkNames.NecroRegeneration <- "不死再生";
 ::BGP.PerkNames.NecroMastery <- "亡灵法术精通";
@@ -16,19 +15,6 @@
 ::BGP.PerkNames.NecroCurseOfAges <- "岁月诅咒";
 ::BGP.PerkNames.NecroFlySwarm <- "腐毒蝇群";
 ::BGP.PerkNames.NecroGrandmaster <- "亡灵法术大师";
-
-::BGP.PerkDescriptions.NecroArts <- ::UPD.getDescription({
-	Fluff = "人也好，兽也好，死了都一样。",
-	Effects = [{
-		Type = ::UPD.EffectType.Passive,
-		Description = [
-			"（1.6.0 起这个效果已经并入亡灵法师背景，新招募的亡灵法师不再有这个特技；老角色身上的保留，效果不变。）",
-			"“复活死者”除了人类尸体，还能复活野兽、亡灵、兽人、地精的尸体。",
-			"复活出来的是各自单独的死灵版本（例如“亡灵恐狼”“兽人青年死灵”“受缚古代军团士兵”），沿用生前的属性和技能，装备重新生成且不会掉落。",
-			"不能复活：林德蠕龙、海妖、伊夫利特、女巫、树人幼苗、蛛卵、幽灵类、巫妖、堕落背叛者，以及其他 mod 新增的非人类敌人。"
-		]
-	}]
-});
 
 ::BGP.PerkDescriptions.NecroPossess <- ::UPD.getDescription({
 	Fluff = "把意志灌进一具尸体，替它看，替它挥刀。",
@@ -101,7 +87,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"你复活单位时，它的头甲、身甲各恢复上限的 " + ::MSU.Text.colorPositive("10% + W/4 %") + "（W = 当时你的当前决心 − 20）；放出亡灵宠物时，改为获得等量的临时护甲（先于装备受损，战后消失）。",
+			"你复活单位时，它的头甲、身甲各恢复上限的 " + ::MSU.Text.colorPositive("10% + W/4 %") + "（W = 当时你的当前决心 − 20）；放出亡灵宠物时，改为获得等量的临时护甲（先于装备受损）。",
 			"同时有“不死再生”时，这些亡灵每回合开始时头甲、身甲再各恢复 " + ::MSU.Text.colorPositive("7%") + "。"
 		]
 	}]
@@ -116,7 +102,7 @@
 			"对目标格和相邻 1 格内的所有敌人（不伤友军）造成钝器伤害，等于该尸体生前最大生命的 " + ::MSU.Text.colorPositive("20% + W/4 %") + "；被炸到还活着的敌人做一次士气检定，难度 " + ::MSU.Text.colorNegative("-W/4") + "。",
 			"（W = 亡灵法师当前决心 − 20，含装备和光环，施放时计算）",
 			"尸体死亡时身上的头甲、身甲还有剩余耐久的，额外造成劈砍伤害，等于剩余耐久总和的 " + ::MSU.Text.colorPositive("25%") + "（对护甲伤害效率 " + ::MSU.Text.colorPositive("150%") + "）。",
-			"被波及的敌人陷入“趔趄”（下回合行动顺位延后）。"
+			"被波及的敌人陷入“踉跄”。"
 		]
 	}]
 });
@@ -186,7 +172,7 @@
 			"亡灵勇士、亡灵天灾两组共用（不参与互斥）。",
 			"解锁亡灵驯服与「驱役亡灵」（消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("16") + " 疲劳）：可用「驯服野兽」驯服野兽或亡灵，成功率随决心提高；「驱役亡灵」可收服 6 格内亲手复活的友军（不限生命），或生命不高于最大生命 " + ::MSU.Text.colorPositive("5% + ⌊(当前决心 − 20) / 8⌋%") + "（上限 " + ::MSU.Text.colorPositive("30%") + "）的存活敌方亡灵。亡灵宠物沿用目标属性与装备，升级走亡灵特质池；亡灵法师导师饰品栏已有亡灵宠物时仍可继续收服并存入仓库。",
 			"己方亡灵宠物、永恒禁卫与临时唤起的亡灵（不含常驻亡灵）获得被动「饥渴」：与敌人相邻时每回合开始恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "，攻击命中时额外恢复最大生命的 " + ::MSU.Text.colorPositive("10%") + "。",
-			"你施放的亡灵法术效果（支配亡灵、冥府活力、岁月诅咒、衰弱术、勇士猎物、尸爆「趔趄」、千魂回响「玉骨盾」）持续时间 " + ::MSU.Text.colorPositive("+1") + " 回合。",
+			"你施放的亡灵法术效果（支配亡灵、冥府活力、岁月诅咒、衰弱术、勇士猎物、尸爆「踉跄」、千魂回响「玉骨盾」）持续时间 " + ::MSU.Text.colorPositive("+1") + " 回合。",
 			"每轮首次施放亡灵法术时，自身 " + ::MSU.Text.colorPositive("4") + " 格内所有友方亡灵（含常驻亡灵、亡灵宠物、临时仆从）回复 " + ::MSU.Text.colorPositive("8") + " 点生命，并获得 " + ::MSU.Text.colorPositive("+5") + " 近战技能与远程技能，持续至本轮结束（不叠加）。"
 		]
 	}]
@@ -194,7 +180,6 @@
 
 local perks4 = [];
 foreach (d in [
-	["NecroArts", "perk.bgp_necro_arts", "perk_bgp_necro_arts"],
 	["NecroPossess", "perk.bgp_necro_possess", "perk_bgp_necro_possess"],
 	["NecroRegeneration", "perk.bgp_necro_regeneration", "perk_bgp_necro_regeneration"],
 	["NecroMastery", "perk.bgp_necro_mastery", "perk_bgp_necro_mastery"],

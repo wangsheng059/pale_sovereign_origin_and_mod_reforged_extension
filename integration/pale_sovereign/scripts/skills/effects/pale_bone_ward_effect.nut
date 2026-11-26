@@ -17,7 +17,7 @@ this.pale_bone_ward_effect <- ::inherit("scripts/skills/skill", {
     {
         local ret = this.skill.getTooltip();
         ret.push({ id = 10, type = "text", icon = "ui/icons/regular_damage.png", text = "伤害 " + ::MSU.Text.colorPositive("+15%") + "（还剩 " + this.m.Turns + " 个回合）" });
-        ret.push({ id = 11, type = "text", icon = "ui/icons/armor_body.png", text = "唤起时穿戴的头甲、身甲已各获得 " + ::MSU.Text.colorPositive("+30") + " 点额外护甲（战后消散）" });
+        ret.push({ id = 11, type = "text", icon = "ui/icons/armor_body.png", text = "唤起时穿戴的头甲、身甲已各获得 " + ::MSU.Text.colorPositive("+30") + " 点临时护甲" });
         return ret;
     }
 

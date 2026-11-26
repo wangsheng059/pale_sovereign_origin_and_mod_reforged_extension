@@ -15,8 +15,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"本场战斗中，对每个目标的第一次攻击伤害 " + ::MSU.Text.colorPositive("+30%") + "；目标本回合还没行动时再 " + ::MSU.Text.colorPositive("+20%") + "。",
-			"无论是否命中，仅对每个目标的首次攻击生效。"
+			"本场战斗中，对每个目标的首次攻击伤害 " + ::MSU.Text.colorPositive("+30%") + "（无论是否命中都会消耗）；目标本回合还没行动时再 " + ::MSU.Text.colorPositive("+20%") + "。"
 		]
 	}]
 });
@@ -39,7 +38,7 @@
 		Description = [
 			"头盔与身甲当前耐久合计每有 100 点，决心 " + ::MSU.Text.colorPositive("+3") + "、远程防御 " + ::MSU.Text.colorPositive("+2") + "。",
 			"免疫击退与钩拽。",
-			"沿直线连续移动至少 2 格后蓄势（再次移动会打断）：下一次近战攻击基础伤害增加头盔与身甲疲劳惩罚合计的 " + ::MSU.Text.colorPositive("15%") + "，命中时 " + ::MSU.Text.colorPositive("50%") + " 概率使目标踉跄（下一回合行动顺序延后）。"
+			"沿直线连续移动至少 2 格后蓄势（再次移动会打断）：下一次近战攻击基础伤害增加头盔与身甲疲劳惩罚合计的 " + ::MSU.Text.colorPositive("15%") + "，命中时 " + ::MSU.Text.colorPositive("50%") + " 概率使目标踉跄。"
 		]
 	}]
 });
@@ -50,7 +49,7 @@
 		Type = ::UPD.EffectType.Passive,
 		Description = [
 			"使用双手斧、双手锤、双手钉头锤、双手剑时，对护甲造成的伤害 " + ::MSU.Text.colorPositive("+20%") + "。",
-			"一击打碎敌人的头盔或身甲（耐久归零）时，该目标立刻进行一次决心 " + ::MSU.Text.colorNegative("-20") + " 的士气检定。"
+			"一击打碎敌人的头盔或身甲时，该目标立刻进行一次决心 " + ::MSU.Text.colorNegative("-20") + " 的士气检定。"
 		]
 	}]
 });
@@ -60,7 +59,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Active,
 		Description = [
-			"解锁“毁灭一击”（单体）和“毁灭横扫”（前方扇形 3 格，不伤友军）两个技能，两者共用冷却：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("35") + " 疲劳，每 3 回合可用一次（间隔 2 回合），需要装备双手近战武器。",
+			"解锁“毁灭一击”（单体）和“毁灭横扫”（前方扇形 3 格，不伤友军）两个技能，两者共用冷却：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("35") + " 疲劳，每 3 回合可用一次，需要装备双手近战武器。",
 			"本次攻击总伤害 " + ::MSU.Text.colorPositive("+40%") + "，穿甲伤害比例 " + ::MSU.Text.colorPositive("+30%") + "，命中头部几率 " + ::MSU.Text.colorPositive("+35%") + "。",
 			"震荡波：无论是否命中，主目标和它身后 1 格内的所有敌人被震退 1 格，并随机陷入眩晕或踉跄（免疫眩晕的改为踉跄）。"
 		]
@@ -72,7 +71,7 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"每次命中或击杀敌人获得 1 层“喝彩”，最多 " + ::MSU.Text.colorPositive("5") + " 层，本场战斗有效。",
+			"每次命中或击杀敌人获得 1 层“喝彩”，最多 " + ::MSU.Text.colorPositive("5") + " 层。",
 			"每层：决心 " + ::MSU.Text.colorPositive("+5") + "，每回合疲劳恢复 " + ::MSU.Text.colorPositive("+1") + "。"
 		]
 	}]

@@ -1,7 +1,7 @@
 // 尸爆：4 行动点、20 疲劳、6 格。摧毁目标格的一具尸体（之后不能再复活），对该格及相邻 1 格内的所有敌人（不伤友军）：
 //   钝器伤害 = 尸体生前最大生命 × 35%（对护甲效率 100%）；
 //   尸体死亡时头甲 + 身甲还有剩余耐久时，再加一次劈砍伤害 = 剩余耐久总和 × 25%（对护甲效率 150%）；
-//   命中的敌人陷入“趔趄”（原版效果，下回合行动顺位延后）。
+//   命中的敌人陷入“踉跄”（原版效果，下回合行动顺位延后）。
 // 1.6.4 起基础消耗改为 3 行动点、8 疲劳（死灵精通再 -1 行动点、-25% 疲劳）。
 // 1.6.2 起按施放者决心 W：钝器伤害改为生前最大生命 ×(20% + W/4 %)（原 35%）；被炸到还活着的敌人做一次士气检定，难度 -W/4。
 this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
@@ -54,7 +54,7 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 			{ id = 11, type = "text", icon = "ui/icons/regular_damage.png", text = "对目标格和相邻 1 格内的所有敌人造成钝器伤害，等于尸体生前最大生命的 " + ::MSU.Text.colorPositive(::BGP.Necro.pctText(::BGP.Necro.WillScale.BlastPct(w))) + ::BGP.Necro.willText(w) + "；不伤友军" },
 			{ id = 12, type = "text", icon = "ui/icons/armor_damage.png", text = "尸体死亡时头甲、身甲还有剩余耐久的，额外造成劈砍伤害，等于剩余耐久总和的 " + ::MSU.Text.colorPositive("25%") + "（对护甲效率 " + ::MSU.Text.colorPositive("150%") + "）" },
 			{ id = 13, type = "text", icon = "ui/icons/morale.png", text = "被波及还活着的敌人做一次士气检定，难度 " + ::MSU.Text.colorNegative("-" + ::BGP.Necro.WillScale.BlastMorale(w)) },
-			{ id = 14, type = "text", icon = "ui/icons/special.png", text = (extra > 0 ? "被波及的敌人陷入“趔趄”（额外持续 +" + extra + " 回合）；" : "被波及的敌人陷入“趔趄”；") + "尸体被摧毁，不能再复活" }
+			{ id = 14, type = "text", icon = "ui/icons/special.png", text = (extra > 0 ? "被波及的敌人陷入“踉跄”（额外持续 +" + extra + " 回合）；" : "被波及的敌人陷入“踉跄”；") + "尸体被摧毁，不能再复活" }
 		]);
 		return ret;
 	}

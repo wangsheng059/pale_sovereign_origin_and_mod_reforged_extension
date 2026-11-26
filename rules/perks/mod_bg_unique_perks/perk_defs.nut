@@ -21,7 +21,7 @@
 		Effects = [{
 			Type = ::UPD.EffectType.Passive,
 			Description = [
-				"每击杀一名敌人，本场战斗造成的伤害提高 " + ::MSU.Text.colorPositive("15%") + "（加算，可无限叠加，战后清空）。"
+				"每击杀一名敌人，本场战斗造成的伤害提高 " + ::MSU.Text.colorPositive("15%") + "（可无限叠加）。"
 			]
 		}]
 	}),
@@ -30,11 +30,11 @@
 		Effects = [{
 			Type = ::UPD.EffectType.Passive,
 			Description = [
-				"每击杀一名敌人，随机获得以下恩赐之一，本场战斗有效，可重复获得并叠加：",
+				"每击杀一名敌人，随机获得以下恩赐之一（可重复获得并叠加）：",
 				"行动点数 " + ::MSU.Text.colorPositive("+2") + "。",
 				"每格移动消耗的行动点数 " + ::MSU.Text.colorPositive("-1") + "、疲劳 " + ::MSU.Text.colorPositive("-2") + "（每格最少仍消耗 1 点，减免总量受平地最低 1 点限制）。",
 				"立即获得头甲 " + ::MSU.Text.colorPositive("+20") + "、身甲 " + ::MSU.Text.colorPositive("+20") + "（可超过上限，需已穿戴对应部位护甲），生命值上限和当前生命值 " + ::MSU.Text.colorPositive("+20") + "。",
-				"下一次攻击命中时使目标眩晕（命中后消耗，免疫眩晕的目标不受影响）。"
+				"下一次攻击命中时使目标眩晕（命中后消耗）。"
 			]
 		}]
 	}),
@@ -74,7 +74,7 @@
 		Effects = [{
 			Type = ::UPD.EffectType.Passive,
 			Description = [
-				"每当场上任意一只友方野兽使敌人流血或击杀敌人时，你和所有友方野兽获得 1 层“狩猎狂热”，最多 " + ::MSU.Text.colorPositive("3") + " 层，本场战斗有效。",
+				"每当场上任意一只友方野兽使敌人流血或击杀敌人时，你和所有友方野兽获得 1 层“狩猎狂热”，最多 " + ::MSU.Text.colorPositive("3") + " 层。",
 				"每层：伤害 " + ::MSU.Text.colorPositive("+5%") + "，主动值 " + ::MSU.Text.colorPositive("+15") + "。"
 			]
 		}]
@@ -95,9 +95,8 @@
 		Effects = [{
 			Type = ::UPD.EffectType.Passive,
 			Description = [
-				"你或你的宠物每击杀一名敌人，你和你的宠物各获得 1 层“同仇”，最多 " + ::MSU.Text.colorPositive("3") + " 层，本场战斗有效；每层伤害 " + ::MSU.Text.colorPositive("+8%") + "。",
-				"你的宠物站在你旁边时，你和这只宠物受到的伤害都 " + ::MSU.Text.colorPositive("-20%") + "。",
-				"“你的宠物”指装备在饰品栏的宠物或战犬。"
+				"你或装备在饰品栏的宠物/战犬每击杀一名敌人，双方各获得 1 层“同仇”，最多 " + ::MSU.Text.colorPositive("3") + " 层；每层伤害 " + ::MSU.Text.colorPositive("+8%") + "。",
+				"你与装备在饰品栏的宠物/战犬相邻时，双方受到的伤害都 " + ::MSU.Text.colorPositive("-20%") + "。"
 			]
 		}]
 	}),

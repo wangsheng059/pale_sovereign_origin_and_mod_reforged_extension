@@ -15,7 +15,7 @@ S.EmbalmUnit <- 0;
 // 临时秘仪：Single / All 为指定 1 名 / 全体常驻亡灵的花费，Battles 为参战场数
 S.Rites <- [
     { Key = "armor", Icon = "skills/pale_rite_armor.png", Name = "厚骨覆甲", Single = 3, All = 6, Battles = 3,
-        Effect = "每场战斗开局头部与身体各获得 +40 临时护甲（先于装备承受伤害，战后消失）；战斗全程受到攻击的穿甲比例减少 15 个百分点（如 30% → 15%），免疫爆头额外伤害" },
+        Effect = "每场战斗开局头部与身体各获得 +40 临时护甲（先于装备承受伤害）；战斗全程受到攻击的穿甲比例减少 15 个百分点（如 30% → 15%），免疫爆头额外伤害" },
     { Key = "infuse", Icon = "skills/pale_rite_infuse.png", Name = "死气灌注", Single = 4, All = 8, Battles = 3,
         Effect = "开局获得 3 层【充盈死气】。近战或远程攻击命中敌人时消耗 1 层，额外造成 8 + 导师决心 × 10% 点无视护甲伤害，目标疲劳 +10 并进行一次低难度士气检定" },
     { Key = "poison", Icon = "skills/pale_rite_poison.png", Name = "恶臭涂抹", Single = 3, All = 6, Battles = 3,
