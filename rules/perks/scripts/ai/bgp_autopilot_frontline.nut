@@ -292,7 +292,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                         if (myTile.getDistanceTo(ft) != 1 || !bash.isUsableOn(ft, myTile)) continue;
                         local hit = 0;
                         try { hit = bash.getHitchance(foe); } catch (e) {}
-                        if (hit < 55) continue;
+                        if (hit < 50) continue;
                         local sc = hit + (foe.getSkills().hasSkill("racial.champion") ? 45.0 : 20.0) + (foe.getHitpointsPct() >= 0.50 ? 15.0 : 0.0);
                         if (sc > bestBashScore) { bestBashScore = sc; bestBashTile = ft; }
                     }

@@ -163,7 +163,8 @@ A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
         local isPolearm = !::BGP.hasShield(c.Actor) && c.Actor.getIdealRange() >= 2;
         if (corpses.len() < 3 && usedShots < maxShots) {
             if (::BGP.hasShield(c.Actor)) {
-                if (myNearest <= 2 || c.Actor.getFatigueMax() - c.Actor.getFatigue() < 34) return 0;
+                local minShieldDist = (::Time.getRound() <= 2 && corpses.len() < 2) ? 2 : 3;
+                if (myNearest < minShieldDist || c.Actor.getFatigueMax() - c.Actor.getFatigue() < 36) return 0;
                 if (::Time.getRound() > 3 && myNearest <= 4) return 0;
             } else if (!isPolearm && myNearest <= 2) {
                 return 0;
@@ -171,7 +172,7 @@ A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
                 return 0;
             }
             local isRangedTarget = t.IsOccupiedByActor && t.getEntity().isArmedWithRangedWeapon();
-            return 3.20 + 0.30 * A.weaponChance(s, t) + 0.25 * ::Math.min(3, enemiesNear) + (isRangedTarget ? 0.55 : 0.0);
+            return 3.45 + 0.30 * A.weaponChance(s, t) + 0.25 * ::Math.min(3, enemiesNear) + (isRangedTarget ? 0.55 : 0.0);
         }
 
         if (::BGP.hasShield(c.Actor) && myNearest <= 4) return 0;

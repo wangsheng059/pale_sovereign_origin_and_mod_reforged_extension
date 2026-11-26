@@ -91,20 +91,22 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
     local armoredHits = 0;
     local lethalCount = 0;
     local moraleVulnerableHits = 0;
+    local goblinHits = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
         ++hits;
         if (enemy.getArmor(::Const.BodyPart.Body) >= 130) ++armoredHits;
         if (!enemy.getFlags().has("undead")) ++moraleVulnerableHits;
+        if (enemy.getFlags().has("goblin")) ++goblinHits;
         value += 1.1 + ::Math.minf(1.8, (blast.Blunt + blast.Cutting * 0.45) / 35.0);
         if (enemy.getHitpoints() <= blast.Blunt * 0.65) {
             value += 1.6;
             ++lethalCount;
         }
     }
-    // Under 4 AP (3 AP with Mastery), avoid destroying scarce corpses on morale-immune Undead/Ancient Dead
-    // before we have a meatshield screen, while still rewarding 3+ target blasts on living armored formations!
+    // Under 4 AP (3 AP with Mastery) and Grandmaster 2+2 free summons (5 starting undead with Lich),
+    // require a real raised undead screen (>= 6 undead) before blowing up corpses on non-lethal blasts!
     if (smart) {
         if (hits < 2 && lethalCount == 0)
             return 0;
@@ -116,18 +118,26 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
         }
         local totalCorpses = c.Behavior.targets(c, "Corpses").len();
         // Never burn the last 1-2 corpses on non-lethal blasts before we have raised a real undead screen!
-        if (lethalCount == 0 && aliveUndead < 4 && totalCorpses <= 2)
+        if (lethalCount == 0 && aliveUndead < 5 && totalCorpses <= 2)
             return 0;
-        // Against pure morale-immune Undead/Skeletons with no kills, preserve scarce corpses for Raise Dead meatshields!
+        // Against pure Goblins, raised arrow-sponge zombies are worth far more than chip-damage blasts unless multi-kill or thick wall!
+        if (goblinHits == hits && lethalCount < 2 && (hits < 4 || aliveUndead < 7))
+            value *= 0.55;
+        // Against pure morale-immune Undead/Skeletons with no kills, preserve scarce corpses unless we already have a thick wall (>= 6) & huge 4+ clump!
         if (moraleVulnerableHits == 0 && lethalCount == 0) {
-            if (totalCorpses <= 3 || aliveUndead < 5)
-                return 0;
-            if (totalCorpses <= 5 || aliveUndead < 7)
-                value *= 0.45;
+            if (hits >= 4 && aliveUndead >= 6) {
+                value += 1.6;
+            } else {
+                if (totalCorpses <= 3 || aliveUndead < 6)
+                    return 0;
+                if (totalCorpses <= 5 || aliveUndead < 7)
+                    value *= 0.45;
+            }
         }
-        // Only grant big armored-clump Corpse Explosion bonus once we have >= 5 alive undead (Lich + 2 summons + >= 2 raised) or >= 4 corpses on field!
-        if (hits >= 3 && (aliveUndead >= 5 || totalCorpses >= 4) && (moraleVulnerableHits >= 2 || lethalCount >= 1)) {
-            value += (hits >= 4 ? 3.6 : 2.2) + (armoredHits >= 2 ? 1.0 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
+        // Grant big armored-clump Corpse Explosion bonus once we have >= 6 alive undead (Lich + 4 summons + raised) or >= 5 corpses!
+        if (hits >= 3 && (aliveUndead >= 6 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
+            && (armoredHits >= 2 || lethalCount >= 1)) {
+            value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
         }
     }
     return value;
@@ -443,6 +453,7 @@ local F = A.Frontline <- {
         local activeEnemies = 0;
         local enemyChargers = 0;
         local enemyUrgentCasters = 0;
+        local enemyMiasmaPriests = 0;
         foreach (foe in enemies)
         {
             if (foe.getMoraleState() != ::Const.MoraleState.Fleeing)
@@ -453,6 +464,8 @@ local F = A.Frontline <- {
                     ++enemyChargers;
                 if (fs.hasSkill("actives.raise_undead") || fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma"))
                     ++enemyUrgentCasters;
+                if (fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma"))
+                    ++enemyMiasmaPriests;
             }
         }
         foreach (bro in brothers)
@@ -501,8 +514,8 @@ local F = A.Frontline <- {
         }
 
         local rangedAdvantage = enemyRanged <= 0.01 || enemyRanged < playerRanged;
-        // Never passively wait in HoldLine against Orc Charger packs (>= 3) or past Round 1 against Enemy Necromancers / Ancient Priests (press in to stop infinite Raise/Miasma/Horror!).
-        local casterPush = enemyUrgentCasters > 0 && round >= 2;
+        // Never passively wait in HoldLine against Orc Charger packs (>= 3), Ancient Priests (Miasma/Horror from Round 1!), or past Round 1 against Enemy Necromancers!
+        local casterPush = (enemyMiasmaPriests > 0) || (enemyUrgentCasters > 0 && round >= 2);
         local holdLine = rangedAdvantage && enemyChargers < 3 && !casterPush && !state.StallBroken && !state.MeleeJoined && activeEnemies > 0;
 
         return {
@@ -642,6 +655,28 @@ local F = A.Frontline <- {
         local availFat = _actor.getFatigueMax() - _actor.getFatigue();
         local fatLeft = availFat - atk.getFatigueCost() - _sw.getFatigueCost();
         if (apLeft < 0 || fatLeft < 0)
+            return false;
+        // If this Shieldbearer has Rotation and stands beside an engaged wounded unshielded brother, reserve Rotation fatigue instead of spending it on non-lethal pokes!
+        local rot = _actor.getSkills().getSkillByID("actives.rotation");
+        local reserveRotFat = 0;
+        if (rot != null && !rot.isHidden() && rot.isUsable())
+        {
+            local myT = _actor.getTile();
+            for (local d = 0; d < 6; ++d)
+            {
+                if (!myT.hasNextTile(d)) continue;
+                local nt = myT.getNextTile(d);
+                if (!nt.IsOccupiedByActor) continue;
+                local a = nt.getEntity();
+                if (a != null && a.getFaction() == ::Const.Faction.Player && a.isAlive() && !::BGP.hasShield(a)
+                    && a.getHitpointsPct() <= 0.65 && nt.getZoneOfControlCountOtherThan(a.getAlliedFactions()) > 0)
+                {
+                    reserveRotFat = rot.getFatigueCost();
+                    break;
+                }
+            }
+        }
+        if (reserveRotFat > 0 && fatLeft < reserveRotFat)
             return false;
 
         local origin = _actor.getTile();
@@ -1367,8 +1402,9 @@ local F = A.Frontline <- {
         local meleeDanger = curMeleeDist <= 2;
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
         local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies) : true;
-        local sniperRange = _info.EnemyProjectileRanged >= 5.0 ? 8 : 7;
-        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || curArcherDist <= 6);
+        local hurtMentor = isCaster && _actor.getHitpointsPct() <= 0.75;
+        local sniperRange = _info.EnemyProjectileRanged >= 5.0 ? (hurtMentor ? 9 : 8) : 7;
+        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || curArcherDist <= (hurtMentor ? 7 : 6));
 
         if (!meleeDanger && !sniperDanger)
             return null;
