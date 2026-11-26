@@ -17,7 +17,7 @@ this.hsc_tarnished_champion_trait <- this.inherit("scripts/skills/traits/charact
 	{
 		try
 		{
-			return ::HumanSlaveCapture != null && ::HumanSlaveCapture.isEN();
+			return ::HumanSlaveCapture != null && ::HumanSlaveCapture.isEnglish();
 		}
 		catch (e)
 		{
@@ -127,6 +127,14 @@ this.hsc_tarnished_champion_trait <- this.inherit("scripts/skills/traits/charact
 				text = en
 					? ("[color=" + neg + "]-50%[/color] Resolve")
 					: ("[color=" + neg + "]-50%[/color] 决心")
+			},
+			{
+				id = 19,
+				type = "hint",
+				icon = "ui/icons/warning.png",
+				text = en
+					? "Having two or more Tarnished Champions in the company will lead to unexpected negative consequences."
+					: "队伍蒙尘冠军人数大于等于两人时，会有意想不到的负面结果。"
 			}
 		];
 	},

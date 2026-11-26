@@ -1495,6 +1495,7 @@
     "patches/quicker/hide_vanilla_veryfast.json",
     "patches/hsc/captive_face_icon.json",
     "patches/hsc/captive_double_click.json",
+    "patches/hsc/recruit_perm_injury_threshold.json",
     "patches/north_expansion/drive_away_barbarians_duel.json",
     "patches/north_expansion/nem_drive_away_barbarians_duel.json",
     "patches/north_expansion/nem_drive_away_barbarians_combat.json",

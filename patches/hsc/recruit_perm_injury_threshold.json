@@ -1,0 +1,8 @@
+{
+  "source": "捕奴modv5.zip",
+  "member": "scripts/!mods_preload/zzz_human_slave_capture.nut",
+  "before": "e0539723756081c997754fcabf58ff421e3a4058e8a93760da3b68ed20ec9e41",
+  "after": "111087723806fd7b327b77b6908d1aaf1f59d29b67367fab5eeeeddcb8602896",
+  "old": "\t\t\t\t\tinjury = _bro.addInjury([\r\n\t\t\t\t\t\t{\r\n\t\t\t\t\t\t\tID = entry.ID,\r\n\t\t\t\t\t\t\tThreshold = entry.Threshold == null ? 0.0 : entry.Threshold,\r\n\t\t\t\t\t\t\tScript = entry.Script\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t]);\r\n\t\t\t\t}\r\n\t\t\t\tcatch (e)\r\n\t\t\t\t{\r\n\t\t\t\t\tthis.logError(\"addInjury permanent failed: \" + e);",
+  "new": "\t\t\t\t\tinjury = _bro.addInjury([\r\n\t\t\t\t\t\t{\r\n\t\t\t\t\t\t\tID = entry.ID,\r\n\t\t\t\t\t\t\tThreshold = (\"Threshold\" in entry && entry.Threshold != null) ? entry.Threshold : 0.0,\r\n\t\t\t\t\t\t\tScript = entry.Script\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t]);\r\n\t\t\t\t}\r\n\t\t\t\tcatch (e)\r\n\t\t\t\t{\r\n\t\t\t\t\tthis.logError(\"addInjury permanent failed: \" + e);"
+}

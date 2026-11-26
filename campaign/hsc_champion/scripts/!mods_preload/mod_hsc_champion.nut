@@ -8,7 +8,7 @@
 
 ::HSC_ChampionRules <- {
 	ID = "mod_hsc_champion",
-	Version = "1.0.0",
+	Version = "1.0.1",
 	Name = "捕奴冠军规则扩展"
 };
 
@@ -222,15 +222,41 @@
 		return result;
 	};
 
-	// Update captive item description to reflect Tarnished Champion on recruitment.
+	// Update captive item description and tooltip to reflect Tarnished Champion and soft-cap warning.
 	mod.hook("scripts/items/misc/hsc_captive_item", function( q )
 	{
 		q.HSC_buildDescription = @(__original) function()
 		{
 			local desc = __original();
-			desc = ::HSC_ChampionRules.replaceText(desc, "冠军：是（保留冠军特质）", "冠军：是（招募后获得「蒙尘冠军」特质）");
-			desc = ::HSC_ChampionRules.replaceText(desc, "Champion: yes (keeps the Champion trait)", "Champion: yes (gains the Tarnished Champion trait)");
+			desc = ::HSC_ChampionRules.replaceText(
+				desc,
+				"冠军：是（保留冠军特质）",
+				"冠军：是（招募后获得「蒙尘冠军」特质；队伍蒙尘冠军人数大于等于两人时，会有意想不到的负面结果。）"
+			);
+			desc = ::HSC_ChampionRules.replaceText(
+				desc,
+				"Champion: yes (keeps the Champion trait)",
+				"Champion: yes (gains the Tarnished Champion trait; having two or more Tarnished Champions in the company will lead to unexpected negative consequences.)"
+			);
 			return desc;
+		};
+
+		q.getTooltip = @(__original) function()
+		{
+			local ret = __original();
+			if (this.m.HSC_Champion)
+			{
+				ret.push({
+					id = 68,
+					type = "hint",
+					icon = "ui/icons/warning.png",
+					text = this.HSC_L(
+						"队伍蒙尘冠军人数大于等于两人时，会有意想不到的负面结果。",
+						"Having two or more Tarnished Champions in the company will lead to unexpected negative consequences."
+					)
+				});
+			}
+			return ret;
 		};
 	});
 
