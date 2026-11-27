@@ -323,17 +323,25 @@ S.Mod.hook("scripts/ai/autopilot_step_n_hit", function(q) {
 });
 S.Mod.hook("scripts/ai/tactical/behaviors/ai_engage_melee", function(q) {
     q.evaluate = @(__original) function(actor) {
+        if (this.m.Thread != null && this.m.Thread.getstatus() == "dead")
+            this.m.Thread = null;
         local done;
         try { done = __original(actor); }
         catch (e) {
-            // A target can disappear between native generator yields when a corpse changes sides.
-            if (S.Battle == null || e != "the index 'getID' does not exist" || this.m.Thread == null
-                || this.m.Thread.getstatus() != "dead") throw e;
-            this.m.Thread = null;
-            this.m.TargetTile = null;
-            this.m.TargetActor = null;
-            this.m.Score = 0;
-            return true;
+            // A target can disappear between native generator yields (getID), or an unreachable fortified cliff/palisade path
+            // can return a null path end (IsEmpty). Always clear dead coroutines so the engine never loops on "resuming dead generator"!
+            local threadDead = this.m.Thread != null && this.m.Thread.getstatus() == "dead";
+            if (threadDead) {
+                this.m.Thread = null;
+                this.m.TargetTile = null;
+                this.m.TargetActor = null;
+                this.m.Score = 0;
+            }
+            if (threadDead && (e == "the index 'getID' does not exist"
+                || e == "the index 'IsEmpty' does not exist"
+                || e == "resuming dead generator"))
+                return true;
+            throw e;
         }
         if (done && this.m.Score > 0 && S.isChief(actor) && ::Autopilot.isUnderAIControl(actor)
             && this.m.TargetTile != null && !::MSU.isNull(this.m.TargetActor) && this.m.TargetActor.isAlive() && this.m.TargetActor.isPlacedOnMap())

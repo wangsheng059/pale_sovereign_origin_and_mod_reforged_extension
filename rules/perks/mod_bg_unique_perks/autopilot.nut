@@ -3880,7 +3880,23 @@ local F = A.Frontline <- {
 // Gate forward movement of ranged/caster units during hold-line.
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_engage_ranged", function(q) {
     q.evaluate = @(__original) function( _entity ) {
-        local done = __original(_entity);
+        if (this.m.Thread != null && this.m.Thread.getstatus() == "dead")
+            this.m.Thread = null;
+        local done;
+        try { done = __original(_entity); }
+        catch (e) {
+            local threadDead = this.m.Thread != null && this.m.Thread.getstatus() == "dead";
+            if (threadDead) {
+                this.m.Thread = null;
+                this.m.TargetTile = null;
+                this.m.Score = 0;
+            }
+            if (threadDead && (e == "the index 'getID' does not exist"
+                || e == "the index 'IsEmpty' does not exist"
+                || e == "resuming dead generator"))
+                return true;
+            throw e;
+        }
         if (done && this.m.Score > 0 && F.shouldSuppressEngageRanged(_entity, this.getAgent(), this.m.TargetTile))
         {
             this.m.TargetTile = null;
