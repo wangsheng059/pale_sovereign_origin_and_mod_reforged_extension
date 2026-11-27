@@ -95,6 +95,7 @@ this.pale_formation_move <- ::inherit("scripts/ai/tactical/behavior", {
                 local foe = enemy.Tile.getEntity();
                 local fs = foe.getSkills();
                 if (foe.isArmedWithRangedWeapon() || fs.hasSkill("actives.raise_undead")
+                    || fs.hasSkill("actives.miasma") || fs.hasSkill("actives.horror")
                     || fs.hasSkill("actives.root") || fs.hasSkill("actives.rally_the_troops"))
                     hvtDiscount = 3;
             }

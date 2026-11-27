@@ -311,6 +311,35 @@ S.Mod.hook("scripts/ai/tactical/behavior", function(q)
             this.m.TargetDistance = 0;
             this.getAgent().getIntentions().TargetTile = plan.Tile;
         }
+        else if (S.isChampionAI(_entity) && ::Autopilot.conf("bgpSmartFrontline") && this.m.TargetTile.ID != _entity.getTile().ID)
+        {
+            // Prevent Lich King from marching 3+ tiles (burning Shieldwall & attack AP) into an exposed multi-enemy corner pocket!
+            local origin = _entity.getTile();
+            local dest = this.m.TargetTile;
+            local dist = origin.getDistanceTo(dest);
+            local destZones = dest.getZoneOfControlCountOtherThan(_entity.getAlliedFactions());
+            local adjAllies = 0;
+            foreach (nb in S.area(dest))
+            {
+                if (nb.ID != dest.ID && nb.IsOccupiedByActor && nb.getEntity().isAlliedWith(_entity) && nb.getEntity().getID() != _entity.getID())
+                    ++adjAllies;
+            }
+            local dist2Enemies = 0;
+            foreach (op in this.getAgent().getKnownOpponents())
+            {
+                local opp = op.Actor;
+                if (opp == null || ::MSU.isNull(opp) || !opp.isAlive() || opp.isDying() || !opp.isPlacedOnMap() || opp.isAlliedWith(_entity)) continue;
+                if (opp.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                if (dest.getDistanceTo(opp.getTile()) == 2) ++dist2Enemies;
+            }
+            if ((destZones >= 3 && adjAllies == 0)
+                || (dist >= 3 && (destZones >= 2 || (destZones >= 1 && adjAllies <= 1 && dist2Enemies >= 2))))
+            {
+                this.m.TargetTile = null;
+                this.m.TargetActor = null;
+                this.m.Score = 0;
+            }
+        }
         return done;
     };
 });

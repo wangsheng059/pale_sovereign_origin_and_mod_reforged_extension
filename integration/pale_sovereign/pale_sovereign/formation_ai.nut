@@ -184,8 +184,18 @@ S.Mod.hook("scripts/ai/tactical/behaviors/ai_defend_shieldwall", function(q) {
                 local within2 = F.countDangerousMeleeWithin(_entity, enemies, 2);
                 if (within2 < 2) return ::Const.AI.Behavior.Score.Zero;
             } else if (meleeAdj == 1) {
-                // Single melee enemy: only Shieldwall when wounded or facing a heavy 2H boss while hurt; otherwise swing twice!
-                local need = isChamp ? (hpPct <= 0.55 || (heavyAdj && hpPct <= 0.75)) : (hpPct <= 0.45);
+                // Single melee enemy: keep Shieldwall up if reach-2 polearms threaten Lich King from dist 2, or wounded / heavy boss while hurt; otherwise swing twice!
+                local polearms2 = 0;
+                if (isChamp) {
+                    local mt = _entity.getTile();
+                    foreach (foe in enemies) {
+                        if (!F.isDangerousMeleeEnemy(foe) || foe.getIdealRange() < 2) continue;
+                        local ft = foe.getTile();
+                        if (mt.getDistanceTo(ft) == 2 && ::Math.abs(mt.Level - ft.Level) <= 1)
+                            ++polearms2;
+                    }
+                }
+                local need = isChamp ? (hpPct <= 0.55 || polearms2 >= 2 || (polearms2 >= 1 && hpPct <= 0.70) || (heavyAdj && hpPct <= 0.75)) : (hpPct <= 0.45);
                 if (!need) return ::Const.AI.Behavior.Score.Zero;
             }
         }

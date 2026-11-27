@@ -122,23 +122,29 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
             return 0;
         if (goblinHits == hits && (aliveUndead < 6 || (lethalCount < 2 && (hits < 4 || aliveUndead < 7))))
             value *= 0.50;
-        if (moraleVulnerableHits == 0 && lethalCount == 0) {
-            if (hits >= 4 && aliveUndead >= 6) {
-                value += 1.6;
+        if (moraleVulnerableHits == 0) {
+            // Against pure-undead armies (Ancient Dead / Zombies), Corpse Explosion causes zero morale cascades
+            // and skeletons resist cutting shrapnel: strictly preserve corpses for Raise Dead unless undead frontline is already thick!
+            if (lethalCount >= 2 && aliveUndead >= 5) {
+                value += 1.2;
+            } else if (hits >= 4 && aliveUndead >= 7) {
+                value += 1.2;
             } else {
-                if (totalCorpses <= 3 || aliveUndead < 6)
+                if (totalCorpses <= 4 || aliveUndead < 7)
                     return 0;
-                if (totalCorpses <= 5 || aliveUndead < 7)
-                    value *= 0.45;
+                value *= 0.45;
             }
         }
         // Protect our undead frontline: when fewer than 4 undead are alive (or < 5 without a multi-kill, or heavy-armored corpse with thin screen),
         // strictly prioritize Raise Dead over blowing up corpses (prevents Goblin24 t3 / Orc18 t1 frontline collapse)!
         local heavyCorpse = blast.Cutting >= 40;
-        if (aliveUndead < 4 || (goblinHits == hits && aliveUndead < 6)
+        if (aliveUndead < 4) {
+            return 0;
+        } else if ((goblinHits == hits && aliveUndead < 6)
             || (aliveUndead < 5 && lethalCount < 2)
             || (heavyCorpse && aliveUndead < 6 && totalCorpses <= 3 && lethalCount < 2)) {
-            value = ::Math.minf(9.0, value * 0.50);
+            // Strictly below Raise Dead (~7.5-10.5) so Mentor always rebuilds the undead screen before blowing up scarce corpses!
+            value = ::Math.minf(5.5, value * 0.45);
         } else if (hits >= 3 && (aliveUndead >= 6 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
             && (armoredHits >= 2 || cursedHits >= 2 || lethalCount >= 1)) {
             value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0) + (cursedHits >= 2 ? 1.2 : 0.0);
@@ -1314,7 +1320,8 @@ local F = A.Frontline <- {
             return false;
         if (_actor.getHitpointsPct() > 0.28 || _actor.getCurrentProperties().IsRooted)
             return false;
-        if (_actor.getSkills().hasSkill("perk.battle_forged") && _actor.getArmor(::Const.BodyPart.Body) >= 100)
+        if (_actor.getSkills().hasSkill("perk.battle_forged") && _actor.getArmor(::Const.BodyPart.Body) >= 100
+            && (_actor.getFlags().has("undead") || (_actor.getHitpointsPct() > 0.22 && _actor.getMoraleState() > ::Const.MoraleState.Wavering)))
             return false;
         if (::Time.getRound() >= 14)
             return false;
@@ -2641,30 +2648,36 @@ local F = A.Frontline <- {
         local isHoldingThrow = false;
         try { isHoldingThrow = curMain.isWeaponType(::Const.Items.WeaponType.Throwing); } catch (e) {}
 
-        // Scan enemies in throwing range (2..4 + elevation) and long ranged range (2..7).
+        // Scan enemies in throwing range (2..4 + elevation) with clear Line of Sight, and long ranged range (5..7).
         local throwMaxRng = 4 + ::Math.max(0, myTile.Level);
+        local vision = _actor.getCurrentProperties().getVision();
         local closeLive = 0;
+        local closeNonSkel = 0;
         local closeArmoredOrSkel = 0;
         local closeSkel = 0;
         local longLive = 0;
         local anyLive = 0;
         foreach (foe in _info.Enemies)
         {
-            local d = myTile.getDistanceTo(foe.getTile());
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
             if (d < 2) continue;
             local active = foe.getMoraleState() != ::Const.MoraleState.Fleeing;
             if (active) ++anyLive;
             if (d <= throwMaxRng && (active || anyLive == 0))
             {
+                if (!myTile.hasLineOfSightTo(ft, vision)) continue;
                 ++closeLive;
                 if (foe.getFlags().has("skeleton"))
                 {
                     ++closeSkel;
                     ++closeArmoredOrSkel;
                 }
-                else if (foe.getArmor(::Const.BodyPart.Body) >= 120)
+                else
                 {
-                    ++closeArmoredOrSkel;
+                    ++closeNonSkel;
+                    if (foe.getArmor(::Const.BodyPart.Body) >= 120)
+                        ++closeArmoredOrSkel;
                 }
             }
             if (d >= 5 && d <= 7 + ::Math.max(0, myTile.Level) && active)
@@ -2718,7 +2731,13 @@ local F = A.Frontline <- {
         // Case 1: Currently holding Crossbow/Bow/Firearm -> consider free swap to loaded Throwing weapon.
         if (!isHoldingThrow)
         {
-            if (bestThrow == null || closeLive == 0)
+            if (bestThrow == null)
+                return null;
+            local bestThrowIsAxe = false;
+            try { bestThrowIsAxe = bestThrow.isWeaponType(::Const.Items.WeaponType.Axe); } catch (e) {}
+            // Never swap to piercing Javelins when only Ancient Skeletons (heavy pierce resistance) are in range!
+            local validThrowClose = bestThrowIsAxe ? closeLive : closeNonSkel;
+            if (validThrowClose == 0)
                 return null;
             local swapList = [curMain, bestThrow];
             if (!items.isActionAffordable(swapList))
@@ -2780,10 +2799,13 @@ local F = A.Frontline <- {
         }
 
         // 2b. Current Throwing bundle still has ammo: free-swap back to Crossbow/Bow if:
-        //   - No target in throwing range AND enemies exist at 5-7 tiles (long range), OR
+        //   - No valid target in throwing range (e.g. only pierce-resistant Skeletons for Javelins) AND enemies exist at range, OR
         //   - Cannot afford another throw (ap == 3 < minThrowAP) AND bag holds a LOADED Crossbow ready to fire for 3 AP!
         if (bestLongRanged != null)
         {
+            local curIsAxe = false;
+            try { curIsAxe = curMain.isWeaponType(::Const.Items.WeaponType.Axe); } catch (e) {}
+            local curValidClose = curIsAxe ? closeLive : closeNonSkel;
             if (curOff != null && bestLongRanged.getBlockedSlotType() == ::Const.ItemSlot.Offhand && this.emptyBagSlots(items) <= 0)
                 return null;
             local swapList = (curOff != null && bestLongRanged.getBlockedSlotType() == ::Const.ItemSlot.Offhand) ? [curMain, curOff, bestLongRanged] : [curMain, bestLongRanged];
@@ -2792,7 +2814,7 @@ local F = A.Frontline <- {
                 local swapAP = items.getActionCost(swapList);
                 if (swapAP == 0)
                 {
-                    if (closeLive == 0 && longLive > 0 && ap >= 3)
+                    if (curValidClose == 0 && (longLive > 0 || closeSkel > 0) && ap >= 3)
                         return { Weapon = bestLongRanged, Score = 680.0, EmptyBundle = false };
                     if (ap < minThrowAP && ap >= 3 && bestLongLoaded && (closeLive > 0 || longLive > 0))
                         return { Weapon = bestLongRanged, Score = 680.0, EmptyBundle = false };
@@ -3217,7 +3239,14 @@ local F = A.Frontline <- {
 
         if (exp.AdjEnemies >= 4)
             return true;
-        if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || (exp.AdjShieldAllies == 0 && (mdef < 35 || isFragile))))
+        // No unshielded bro without Indomitable should walk into 3+ adjacent enemies unless high-MDef Underdog with attack AP left!
+        if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || mdef < 35 || isFragile || !hasUnderdog || _apAfter < minAtkAP))
+            return true;
+        // Stop isolated solo flank leaps (zero allies even within 2 tiles, zero attack AP left) into enemy convergence
+        // (allow BF frontliners to rush extreme archer swarms like Goblin24 when at most 1 melee enemy is adjacent).
+        if (exp.AdjAllies == 0 && exp.NearAllies2 == 0 && _apAfter < minAtkAP
+            && !(_info.EnemyProjectileRanged >= 10.0 && !isFragile && exp.AdjEnemies <= 1)
+            && (exp.AdjEnemies >= 1 || exp.ThreatDist2 >= 2 || exp.Polearms2 >= 1))
             return true;
         // Never walk into a Halberdier/Ancient Polearm kill-box (2+ adjacent + reach-2 polearms) with zero shield support and zero attack AP left!
         if (exp.AdjEnemies >= 2 && (exp.Polearms2 >= 2 || (exp.Polearms2 >= 1 && mdef < 28)) && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP && mdef < 35)
@@ -3634,13 +3663,15 @@ local F = A.Frontline <- {
                         this.m.Score *= 0.45;
                 }
             }
-            // Also stop shieldbearers from being dragged by vanilla EngageMelee into 3+ enemy surrounds without Shieldwall AP.
+            // Also stop shieldbearers from being dragged by vanilla EngageMelee into 3+ surrounds or pure isolated solo dives without Shieldwall AP.
             if (!veto && ::BGP.hasShield(_entity) && this.m.TargetTile.ID != myTile.ID)
             {
                 local exp = F.evaluateTileExposure(_entity, this.m.TargetTile, info);
                 local sw = _entity.getSkills().getSkillByID("actives.shieldwall");
                 local swAP = (sw != null && !sw.isHidden() && sw.isUsable()) ? sw.getActionPointCost() : 4;
                 if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || (approxApAfter < swAP && _entity.getCurrentProperties().getMeleeDefense() < 40)))
+                    veto = true;
+                else if (exp.AdjAllies == 0 && exp.NearAllies2 == 0 && approxApAfter < swAP && exp.AdjEnemies >= 2)
                     veto = true;
             }
             if (veto)

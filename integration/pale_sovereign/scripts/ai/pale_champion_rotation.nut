@@ -126,7 +126,7 @@ this.pale_champion_rotation <- ::inherit("scripts/ai/tactical/behavior", {
                                 chiefThreatAdj = true;
                         }
                     }
-                    if (adjEnemies > 0 && (apAfter >= 4 || preyAdj || hvtAdj || chiefThreatAdj || allyIsSummon))
+                    if (adjEnemies > 0 && (chiefThreatAdj || (adjEnemies <= 2 && myHP >= 0.45 && (apAfter >= 4 || preyAdj || hvtAdj || allyIsSummon))))
                     {
                         score = (allyIsSummon ? 700.0 : 560.0) + (preyAdj ? 180.0 : 0.0)
                             + (hvtAdj ? 160.0 : 0.0) + (chiefThreatAdj ? 220.0 : 0.0)
