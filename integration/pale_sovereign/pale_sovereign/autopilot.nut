@@ -230,36 +230,101 @@ A.add("pale_corpse_shot", "Enemies", function(c, s, t) {
     local usedShots = (S.Battle != null && "CorpseShots" in S.Battle) ? S.Battle.CorpseShots : 0;
     if (maxShots <= 0 || usedShots >= maxShots) return 0;
     if (::Autopilot.conf("bgpSmartFrontline")) {
-        // Dedicated archers/crossbowmen, Mentor (who must summon/raise), engaged melee units, and heavily fatigued bros stick to their core roles.
+        // Dedicated archers/crossbowmen, Mentor (who must summon/cast Curse & CE), engaged melee units, and fatigued bros stick to their core roles.
         if (c.Actor.isArmedWithRangedWeapon() || S.isChief(c.Actor) || c.Engaged) return 0;
-        if (c.Actor.getFatigue() > c.Actor.getFatigueMax() * 0.45) return 0;
+        local availFat = c.Actor.getFatigueMax() - c.Actor.getFatigue();
+        if (c.Actor.getFatigue() > c.Actor.getFatigueMax() * 0.55 || availFat < s.getFatigueCost() + 14) return 0;
         if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;
 
-        local corpses = c.Behavior.targets(c, "Corpses");
-        // Avoid stacking corpses on adjacent tiles while allowing spaced seeding across the frontline.
-        foreach (corpse in corpses) if (corpse.getDistanceTo(t) <= 1) return 0;
+        // Inspect enemy cluster density & Curse of Ages status inside the 7-tile blast radius centered on t.
+        local enemiesNear = 0;
+        local cursedNear = 0;
+        local moraleVulnNear = 0;
+        foreach (et in c.Enemies) {
+            if (et.getDistanceTo(t) > 1) continue;
+            local foe = et.getEntity();
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            ++enemiesNear;
+            if (foe.getSkills().hasSkill("effects.bgp_curse_of_ages")) ++cursedNear;
+            if (!foe.getFlags().has("undead")) ++moraleVulnNear;
+        }
+        if (enemiesNear < 2) return 0;
 
-        // Early corpse-seeding when few corpses exist, without stealing close-range melee turns.
-        local enemiesNear = A.countNear(c.Enemies, t);
-        local myNearest = A.nearest(c.Enemies, c.Origin);
-        local isPolearm = !::BGP.hasShield(c.Actor) && c.Actor.getIdealRange() >= 2;
-        if (corpses.len() < 3 && usedShots < maxShots) {
-            if (::BGP.hasShield(c.Actor)) {
-                local minShieldDist = (::Time.getRound() <= 2 && corpses.len() < 2) ? 2 : 3;
-                if (myNearest < minShieldDist || c.Actor.getFatigueMax() - c.Actor.getFatigue() < 36) return 0;
-                if (::Time.getRound() > 3 && myNearest <= 4) return 0;
-            } else if (!isPolearm && myNearest <= 2) {
-                return 0;
-            } else if (myNearest <= 1) {
-                return 0;
-            }
-            local isRangedTarget = t.IsOccupiedByActor && t.getEntity().isArmedWithRangedWeapon();
-            return 3.45 + 0.30 * A.weaponChance(s, t) + 0.25 * ::Math.min(3, enemiesNear) + (isRangedTarget ? 0.55 : 0.0);
+        // Check whether Mentor can follow up with Corpse Explosion (and/or Curse of Ages) on tile t.
+        local chief = S.chief();
+        local inMentorBlastRange = false;
+        local mentorHasCurse = false;
+        if (chief != null && !::MSU.isNull(chief) && chief.isAlive() && !chief.isDying() && chief.isPlacedOnMap()) {
+            local ce = chief.getSkills().getSkillByID("actives.bgp_corpse_explosion");
+            if (ce != null && !ce.isHidden() && ce.isUsable() && chief.getTile().getDistanceTo(t) <= ce.getMaxRange())
+                inMentorBlastRange = true;
+            local cu = chief.getSkills().getSkillByID("actives.bgp_necro_curse_of_ages");
+            if (cu != null && !cu.isHidden() && cu.isUsable() && chief.getTile().getDistanceTo(t) <= cu.getMaxRange())
+                mentorHasCurse = true;
         }
 
-        if (::BGP.hasShield(c.Actor) && myNearest <= 4) return 0;
-        if (myNearest <= 2) return 0;
-        return 0.70 + 0.15 * A.weaponChance(s, t) + 0.10 * ::Math.min(3, enemiesNear);
+        // Avoid redundant corpse stacking: skip if an existing corpse is adjacent AND already covers this cluster equally well.
+        local corpses = c.Behavior.targets(c, "Corpses");
+        foreach (corpse in corpses) {
+            if (corpse.getDistanceTo(t) <= 1) {
+                local cEnemies = 0;
+                local cCursed = 0;
+                foreach (et in c.Enemies) {
+                    if (et.getDistanceTo(corpse) > 1) continue;
+                    local foe = et.getEntity();
+                    if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                    ++cEnemies;
+                    if (foe.getSkills().hasSkill("effects.bgp_curse_of_ages")) ++cCursed;
+                }
+                if (enemiesNear < cEnemies + 2 && cursedNear < cCursed + 2)
+                    return 0;
+            }
+        }
+
+        // Distance & role safety: keep unshielded 1-tile melee from throwing at dist <= 2 (where they should strike or avoid eating zombie first-strike);
+        // shieldbearers (with AP left for Shieldwall) and 2-tile polearms can safely seed combos from dist >= 2.
+        local myNearest = A.nearest(c.Enemies, c.Origin);
+        local isShield = ::BGP.hasShield(c.Actor);
+        local isPolearm = !isShield && c.Actor.getIdealRange() >= 2;
+        if (isShield) {
+            if (myNearest < 2) return 0;
+            if (myNearest == 2 && (c.Actor.getActionPoints() < s.getActionPointCost() + 4 || availFat < s.getFatigueCost() + 20))
+                return 0;
+        } else if (isPolearm) {
+            if (myNearest < 2) return 0;
+        } else {
+            if (myNearest <= 2) return 0;
+        }
+
+        local hit = A.weaponChance(s, t);
+        // Strongly prioritize ultra-dense 5+ enemy clusters (5-7 enemies in the 7-tile blast zone) for Curse + Corpse Explosion combos!
+        if (inMentorBlastRange && enemiesNear >= 5) {
+            if (cursedNear >= 2)
+                return 8.0 + 0.90 * ::Math.min(7, enemiesNear) + 0.65 * ::Math.min(5, cursedNear)
+                    + (moraleVulnNear >= 2 ? 0.45 : 0.0) + 0.20 * hit;
+            return 7.3 + 0.90 * ::Math.min(7, enemiesNear) + (mentorHasCurse ? 0.55 : 0.0)
+                + (moraleVulnNear >= 2 ? 0.45 : 0.0) + 0.20 * hit;
+        }
+        // Secondary 4-enemy clusters: solid combo setup when no 5+ clump is reachable.
+        if (inMentorBlastRange && enemiesNear == 4) {
+            if (cursedNear >= 2)
+                return 6.0 + 0.55 * ::Math.min(4, cursedNear) + (moraleVulnNear >= 2 ? 0.35 : 0.0) + 0.20 * hit;
+            if (corpses.len() < 4)
+                return 5.4 + (mentorHasCurse ? 0.45 : 0.0) + (moraleVulnNear >= 2 ? 0.35 : 0.0) + 0.20 * hit;
+        }
+        // Low-priority 3-enemy clusters (only when few corpses exist and no 4+ dense clump is in range).
+        if (inMentorBlastRange && enemiesNear == 3 && corpses.len() < 3) {
+            if (cursedNear >= 2)
+                return 4.1 + 0.35 * cursedNear + 0.20 * hit;
+            return 3.8 + (mentorHasCurse ? 0.25 : 0.0) + (moraleVulnNear >= 2 ? 0.20 : 0.0) + 0.20 * hit;
+        }
+        // Fallback early corpse-seeding on 2-enemy tiles only when very few corpses (< 2) exist and no dense cluster is reachable.
+        if (corpses.len() < 2) {
+            if (isShield && (::Time.getRound() > 3 && myNearest <= 4)) return 0;
+            local isRangedTarget = t.IsOccupiedByActor && t.getEntity().isArmedWithRangedWeapon();
+            return 3.0 + 0.25 * hit + 0.20 * ::Math.min(3, enemiesNear) + (isRangedTarget ? 0.40 : 0.0);
+        }
+        return 0;
     }
     foreach (corpse in c.Behavior.targets(c, "Corpses")) if (corpse.getDistanceTo(t) <= 1) return 0;
     if (c.Origin.getDistanceTo(t) >= ::Const.Combat.DiversionMinDist && A.countNear(c.Allies, t) != 0) return 0;

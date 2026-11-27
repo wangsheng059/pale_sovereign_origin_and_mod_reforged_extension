@@ -550,6 +550,19 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
+        // 5b. No-ranged melee discipline: when enemy has ZERO ranged units (no archers/crossbows/javelins) and no Miasma/Horror priests,
+        // wait in Phase 1 whenever an unengaged melee brother cannot strike this turn (lets Zombies/melee walk into OUR first-strike range!).
+        if (info.NoEnemyRanged && !isRanged && !isCaster && !inZoC && canWait
+            && _entity.getActionPoints() >= 4 && !F.hasBacklineBreach(info))
+        {
+            local strikeNow = F.findSameTurnStrikePlan(_entity, info.Enemies);
+            if (strikeNow == null)
+            {
+                this.m.Mode = "wait";
+                return 480.0;
+            }
+        }
+
         // 6. Lower-priority terrain anchor (chokepoint / flank anchoring ONLY when otherwise idle; score 90 never overrides EngageMelee assaults).
         if (terrainPlan != null && terrainPlan.Tile.ID != myTile.ID && info.EnemyChargers < 3 && ::Time.getRound() <= 4)
         {

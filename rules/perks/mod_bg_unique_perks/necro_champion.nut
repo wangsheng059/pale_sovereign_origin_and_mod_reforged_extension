@@ -780,7 +780,7 @@
 
 ::BGP.Champion.isGraftableCorpse <- function( _corpse )
 {
-	if (_corpse == null || ::BGP.Necro.isUnconsciousCorpse(_corpse))
+	if (_corpse == null || ::BGP.Necro.isUnconsciousCorpse(_corpse) || ::BGP.Necro.isGuardCorpse(_corpse))
 		return false;
 	return true;
 }

@@ -83,7 +83,9 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
         - (pressure > 2 ? 0.65 : 0) - (c.Behavior.hasNegativeTileEffect(t, c.Actor) ? 1.1 : 0);
 });
 A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
-    local blast = s.getBlast(::BGP.Necro.getCorpse(t), c.Actor);
+    local corpse = ::BGP.Necro.getCorpse(t);
+    if (::BGP.Necro.isGuardCorpse(corpse)) return 0;
+    local blast = s.getBlast(corpse, c.Actor);
     if (blast == null) return 0;
     local smart = ::Autopilot.conf("bgpSmartFrontline");
     local value = 0.0;
@@ -117,36 +119,57 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
                 ++aliveUndead;
         }
         local totalCorpses = c.Behavior.targets(c, "Corpses").len();
-        if (lethalCount == 0 && aliveUndead < 5 && totalCorpses <= 2)
+        // Variant B tiered detonation thresholds:
+        // - >= 5 enemies: HIGH priority detonation (beats Raise Dead when undead screen >= 5 or plentiful corpses).
+        // - 4 enemies: DEMOTED moderate priority (yields to Raise Dead when frontline needs bodies; fires once screen is thick or corpses plentiful).
+        // - <= 3 enemies: HEAVILY DEMOTED (only fires on 2+ instant multi-kill or when nothing else useful is available).
+        local cursedCombo5 = (hits >= 5 && cursedHits >= 2 && (moraleVulnerableHits >= 2 || cursedHits >= 3)
+            && (aliveUndead >= 5 || (aliveUndead >= 4 && (totalCorpses >= 4 || lethalCount >= 2))));
+        if (lethalCount == 0 && aliveUndead < 5 && totalCorpses <= 2 && !cursedCombo5)
             return 0;
-        if (goblinHits == hits && (aliveUndead < 6 || (lethalCount < 2 && (hits < 4 || aliveUndead < 7))))
+        if (goblinHits == hits && !cursedCombo5 && (aliveUndead < 6 || (lethalCount < 2 && (hits < 5 || aliveUndead < 7))))
             value *= 0.50;
         if (moraleVulnerableHits == 0) {
-            // Against pure-undead armies (Ancient Dead / Zombies), Corpse Explosion causes zero morale cascades
-            // and skeletons resist cutting shrapnel: strictly preserve corpses for Raise Dead unless undead frontline is already thick!
-            if (lethalCount >= 2 && aliveUndead >= 5) {
+            // Against pure-undead armies (Ancient Dead / Zombies), strictly preserve corpses for Raise Dead unless 5+ cursed clump or thick undead screen!
+            if (hits >= 5 && cursedHits >= 3 && aliveUndead >= 5) {
+                value += 2.6;
+            } else if (lethalCount >= 2 && aliveUndead >= 5) {
                 value += 1.2;
-            } else if (hits >= 4 && aliveUndead >= 7) {
-                value += 1.2;
+            } else if (hits >= 5 && aliveUndead >= 7) {
+                value += 1.4;
             } else {
                 if (totalCorpses <= 4 || aliveUndead < 7)
                     return 0;
-                value *= 0.45;
+                value *= 0.40;
             }
         }
-        // Protect our undead frontline: when fewer than 4 undead are alive (or < 5 without a multi-kill, or heavy-armored corpse with thin screen),
-        // strictly prioritize Raise Dead over blowing up corpses (prevents Goblin24 t3 / Orc18 t1 frontline collapse)!
+        // Protect our undead frontline: when fewer than 4 undead are alive, NEVER blow up corpses!
         local heavyCorpse = blast.Cutting >= 40;
         if (aliveUndead < 4) {
             return 0;
+        } else if (c.Engaged && aliveUndead < 6 && lethalCount == 0) {
+            value = ::Math.minf(5.0, value * 0.40);
+        } else if (cursedCombo5) {
+            // High-value payoff for >= 5 enemy Cursed cluster detonation!
+            value += 4.8 + 0.60 * ::Math.min(5, cursedHits) + ::Math.minf(2.0, (hits - 5) * 0.85)
+                + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
+        } else if (hits >= 5 && (aliveUndead >= 5 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1 || cursedHits >= 2)) {
+            value += 4.0 + ::Math.minf(2.0, (hits - 5) * 0.80) + (armoredHits >= 2 ? 0.9 : 0.0)
+                + (moraleVulnerableHits >= 3 ? 0.8 : 0.0) + (cursedHits >= 2 ? 1.5 : 0.0);
+        } else if (hits == 4 && lethalCount < 2) {
+            // Demote 4-enemy non-multi-kill detonations below early Raise Dead (~9.5-12.5); allow when frontline is thick (>= 6) & cursed/plentiful.
+            local cap4 = (cursedHits >= 2 && aliveUndead >= 6 && (moraleVulnerableHits >= 2 || cursedHits >= 3))
+                ? 9.6
+                : (aliveUndead >= 7 && totalCorpses >= 4 ? 8.6 : 7.2);
+            value = ::Math.minf(cap4, value * (cursedHits >= 2 ? 0.78 : 0.65));
+        } else if (hits <= 3 && lethalCount < 2) {
+            // Heavily demote 2-3 enemy non-multi-kill detonations strictly below Raise Dead & Weaken!
+            local cap3 = (hits == 3 && cursedHits >= 2 && aliveUndead >= 7 && totalCorpses >= 5) ? 5.0 : 3.6;
+            value = ::Math.minf(cap3, value * (hits == 3 && cursedHits >= 2 ? 0.42 : 0.32));
         } else if ((goblinHits == hits && aliveUndead < 6)
             || (aliveUndead < 5 && lethalCount < 2)
             || (heavyCorpse && aliveUndead < 6 && totalCorpses <= 3 && lethalCount < 2)) {
-            // Strictly below Raise Dead (~7.5-10.5) so Mentor always rebuilds the undead screen before blowing up scarce corpses!
-            value = ::Math.minf(5.5, value * 0.45);
-        } else if (hits >= 3 && (aliveUndead >= 6 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
-            && (armoredHits >= 2 || cursedHits >= 2 || lethalCount >= 1)) {
-            value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0) + (cursedHits >= 2 ? 1.2 : 0.0);
+            value = ::Math.minf(5.0, value * 0.42);
         }
     }
     return value;
@@ -157,6 +180,7 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
     local aliveUndead = 0;
     local corpseCount = 0;
     local roundsSinceCurse = 99;
+    local ceComboReady = false;
     if (smart) {
         foreach (tile in c.Enemies) {
             if (tile.getEntity().getSkills().hasSkill("effects.bgp_curse_of_ages"))
@@ -168,6 +192,17 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
         }
         corpseCount = c.Behavior.targets(c, "Corpses").len();
         roundsSinceCurse = ::Time.getRound() - A.Frontline.battleState().LastCurseRound;
+        // Detect same-turn Curse of Ages -> Corpse Explosion combo on a corpse sitting inside an uncursed >= 5 enemy cluster!
+        local corpseHere = ::BGP.Necro.getCorpse(t);
+        if (!c.Engaged && aliveUndead >= 5 && corpseHere != null && !::BGP.Necro.isGuardCorpse(corpseHere)) {
+            local ce = c.Actor.getSkills().getSkillByID("actives.bgp_corpse_explosion");
+            if (ce != null && !ce.isHidden() && ce.isUsable() && ce.isInRange(t) && ce.onVerifyTarget(c.Origin, t)) {
+                local apNeed = s.getActionPointCost() + ce.getActionPointCost();
+                local fatNeed = s.getFatigueCost() + ce.getFatigueCost();
+                if (c.Actor.getActionPoints() >= apNeed && (c.Actor.getFatigueMax() - c.Actor.getFatigue()) >= fatNeed)
+                    ceComboReady = true;
+            }
+        }
     }
     local value = 0.0;
     local hits = 0;
@@ -190,15 +225,20 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
     }
     if (smart) {
         if (hits < 2) return 0;
-        // 2-round pacing cooldown prevents consecutive-turn Curse spam (T03+T04) and late-game fatigue burnout,
-        // unless almost no enemies remain cursed (< 2) and a fresh 4+ uncursed clump appears.
+        local isComboCurse = ceComboReady && hits >= 5;
+        // Keep the 2-round pacing cooldown even for combos (unless almost no enemies remain cursed < 2),
+        // preventing consecutive-round Curse+CE spam from starving Raise Dead.
         if (roundsSinceCurse < 2 && !(alreadyCursed < 2 && hits >= 4))
             return 0;
 
         // Core rule: >= 4 uncursed enemies in the 7-tile AoE (regardless of armor class) gets high casting priority
-        // (enabling Round-2 Summon 4 AP + Curse 5 AP); fewer than 4 stays low priority below Raise Dead / Corpse Explosion!
+        // (enabling Round-2 Summon 4 AP + Curse 5 AP); same-turn Curse -> CE combo on a >= 5 uncursed cluster with a corpse
+        // scores strictly above Corpse Explosion so Curse lands FIRST and CE immediately triggers armor decay!
         local cap = 9.8;
-        if (hits >= 4) {
+        if (isComboCurse) {
+            value += 6.5 + ::Math.minf(2.4, (hits - 5) * 0.9) + (engagedHits >= 2 ? 0.5 : 0.0);
+            cap = 17.8;
+        } else if (hits >= 4) {
             value += 4.2 + ::Math.minf(2.0, (hits - 4) * 0.9) + (engagedHits >= 2 ? 0.5 : 0.0);
             cap = 16.5;
             // After our first Curse of the battle, if corpses are waiting and our undead frontline is thin (< 5),
@@ -225,12 +265,73 @@ A.add("possess_undead", "Allies", function(c, s, t) {
 A.add("bgp_necro_infusion", "Allies", function(c, s, t) {
     local unit = t.getEntity();
     local wound = 1.0 - unit.getHitpointsPct();
-    if (unit.getSkills().hasSkill("effects.bgp_necro_infusion") && wound < 0.35) return 0;
+    local hasInf = unit.getSkills().hasSkill("effects.bgp_necro_infusion");
     local fatigue = unit.getFatigue() / ::Math.maxf(1.0, unit.getFatigueMax());
-    return (A.nearest(c.Enemies, t) <= 2 ? 2.1 : 0.25) + 4.0 * wound + fatigue;
+    local dist = A.nearest(c.Enemies, t);
+    if (::Autopilot.conf("bgpSmartFrontline")) {
+        local isGuard = ::BGP.Champion.isGuard(unit);
+        local isMainPet = false;
+        try { isMainPet = ("PaleSovereign" in ::getroottable()) && ::PaleSovereign.isActive() && ::PaleSovereign.isDeployed(::PaleSovereign.mainPet(), unit); } catch (e) {}
+        local isPermUndeadBro = (unit.getFaction() == ::Const.Faction.Player && unit.getFlags().has("undead"));
+        if (isGuard || isMainPet) {
+            // Core Champion synergy: +4 AP (+75 Ini, -1 move AP, instant HP/Fat restore) turns Possessed Lich King into a 16-AP juggernaut!
+            if (hasInf) {
+                if (wound < 0.35 && fatigue < 0.70) return 0;
+                return 13.5 + 8.0 * wound + 2.5 * fatigue;
+            }
+            if (dist > 6 && ::Time.getRound() < 2) return 0;
+            return 14.5 + (unit.isTurnDone() ? 0.0 : 2.5) + 4.5 * wound + 2.0 * fatigue;
+        }
+        if (isPermUndeadBro) {
+            local isShield = ::BGP.hasShield(unit);
+            if (hasInf) {
+                if (wound < 0.40 && fatigue < 0.75) return 0;
+                return 12.0 + 7.5 * wound + 2.5 * fatigue;
+            }
+            if (!isShield && dist <= 4) {
+                // Permanent Undead 2H/DPS bro (e.g. 2H Hammer): +4 AP enables double 2H attacks & +75 Ini leapfrog!
+                return 13.2 + (unit.isTurnDone() ? 0.0 : 2.2) + 4.0 * wound + 2.5 * fatigue;
+            }
+            if (wound >= 0.30 || fatigue >= 0.65)
+                return 11.5 + 7.5 * wound + 2.5 * fatigue;
+            return dist <= 2 ? 7.0 + 3.0 * wound : 0;
+        }
+        // Disposable summoned/raised undead: only infuse for emergency rescue when no priority undead needs it.
+        if (hasInf && wound < 0.45) return 0;
+        return dist <= 2 && wound >= 0.35 ? 2.5 + 3.5 * wound : 0;
+    }
+    if (hasInf && wound < 0.35) return 0;
+    return (dist <= 2 ? 2.1 : 0.25) + 4.0 * wound + fatigue;
 });
 A.add("bgp_necro_flesh_reforge", "Allies", function(c, s, t) {
-    return (A.nearest(c.Enemies, t) <= 3 ? 3.4 : 1.8) + (t.getEntity().getSkills().hasSkill("effects.bgp_graft_bone") ? 0.35 : 0);
+    local graftTile = ::BGP.Champion.findGraftTile(t);
+    if (graftTile == null || ::BGP.Necro.isGuardCorpse(::BGP.Necro.getCorpse(graftTile)))
+        return 0;
+    local unit = t.getEntity();
+    local dist = A.nearest(c.Enemies, t);
+    if (::Autopilot.conf("bgpSmartFrontline")) {
+        local isGuard = ::BGP.Champion.isGuard(unit);
+        local isMainPet = false;
+        try { isMainPet = ("PaleSovereign" in ::getroottable()) && ::PaleSovereign.isActive() && ::PaleSovereign.isDeployed(::PaleSovereign.mainPet(), unit); } catch (e) {}
+        local aliveUndead = 0;
+        foreach (at in c.Allies) {
+            local u = at.getEntity();
+            if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
+                ++aliveUndead;
+        }
+        local hasBone = unit.getSkills().hasSkill("effects.bgp_graft_bone");
+        if (isGuard || isMainPet) {
+            // Graft 1 (+Bone Armor + Thorns) & Graft 2 (+2 Max AP, -1 move AP, +15% Headshot) are huge permanent buffs for Lich King / Eternal Guard!
+            if (aliveUndead < 3 && c.Behavior.targets(c, "Corpses").len() <= 1)
+                return 6.0;
+            return (hasBone ? 14.5 : 15.5) + (dist <= 3 ? 1.5 : 0.0);
+        }
+        // Only graft onto high-HP elite raised undead when our undead screen is already thick (>= 5); never waste corpses on fragile fodder zombies!
+        if (aliveUndead >= 5 && dist <= 3 && unit.getHitpointsMax() >= 110)
+            return 7.5 + (hasBone ? 0.35 : 0.0);
+        return 0;
+    }
+    return (dist <= 3 ? 3.4 : 1.8) + (unit.getSkills().hasSkill("effects.bgp_graft_bone") ? 0.35 : 0);
 });
 A.add("bgp_necro_bind", "Enemies", @(c, s, t) ::Autopilot.conf("bgpAutoBind") ? 6.5 + t.getEntity().getHitpointsMax() / 200.0 : 0);
 A.add("bgp_discerning", "Allies", function(c, s, t) {
@@ -524,10 +625,10 @@ local F = A.Frontline <- {
             state.MeleeJoined = true;
         }
 
-        // Stall-breaker: if enemies refuse to close distance for 2 consecutive rounds and we dealt no damage, break hold.
+        // Stall-breaker: if enemies refuse to close distance for 2 consecutive rounds while no brother is engaged (e.g. lone backline Necromancer), break hold.
         if (round > state.Round)
         {
-            if (state.Round >= 1 && !state.MeleeJoined && activeEnemies > 0 && engagedBrothers == 0 && frontlineMinDist > 2)
+            if (state.Round >= 1 && activeEnemies > 0 && engagedBrothers == 0 && frontlineMinDist > 2)
             {
                 if (frontlineMinDist >= state.LastMinDist && state.LastOffenseRound < round - 1)
                     ++state.StallRounds;
@@ -545,9 +646,12 @@ local F = A.Frontline <- {
         }
 
         local rangedAdvantage = enemyRanged <= 0.01 || enemyRanged < playerRanged;
-        // Disable passive HoldLine against charger packs, Miasma/Horror priests, or enemy necromancers.
-        local casterPush = (enemyMiasmaPriests > 0) || (enemyUrgentCasters > 0 && round >= 2);
+        // Only long-range AoE/CC punishers (Ancient Priests with Miasma/Horror) force immediate Round-1/2 charges;
+        // enemy Necromancers behind slow Zombies do NOT force our melee brothers to charge into Zombies and gift first strike!
+        local casterPush = (enemyMiasmaPriests > 0);
         local holdLine = rangedAdvantage && enemyChargers < 3 && !casterPush && !state.StallBroken && !state.MeleeJoined && activeEnemies > 0;
+        local noEnemyRanged = (enemyProjectileRanged <= 0.01 && enemyMiasmaPriests == 0 && enemyChargers < 3
+            && !state.StallBroken && !::Tactical.Entities.isEnemyRetreating() && activeEnemies > 0);
 
         return {
             Enemies = enemies,
@@ -557,10 +661,13 @@ local F = A.Frontline <- {
             EnemyProjectileRanged = enemyProjectileRanged,
             EnemyChargers = enemyChargers,
             EnemyUrgentCasters = enemyUrgentCasters,
+            EnemyMiasmaPriests = enemyMiasmaPriests,
             FrontlineMinDist = frontlineMinDist,
             EngagedBrothers = engagedBrothers,
             RangedAdvantage = rangedAdvantage,
-            HoldLine = holdLine
+            HoldLine = holdLine,
+            NoEnemyRanged = noEnemyRanged,
+            StallBroken = state.StallBroken
         };
     },
 
@@ -974,6 +1081,80 @@ local F = A.Frontline <- {
         return out;
     },
 
+    // Check if any live melee enemy is breaching within 2 tiles of our Mentor or a ranged backliner.
+    function hasBacklineBreach( _info )
+    {
+        foreach (bro in _info.Brothers)
+        {
+            if (!this.isCasterRole(bro) && !this.isRangedRole(bro)) continue;
+            local bt = bro.getTile();
+            foreach (foe in _info.Enemies)
+            {
+                if (!this.isDangerousMeleeEnemy(foe)) continue;
+                if (bt.getDistanceTo(foe.getTile()) <= 2)
+                    return true;
+            }
+        }
+        return false;
+    },
+
+    // Against melee-only enemies with NO ranged weapons (no bows/crossbows/slings/javelins) and NO Miasma/Horror priests,
+    // never walk an unengaged melee brother into enemy melee strike range (dist == 1, or dist == 2 of an unengaged enemy)
+    // without enough AP left to strike first! Let the enemy spend their AP closing in so WE strike first.
+    function isGivingMeleeFirstStrike( _actor, _destTile, _info, _apAfter, _effAtkAP )
+    {
+        if (!_info.NoEnemyRanged || _destTile == null)
+            return false;
+        if (this.isRangedRole(_actor) || this.isCasterRole(_actor))
+            return false;
+        local myTile = _actor.getTile();
+        if (_destTile.ID == myTile.ID || myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return false;
+        local reqAP = _effAtkAP != null ? _effAtkAP : 4;
+        if (_effAtkAP == null)
+        {
+            local atk = this.cheapestMeleeSkill(_actor, true);
+            if (atk != null) reqAP = atk.getActionPointCost();
+        }
+        if (_apAfter >= reqAP)
+            return false;
+
+        // Allow peeling any enemy threatening Mentor or a ranged backliner (<= 2 tiles), locking down enemy casters, or chasing fleeing enemies.
+        local dangerousAdj = false;
+        local steppingIntoUnengaged2 = false;
+        foreach (foe in _info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing)
+                continue;
+            local ft = foe.getTile();
+            local nd = _destTile.getDistanceTo(ft);
+            if (nd <= 1 && ::Math.abs(_destTile.Level - ft.Level) <= 1)
+            {
+                local fs = foe.getSkills();
+                if (fs.hasSkill("actives.raise_undead") || fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma")
+                    || fs.hasSkill("actives.hex") || fs.hasSkill("actives.root") || fs.hasSkill("actives.sleep"))
+                    return false;
+                local foePinned = ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) > 0;
+                foreach (bro in _info.Brothers)
+                {
+                    if (!this.isCasterRole(bro) && !this.isRangedRole(bro)) continue;
+                    local bd = ft.getDistanceTo(bro.getTile());
+                    if (bd <= 1 || (bd == 2 && (!foePinned || this.isCasterRole(bro))))
+                        return false;
+                }
+                if (this.isDangerousMeleeEnemy(foe))
+                    dangerousAdj = true;
+            }
+            else if (nd == 2 && this.isDangerousMeleeEnemy(foe)
+                && ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0
+                && nd < myTile.getDistanceTo(ft))
+            {
+                steppingIntoUnengaged2 = true;
+            }
+        }
+        return dangerousAdj || steppingIntoUnengaged2;
+    },
+
     function shouldActorHold( _actor, _agent )
     {
         local info = this.assessBattle(_actor, _agent);
@@ -981,14 +1162,26 @@ local F = A.Frontline <- {
             return { Hold = false, Info = info, StrikePlan = null };
         if (_actor.getTile().getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
             return { Hold = false, Info = info, StrikePlan = null };
-        if (info.EngagedBrothers > 0 || info.FrontlineMinDist <= 2)
+        if (this.hasBacklineBreach(info))
             return { Hold = false, Info = info, StrikePlan = null };
-        if (!::BGP.hasShield(_actor) && !this.isRangedRole(_actor) && !this.isCasterRole(_actor))
+        if (!this.isRangedRole(_actor) && !this.isCasterRole(_actor))
         {
+            // Per-brother first-strike check: only break Hold for brothers who can ACTUALLY strike this turn (or shieldbearers raising Spearwall),
+            // instead of globally releasing the whole squad to charge into Zombies when one enemy touches dist 2!
             local plan = this.findSameTurnStrikePlan(_actor, info.Enemies);
             if (plan != null)
                 return { Hold = false, Info = info, StrikePlan = plan };
+            if (::BGP.hasShield(_actor) && !_actor.getSkills().hasSkill("effects.spearwall"))
+            {
+                local spw = _actor.getSkills().getSkillByID("actives.spearwall");
+                if (spw != null && !spw.isHidden() && spw.isUsable() && spw.isAffordable()
+                    && this.countDangerousMeleeWithin(_actor, info.Enemies, 3) >= 2)
+                    return { Hold = false, Info = info, StrikePlan = null };
+            }
+            return { Hold = true, Info = info, StrikePlan = null };
         }
+        if (info.EngagedBrothers > 0 || info.FrontlineMinDist <= 2)
+            return { Hold = false, Info = info, StrikePlan = null };
         return { Hold = true, Info = info, StrikePlan = null };
     },
 
@@ -1665,6 +1858,20 @@ local F = A.Frontline <- {
                     continue;
                 if (!canSWAfter && (adjEnemies >= 2 || (largeBattle && !pinsChiefThreat)))
                     continue;
+                // Against melee-only enemies with NO ranged weapons, don't march a shieldbearer forward to feed Zombies first strike unless peeling Mentor or striking this turn!
+                if (_info.NoEnemyRanged && !pinsChiefThreat)
+                {
+                    local shAtk = this.cheapestMeleeSkill(_actor, true);
+                    local canStrikeDest = false;
+                    if (shAtk != null && shAtk.isUsableOn(ft, dest))
+                    {
+                        local effSh = this.previewSkillCostsAfterMove(_actor, shAtk, cost);
+                        if (ap - cost.ActionPointsRequired >= effSh.AP && availFat - cost.FatigueRequired >= effSh.Fat)
+                            canStrikeDest = true;
+                    }
+                    if (!canStrikeDest)
+                        continue;
+                }
 
                 local score = 8.0 + ::Math.min(2, unengagedEnemies) * 5.0 + unengagedEliteSum * 8.5;
                 if (pinsChiefThreat)
@@ -1732,7 +1939,7 @@ local F = A.Frontline <- {
                 local breachCh = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3);
                 local nearCh = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 5);
                 // Always allow Mentor-breach lane-blocking even under enemy ranged fire; gate regular elite blocking as before.
-                if (!breachCh && _info.EnemyProjectileRanged >= 3.0) continue;
+                if (!breachCh && (_info.EnemyProjectileRanged >= 3.0 || _info.NoEnemyRanged)) continue;
                 if (largeBattle && !nearCh) continue;
                 if (es < 1.4 && !nearCh) continue;
                 local sc = es * 10.0 + (breachCh ? 24.0 : (nearCh ? 12.0 : 0.0)) - dMe * 2.0;
@@ -3678,6 +3885,12 @@ local F = A.Frontline <- {
                 approxApAfter = ap - myTile.getDistanceTo(this.m.TargetTile) * stepCost;
             }
             local veto = F.isSuicidalDiveV2(_entity, this.m.TargetTile, info, approxApAfter, effAtkAP);
+            // Against melee-only enemies with NO ranged weapons (no bows/crossbows/javelins) and NO Miasma/Horror priests,
+            // never walk into enemy melee strike range (dist 1, or dist 2 of an unengaged enemy) without AP left to strike first!
+            if (!veto && F.isGivingMeleeFirstStrike(_entity, this.m.TargetTile, info, approxApAfter, effAtkAP))
+            {
+                veto = true;
+            }
             // Prevent living brothers from walking straight into Miasma / Fire / negative tile hazards unless finishing a dying target or peeling Mentor!
             if (!veto && this.m.TargetTile.ID != myTile.ID && this.hasNegativeTileEffect(this.m.TargetTile, _entity))
             {
@@ -3759,6 +3972,99 @@ local F = A.Frontline <- {
             }
         }
         return done;
+    };
+});
+
+// Smart Adrenaline discipline for Autopilot-controlled player brothers:
+// Never waste 20 Fatigue on Adrenaline when every nearby threatening enemy already has lower Initiative and the brother is healthy/uninjured!
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_adrenaline", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        local score = __original(_entity);
+        if (score <= 0 || !::Autopilot.isUnderAIControl(_entity) || !::Autopilot.conf("bgpSmartFrontline"))
+            return score;
+        local adr = _entity.getSkills().getSkillByID("actives.adrenaline");
+        if (adr == null || adr.isHidden() || !adr.isUsable() || !adr.isAffordable() || _entity.getSkills().hasSkill("effects.adrenaline"))
+            return ::Const.AI.Behavior.Score.Zero;
+
+        local info = F.assessBattle(_entity, this.getAgent());
+        if (info.Enemies.len() == 0)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        local hasTempInjury = _entity.getSkills().hasSkillOfType(::Const.SkillType.TemporaryInjury);
+        // Attack FIRST before considering Adrenaline unless actively suffering a temporary injury that Reforged Adrenaline suppresses immediately.
+        if (!hasTempInjury)
+        {
+            local atk = F.cheapestMeleeSkill(_entity);
+            if (atk != null && F.hasAdjacentTarget(_entity, atk, info.Enemies))
+                return ::Const.AI.Behavior.Score.Zero;
+        }
+        // Keep enough fatigue headroom so Adrenaline never stamina-locks next turn's attack.
+        local availFat = _entity.getFatigueMax() - _entity.getFatigue();
+        if (availFat < adr.getFatigueCost() + 12)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        local myTile = _entity.getTile();
+        local inZoC = myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) > 0;
+        local myFatRec = 15;
+        try { myFatRec = _entity.getCurrentProperties().getFatigueRecoveryRate(); } catch (e) { myFatRec = 15; }
+        local myNextIni = _entity.getInitiative() + ::Math.min(_entity.getFatigue(), myFatRec);
+
+        local meleeAdj = 0;
+        local fasterAdj = 0;
+        local heavyFasterAdj = 0;
+        local fasterClose = 0;
+        local nearestFastDist = 99;
+        local hasHeavyKillOrEliteFaster = false;
+        local scanMaxDist = inZoC ? 2 : 3;
+        foreach (foe in info.Enemies)
+        {
+            if (!F.isDangerousMeleeEnemy(foe)) continue;
+            // Never burn 20 Fatigue on Adrenaline to "outspeed" high-Initiative Geists/Banshees (low HP, huge MDef).
+            if (foe.ClassName == "ghost" || foe.ClassName == "rf_banshee") continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (d > scanMaxDist) continue;
+            local isAdj = (d == 1 && ::Math.abs(myTile.Level - ft.Level) <= 1);
+            if (isAdj)
+                ++meleeAdj;
+            local eFatRec = 15;
+            try { eFatRec = foe.getCurrentProperties().getFatigueRecoveryRate(); } catch (e) { eFatRec = 15; }
+            local eNextIni = foe.getInitiative() + ::Math.min(foe.getFatigue(), eFatRec);
+            local foeFaster = (eNextIni >= myNextIni - 2) || foe.getSkills().hasSkill("effects.adrenaline");
+            if (foeFaster)
+            {
+                local isHeavyOrElite = F.isHeavyMeleeThreat(foe) || F.enemyEliteScore(foe, info) >= 1.4;
+                ++fasterClose;
+                if (d < nearestFastDist) nearestFastDist = d;
+                if ((isAdj || (d == 2 && foe.getIdealRange() >= 2 && ::Math.abs(myTile.Level - ft.Level) <= 1)))
+                {
+                    ++fasterAdj;
+                    if (isHeavyOrElite) ++heavyFasterAdj;
+                }
+                if (d <= 2 && (isHeavyOrElite || (foe.getHitpointsPct() <= 0.50 && foe.getHitpointsMax() >= 85)))
+                    hasHeavyKillOrEliteFaster = true;
+            }
+        }
+
+        local hpPct = _entity.getHitpointsPct();
+        local bodyArm = _entity.getArmor(::Const.BodyPart.Body);
+        local inDanger = inZoC && (hpPct <= 0.55 || (bodyArm <= 45 && hpPct <= 0.75) || (meleeAdj >= 3 && (hpPct <= 0.78 || heavyFasterAdj >= 1)));
+
+        // Core rule: if EVERY nearby threatening enemy is already slower than us (e.g. Zombies),
+        // strictly block Adrenaline unless truly needed for Reforged survival / injury immunity!
+        if (fasterAdj == 0 && fasterClose == 0)
+        {
+            if ((inDanger && hpPct <= 0.50) || (inZoC && hasTempInjury))
+                return score;
+            return ::Const.AI.Behavior.Score.Zero;
+        }
+        // Against faster enemies, only spend 20 Fatigue when truly in danger, injured, or leapfrogging an adjacent heavy/elite threat with spare fatigue
+        // (never waste Adrenaline at 100% HP & full Battle Forged armor against weak fodder zombies!).
+        if (fasterAdj > 0 && (inDanger || hasTempInjury || (heavyFasterAdj > 0 && (hpPct <= 0.80 || availFat >= adr.getFatigueCost() + 20))))
+            return score;
+        if (!inZoC && fasterClose > 0 && hasHeavyKillOrEliteFaster && nearestFastDist <= 2 && availFat >= adr.getFatigueCost() + 26)
+            return score;
+        return ::Const.AI.Behavior.Score.Zero;
     };
 });
 
