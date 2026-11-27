@@ -55,8 +55,9 @@ local function mentorSummonCrisis( c ) {
         if (u != null && !::MSU.isNull(u) && u.isAlive() && !u.isDying() && u.isPlacedOnMap() && u.getFlags().has("undead"))
             ++aliveUndead;
     }
-    // Also release the pocket summon if Mentor is hurt (< 65% HP) while enemies press within 4 tiles or shooters are in range, or if undead frontline collapses (<= 3).
-    local hurtUnderPressure = c.Actor.getHitpointsPct() < 0.65 && (meleeThreatDist <= 4 || (shooterTile != null && shooterDist <= 8));
+    // Also release the pocket summon if Mentor is hurt (< 65% HP) or goblin-poisoned while enemies press within 4 tiles or shooters are in range, or if undead frontline collapses (<= 3).
+    local isGoblinPoisoned = c.Actor.getSkills().hasSkill("effects.goblin_poison");
+    local hurtUnderPressure = (c.Actor.getHitpointsPct() < 0.65 || isGoblinPoisoned) && (meleeThreatDist <= 4 || (shooterTile != null && shooterDist <= 8));
     local lineCollapse = (::Time.getRound() >= 4 && aliveUndead <= 3);
     local res = {
         MeleeCrisis = meleeCrisis,

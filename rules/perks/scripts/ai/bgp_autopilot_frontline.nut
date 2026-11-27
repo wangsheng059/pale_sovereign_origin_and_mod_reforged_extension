@@ -186,22 +186,30 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 if (isCaster)
                 {
                     local threat = F.assessBacklineThreat(_entity, info);
-                    local lowHpSniper = _entity.getHitpointsPct() < 0.55 && info.EnemyProjectileRanged >= 2.0
-                        && F.nearestEnemyArcherDist(myTile, info.Enemies) <= (info.EnemyProjectileRanged >= 5.0 ? 9 : 7);
+                    local curArch = F.nearestEnemyArcherDist(myTile, info.Enemies);
+                    local isGoblinPoisoned = _entity.getSkills().hasSkill("effects.goblin_poison");
+                    local lowHpSniper = (_entity.getHitpointsPct() < 0.55 || (isGoblinPoisoned && _entity.getHitpointsPct() < 0.78))
+                        && info.EnemyProjectileRanged >= 2.0
+                        && curArch <= (info.EnemyProjectileRanged >= 5.0 ? 9 : 7);
+                    local deepVolleyZone = info.EnemyProjectileRanged >= 10.0 && curArch <= 6;
                     // Threat-tiered Mentor kiting priority:
-                    // - Urgent high melee threat (dist <= 2, swarm, or fragile/hurt) OR Mentor HP < 55% inside sniper range:
+                    // - Urgent high melee threat (dist <= 2, swarm, or fragile/hurt) OR Mentor HP < 55% (or goblin-poisoned < 78%) inside sniper range:
                     //   2550-2600 (below Lich King & emergency reserve summon, ABOVE routine Curse/CE/Raise so wounded Mentor actually retreats!).
-                    // - Unscreened high melee threat at dist 3 OR healthy Mentor exposed without adjacent ranged cover: 1400 (emergency summon / cast first, then step behind cover).
+                    // - Inside 6 tiles of 5+ enemy shooters (saturated soft cover like Goblin24): 1750 (cheap 2-AP step back before casting Curse/Raise!).
+                    // - Unscreened high melee threat at dist 3 OR healthy Mentor exposed without adjacent ranged cover: 1400.
                     // - Lone low-threat fodder at dist 2 (healthy armored/Nimble Mentor): 950 (cast impactful spells first, sidestep with leftover AP).
                     if (threat.UrgentHigh)
                         return 2600.0;
                     if (lowHpSniper)
                         return 2550.0;
+                    if (deepVolleyZone)
+                        return 1750.0;
                     if (threat.LowThreatClose && !threat.UnscreenedHigh3)
                         return 950.0;
                     return 1400.0;
                 }
-                return 650.0;
+                local rThreat = F.assessBacklineThreat(_entity, info);
+                return rThreat.UrgentHigh ? 960.0 : 820.0;
             }
         }
 

@@ -383,11 +383,15 @@
 // lacking unequip()/removeFromBag(), which otherwise throws before actor.onDeath() and soft-locks initNextTurn().
 ::AC_PH_Compat.safeCleanupCompanionItem <- function( _actor )
 {
-	if (_actor == null || !("Item" in _actor.m) || _actor.m.Item == null || ::MSU.isNull(_actor.m.Item))
+	if (_actor == null)
+		return;
+	local rawItem = null;
+	try { rawItem = _actor.m.Item; } catch (e) { return; }
+	if (rawItem == null || ::MSU.isNull(rawItem))
 		return;
 
 	local item = null;
-	try { item = _actor.m.Item.get(); } catch (e) { item = _actor.m.Item; }
+	try { item = rawItem.get(); } catch (e) { item = rawItem; }
 	if (item == null || ::MSU.isNull(item))
 	{
 		_actor.m.Item = null;
@@ -419,7 +423,9 @@
 local companionScripts = [
 	"scripts/companions/types/companions_alp",
 	"scripts/companions/types/companions_direwolf",
+	"scripts/companions/types/companions_direwolf_frenzied",
 	"scripts/companions/types/companions_hyena",
+	"scripts/companions/types/companions_hyena_frenzied",
 	"scripts/companions/types/companions_nacho",
 	"scripts/companions/types/companions_noodle",
 	"scripts/companions/types/companions_schrat",

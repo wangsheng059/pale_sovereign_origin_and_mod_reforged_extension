@@ -996,10 +996,7 @@ local F = A.Frontline <- {
         local rnd = ::Time.getRound();
         if (rnd > 2)
             return false;
-        local isFragile = this.isFragileMelee(_actor);
-        if (rnd == 1 && _info.EngagedBrothers > 0)
-            return false;
-        if (rnd == 2 && (_info.EngagedBrothers > 0 || !isFragile))
+        if (_info.EngagedBrothers > 0)
             return false;
         local myTile = _actor.getTile();
         foreach (foe in _info.Enemies)
@@ -2266,14 +2263,16 @@ local F = A.Frontline <- {
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Info.Enemies.len() == 0)
             return false;
-        // Never allow Mentor (caster) to walk forward into unscreened enemy archer sniper fire (or into sniper range when HP < 55%) or into unscreened melee range!
+        // Never allow Mentor (caster) to walk forward into unscreened enemy archer sniper fire, saturated 5+ shooter volleys, or sniper range when HP < 55% (or goblin-poisoned < 78%)!
         if (this.isCasterRole(_actor))
         {
             local curArch = this.nearestEnemyArcherDist(myTile, decision.Info.Enemies);
             local newArch = this.nearestEnemyArcherDist(_targetTile, decision.Info.Enemies);
-            local lowHpMentor = _actor.getHitpointsPct() < 0.55;
+            local isGoblinPoisoned = _actor.getSkills().hasSkill("effects.goblin_poison");
+            local lowHpMentor = _actor.getHitpointsPct() < 0.55 || (isGoblinPoisoned && _actor.getHitpointsPct() < 0.78);
             local destHasCover = this.hasRangedCoverAt(_targetTile, _actor, decision.Info.Enemies, 8);
-            if (decision.Info.EnemyProjectileRanged >= 3.0 && newArch <= 7 && newArch < curArch && (lowHpMentor || !destHasCover))
+            local extremeVolley = decision.Info.EnemyProjectileRanged >= 10.0;
+            if (decision.Info.EnemyProjectileRanged >= 3.0 && newArch <= 7 && newArch < curArch && (lowHpMentor || !destHasCover || extremeVolley))
                 return true;
             local curMelee = 99;
             local newMelee = 99;
@@ -3001,20 +3000,22 @@ local F = A.Frontline <- {
             ? (threat.UrgentHigh || threat.UnscreenedHigh3 || threat.LowThreatClose)
             : (curMeleeDist <= 2);
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
-        local lowHpMentor = isCaster && _actor.getHitpointsPct() < 0.55;
+        local isGoblinPoisoned = isCaster && _actor.getSkills().hasSkill("effects.goblin_poison");
+        local lowHpMentor = isCaster && (_actor.getHitpointsPct() < 0.55 || (isGoblinPoisoned && _actor.getHitpointsPct() < 0.78));
         local sniperRange = _info.EnemyProjectileRanged >= 5.0 ? (lowHpMentor ? 9 : 8) : 7;
         local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies, sniperRange) : true;
-        // Stay put and keep casting when frontline allies block enemy ranged line of fire, unless Mentor HP drops below 55%.
-        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || lowHpMentor);
+        // Against extreme sniper swarms (5+ dedicated shooters like Goblin24, EnemyProjectileRanged >= 10),
+        // +50% adjacent soft cover is saturated within 7 tiles; step back to dist >= 8 even while healthy.
+        local coverSaturated = isCaster && _info.EnemyProjectileRanged >= 10.0 && curArcherDist <= 7;
+        // Stay put and keep casting when frontline allies block enemy ranged line of fire, unless Mentor HP < 55% (or goblin-poisoned < 78%) or cover is saturated.
+        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || lowHpMentor || coverSaturated);
 
         if (!meleeDanger && !sniperDanger)
             return null;
 
-        // Threat-tiered AP budget for Mentor:
-        // - Urgent high threat (dist <= 2 or swarm or fragile/hurt): up to 6 AP (escapes snow/swamp).
-        // - Unscreened high threat at dist 3: up to 4 AP (leaves AP for spells).
-        // - Single low-threat fodder at dist 2 (healthy armored/Nimble Mentor): cheap 2-AP sidestep only (never burns a spell turn!).
-        // - Sniper exposure with >= 55% HP: prefer a cheap 2-AP step behind cover so Mentor still casts spells.
+        // Threat-tiered AP budget:
+        // - Mentor: urgent high threat -> 6 AP; unscreened dist 3 -> 4 AP; healthy sniper/coverSaturated/fodder -> 2 AP (preserves spell turn); wounded/poisoned sniper -> up to 4 AP.
+        // - Non-caster Ranged (Bow/Crossbow): step 2 tiles (4 AP) vs urgent heavy/charger/multi threats when starting with >= 8 AP (leaves >= 5 AP to shoot), else 1 tile (2 AP).
         local maxMoveAP = 0;
         if (isCaster)
         {
@@ -3031,7 +3032,12 @@ local F = A.Frontline <- {
         }
         else
         {
-            maxMoveAP = ap >= 6 ? 2 : 0;
+            if (threat.UrgentHigh && ap >= 8)
+                maxMoveAP = 4;
+            else if (ap >= 6 || (threat.UrgentHigh && _actor.getHitpointsPct() <= 0.55 && ap >= 4))
+                maxMoveAP = 2;
+            else
+                maxMoveAP = 0;
         }
         if (maxMoveAP < 2)
             return null;
@@ -3080,7 +3086,7 @@ local F = A.Frontline <- {
             if (!meleeDanger && sniperDanger)
             {
                 if (minMeleeDist <= 2) continue;
-                if (newArcherDist <= curArcherDist && !(newCover && !hasCoverNow)) continue;
+                if (newArcherDist <= curArcherDist && (coverSaturated || !(newCover && !hasCoverNow))) continue;
             }
 
             // Strongly prefer staying behind friendly melee/shield/undead blockers rather than isolating into an open corner.
@@ -3213,8 +3219,8 @@ local F = A.Frontline <- {
             return true;
         if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || (exp.AdjShieldAllies == 0 && (mdef < 35 || isFragile))))
             return true;
-        // Never walk into a Halberdier/Polearm kill-box (2+ adjacent + 2+ reach-2 polearms) with zero shield support and zero attack AP left!
-        if (exp.AdjEnemies >= 2 && exp.Polearms2 >= 2 && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP && mdef < 35)
+        // Never walk into a Halberdier/Ancient Polearm kill-box (2+ adjacent + reach-2 polearms) with zero shield support and zero attack AP left!
+        if (exp.AdjEnemies >= 2 && (exp.Polearms2 >= 2 || (exp.Polearms2 >= 1 && mdef < 28)) && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP && mdef < 35)
             return true;
         if (exp.AdjEnemies >= 2 && exp.AdjAllies == 0 && _apAfter < minAtkAP && (exp.Polearms2 >= 1 || exp.ThreatDist2 >= 2) && mdef < 30)
             return true;
@@ -3224,9 +3230,9 @@ local F = A.Frontline <- {
             return true;
         if (isFragile && exp.AdjAllies == 0 && exp.AdjEnemies >= 1 && exp.ThreatDist2 >= 2)
             return true;
-        // Prevent fragile low-MDef 1H unshielded bros from burning AP walking into melee contact with zero AP left to strike
+        // Prevent fragile low-MDef or no-BF/no-Nimble 1H unshielded bros from burning AP walking into melee contact with zero AP left to strike
         // against non-ranged/non-caster melee waves (do NOT paralyze 2H 6-AP heavy frontliners who normally move 2 tiles!).
-        if (isFragile && mdef < 18 && minAtkAP <= 4 && _apAfter < minAtkAP)
+        if (isFragile && (mdef < 18 || !hasDefPerk) && minAtkAP <= 4 && _apAfter < minAtkAP)
         {
             if (exp.AdjEnemies >= 2)
                 return true;
@@ -3567,6 +3573,34 @@ local F = A.Frontline <- {
                 approxApAfter = ap - myTile.getDistanceTo(this.m.TargetTile) * stepCost;
             }
             local veto = F.isSuicidalDiveV2(_entity, this.m.TargetTile, info, approxApAfter, effAtkAP);
+            // Prevent living brothers from walking straight into Miasma / Fire / negative tile hazards unless finishing a dying target or peeling Mentor!
+            if (!veto && this.m.TargetTile.ID != myTile.ID && this.hasNegativeTileEffect(this.m.TargetTile, _entity))
+            {
+                local tgt = this.m.TargetActor;
+                local lethalOrFleeing = tgt != null && !::MSU.isNull(tgt)
+                    && (tgt.getMoraleState() == ::Const.MoraleState.Fleeing || tgt.getHitpoints() <= 28);
+                local peelingChief = false;
+                if (tgt != null && !::MSU.isNull(tgt))
+                {
+                    local tt = tgt.getTile();
+                    foreach (bro in info.Brothers)
+                    {
+                        if (F.isCasterRole(bro) && tt.getDistanceTo(bro.getTile()) <= 2)
+                        {
+                            peelingChief = true;
+                            break;
+                        }
+                    }
+                }
+                if (!lethalOrFleeing && !peelingChief)
+                {
+                    local reqAP = effAtkAP != null ? effAtkAP : 4;
+                    if (!::BGP.hasShield(_entity) || _entity.getHitpointsPct() <= 0.65 || approxApAfter < reqAP)
+                        veto = true;
+                    else
+                        this.m.Score *= 0.30;
+                }
+            }
             // Keep critically wounded unshielded melee bros (free of ZoC) from undoing wounded_retreat via EngageMelee!
             if (!veto && F.shouldWoundedRetreat(_entity, info)
                 && myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0
@@ -3763,6 +3797,8 @@ local F = A.Frontline <- {
         return __original(_entity);
     };
     q.snh_isTileInDanger = @(__original) function( _entity, _tile ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline") && this.hasNegativeTileEffect(_tile, _entity))
+            return true;
         if (!::Autopilot.isUnderAIControl(_entity) || !::Autopilot.conf("bgpSmartFrontline") || F.isCasterRole(_entity) || _entity.getHitpointsPct() < 0.50)
             return __original(_entity, _tile);
         foreach (op in this.getAgent().getKnownOpponents()) {
