@@ -247,20 +247,17 @@ S.tierPromote <- function( _bro, _branch )
         skills.removeByID(oldBackground.getID());
         skills.add(background);
         _bro.m.Background = background;
-        foreach (i, key in statNames)
-            props[key] = next.Stats[i];
-        props.Bravery = 100;
-        // These fields are unspecified. Use the untrained low-tier range midpoint.
-        local template = ::new(this.SkillDir + "backgrounds/pale_" + (next.Skeleton ? "skeleton" : "zombie") + "_background");
-        local adjustments = template.onChangeAttributes();
-        foreach (key in ["Stamina", "RangedSkill"])
-        {
-            local bounds = template.m.BaseAttributes[key];
-            local delta = adjustments[key];
-            props[key] = ::Math.floor((bounds[0] + bounds[1] + delta[0] + delta[1]) * 0.5);
-        }
-        if ("RangedSkill" in next)
-            props.RangedSkill = next.RangedSkill;
+        local sp = this.TierStatSpread;
+        props.Hitpoints = this.rollStat(next.Stats[0], sp.Hitpoints, 10);
+        props.MeleeSkill = this.rollStat(next.Stats[1], sp.MeleeSkill, 1);
+        props.MeleeDefense = this.rollStat(next.Stats[2], sp.MeleeDefense, 0);
+        props.RangedDefense = this.rollStat(next.Stats[3], sp.RangedDefense, 0);
+        props.Initiative = this.rollStat(next.Stats[4], sp.Initiative, 1);
+        props.ActionPoints = next.Stats[5];
+        props.Bravery = this.rollStat(100, sp.Bravery, 1);
+        props.Stamina = this.rollTierStamina();
+        local rangedBase = "RangedSkill" in next ? next.RangedSkill : (next.Skeleton ? 31 : 29);
+        props.RangedSkill = this.rollStat(rangedBase, sp.RangedSkill, 1);
 
         _bro.m.Level = level;
         _bro.m.XP = minimum + ::Math.min(interval - 1, ::Math.floor(interval * progress));

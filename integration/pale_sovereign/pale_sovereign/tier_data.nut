@@ -5,6 +5,32 @@ local S = ::PaleSovereign;
 S.TierPerkCollections <- ["pgc.rf_weapon", "pgc.rf_fighting_style", "pgc.rf_armor", "pgc.rf_shared_1", "pgc.rf_exclusive_1"];
 S.TierCommonExclusions <- ["bow", "crossbow", "throwing", "dagger", "ranged"];
 S.TierCost <- { Level = 7, LevelsSpent = 6, Jade = 1, Reserve = 5, Money = 500 };
+// Stat fluctuation rules for mid/high-tier permanent undead and Soulbound:
+// Stamina is guaranteed >= 100 (100-125); all other base stats use a 10-14 point spread.
+S.TierStaminaRange <- [100, 125];
+S.TierStatSpread <- {
+    Hitpoints = 14,
+    Bravery = 10,
+    Initiative = 14,
+    MeleeSkill = 12,
+    RangedSkill = 12,
+    MeleeDefense = 10,
+    RangedDefense = 10
+};
+S.statRange <- function( _base, _span, _floor = 1 )
+{
+    local lo = ::Math.max(_floor, _base - ::Math.floor(_span / 2));
+    return [lo, lo + _span];
+};
+S.rollStat <- function( _base, _span, _floor = 1 )
+{
+    local r = this.statRange(_base, _span, _floor);
+    return ::Math.rand(r[0], r[1]);
+};
+S.rollTierStamina <- function()
+{
+    return ::Math.rand(this.TierStaminaRange[0], this.TierStaminaRange[1]);
+};
 // 防腐师 3 级：升阶少退 2 级（7 级升阶为 3 级），尸骸消耗 −2
 S.tierLevelsSpent <- @() this.TierCost.LevelsSpent - (this.followerRank("embalmer") >= 3 ? 2 : 0);
 S.tierReserveCost <- @() this.TierCost.Reserve - (this.followerRank("embalmer") >= 3 ? 2 : 0);

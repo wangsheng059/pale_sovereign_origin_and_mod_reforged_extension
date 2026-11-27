@@ -88,9 +88,20 @@ S.tierBranchSummary <- function( _key )
 {
     local branch = this.TierBranches[_key];
     local stats = branch.Stats;
-    local text = "【" + branch.Name + "】" + branch.Description + "\n生命 " + stats[0] + "　近战 " + stats[1]
-        + ("RangedSkill" in branch ? "　远程 " + branch.RangedSkill : "")
-        + "　近防 " + stats[2] + "　远防 " + stats[3] + "　主动值 " + stats[4] + "　行动点 " + stats[5] + "　决心 100";
+    local sp = this.TierStatSpread;
+    local fmt = @(r) r[0] + "–" + r[1];
+    local hp = this.statRange(stats[0], sp.Hitpoints, 10);
+    local sta = this.TierStaminaRange;
+    local ms = this.statRange(stats[1], sp.MeleeSkill, 1);
+    local md = this.statRange(stats[2], sp.MeleeDefense, 0);
+    local rd = this.statRange(stats[3], sp.RangedDefense, 0);
+    local ini = this.statRange(stats[4], sp.Initiative, 1);
+    local brv = this.statRange(100, sp.Bravery, 1);
+    local text = "【" + branch.Name + "】" + branch.Description
+        + "\n生命 " + fmt(hp) + "　疲劳 " + fmt(sta) + "　近战 " + fmt(ms)
+        + ("RangedSkill" in branch ? "　远程 " + fmt(this.statRange(branch.RangedSkill, sp.RangedSkill, 1)) : "")
+        + "　近防 " + fmt(md) + "　远防 " + fmt(rd) + "　主动值 " + fmt(ini)
+        + "　决心 " + fmt(brv) + "　行动点 " + stats[5];
     foreach (key in branch.Skills)
     {
         local talent = this.TierTalents[key];

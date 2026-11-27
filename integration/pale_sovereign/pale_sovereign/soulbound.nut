@@ -92,9 +92,30 @@ S.SoulboundClasses <- {
     }
 };
 S.SoulboundOrder <- ["legion", "knight", "barrow", "hex", "blood"];
-S.SoulboundStatKeys <- ["Hitpoints", "MeleeSkill", "MeleeDefense", "RangedDefense", "Initiative", "Stamina"];
-S.SoulboundStatNames <- ["生命", "近战技能", "近战防御", "远程防御", "主动值", "疲劳值"];
+S.SoulboundStatKeys <- ["Hitpoints", "MeleeSkill", "MeleeDefense", "RangedDefense", "Initiative", "Stamina", "RangedSkill", "Bravery"];
+S.SoulboundStatNames <- ["生命", "近战技能", "近战防御", "远程防御", "主动值", "疲劳值", "远程技能", "决心"];
 S.SoulboundStatMult <- 0.8;
+
+// Roll fluctuated Soulbound stats around 80% of fallen enemy base stats, enforcing >= 100 Stamina (100-125 for standard).
+S.rollSoulboundStats <- function( _props )
+{
+    local sp = this.TierStatSpread;
+    local m = this.SoulboundStatMult;
+    local baseSta = ::Math.floor(_props.Stamina * m);
+    local sta = baseSta <= this.TierStaminaRange[0]
+        ? this.rollTierStamina()
+        : this.rollStat(baseSta, 14, this.TierStaminaRange[0]);
+    return [
+        this.rollStat(::Math.max(10, ::Math.floor(_props.Hitpoints * m)), sp.Hitpoints, 10),
+        this.rollStat(::Math.max(1, ::Math.floor(_props.MeleeSkill * m)), sp.MeleeSkill, 1),
+        this.rollStat(::Math.max(0, ::Math.floor(_props.MeleeDefense * m)), sp.MeleeDefense, 0),
+        this.rollStat(::Math.max(0, ::Math.floor(_props.RangedDefense * m)), sp.RangedDefense, 0),
+        this.rollStat(::Math.max(1, ::Math.floor(_props.Initiative * m)), sp.Initiative, 1),
+        sta,
+        this.rollStat(36, sp.RangedSkill, 1),
+        this.rollStat(120, sp.Bravery, 1)
+    ];
+};
 
 // 锁魂者专属特技
 S.SoulPerks <- {
@@ -263,9 +284,7 @@ S.captureSoulbound <- function()
         if (entity == null || ::MSU.isNull(entity) || !entity.isAlive() || entity.isDying())
             continue;
         local props = entity.getBaseProperties();
-        local stats = [];
-        foreach (key in this.SoulboundStatKeys)
-            stats.push(::Math.max(1, ::Math.floor(props[key] * this.SoulboundStatMult)));
+        local stats = this.rollSoulboundStats(props);
         local items = [];
         foreach (slot in [::Const.ItemSlot.Mainhand, ::Const.ItemSlot.Offhand, ::Const.ItemSlot.Head, ::Const.ItemSlot.Body])
         {
@@ -371,7 +390,13 @@ S.recruitSoulbound <- function( _index )
     foreach (i, key in this.SoulboundStatKeys)
         if (i < rec.Stats.len())
             props[key] = rec.Stats[i];
-    props.Bravery = 120;
+    // Backward compatibility for pending Soulbound saved before 8-stat fluctuation & >=100 Stamina floor.
+    if (props.Stamina < this.TierStaminaRange[0])
+        props.Stamina = this.rollTierStamina();
+    if (rec.Stats.len() <= 6)
+        props.RangedSkill = this.rollStat(36, this.TierStatSpread.RangedSkill, 1);
+    if (rec.Stats.len() <= 7)
+        props.Bravery = this.rollStat(120, this.TierStatSpread.Bravery, 1);
     props.ActionPoints = 9;
     try { bro.fillTalentValues(); } catch (e) { ::logError("[PaleSovereign] 锁魂者天赋: " + e); }
     bro.m.Attributes = [];
@@ -418,7 +443,7 @@ S.recruitSoulbound <- function( _index )
     ::World.Assets.updateFormation(true);
     list.remove(_index);
     this.saveSoulboundPending(list);
-    return "锁链在 " + rec.Name + " 的脊骨上收紧最后一圈。它跪下，又站起，成了战团的一员。\n\n（" + def.Name + "：属性为生前的 80%"
+    return "锁链在 " + rec.Name + " 的脊骨上收紧最后一圈。它跪下，又站起，成了战团的一员。\n\n（" + def.Name + "：属性以生前 80% 为基准随机浮动，疲劳值至少 100"
         + (rec.LegacyName != "" ? "，保留生前特技【" + rec.LegacyName + "】" : "") + "）";
 };
 
@@ -503,7 +528,7 @@ S.soulboundPanel <- function( _screen )
         this.option(_screen, "翻阅亡者账簿", @() "@camp");
         return;
     }
-    _screen.Text = "战场上被锁链拴住的亡魂没有散去，它们跟在马车后面，等待导师的裁决。收编后属性为生前的 80%，并保留 1 个生前特技。"
+    _screen.Text = "战场上被锁链拴住的亡魂没有散去，它们跟在马车后面，等待导师的裁决。收编后以生前属性的 80% 为基准随机浮动（疲劳值至少 100），并保留 1 个生前特技。"
         + "\n战团编制　" + ::World.getPlayerRoster().getSize() + " / " + ::World.Assets.getBrothersMax();
     foreach (i, rec in list)
     {
