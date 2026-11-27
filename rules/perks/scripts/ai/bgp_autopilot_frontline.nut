@@ -135,7 +135,29 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             this.m.Mode = "throw_net";
             this.m.Skill = netPlan.Skill;
             this.m.TargetTile = netPlan.Tile;
-            return 925.0;
+            return 1650.0;
+        }
+
+        // 2b-1b. Immediately re-equip primary weapon from bag if Mainhand is empty (e.g. right after a 2H backliner threw a backpack Net)
+        // BEFORE considering unbagging a second net, so backliners never stay bare-handed or dump both nets without shooting!
+        if (_entity.getItems().getItemAtSlot(::Const.ItemSlot.Mainhand) == null)
+        {
+            local reequipWep = F.findReequipMainWeapon(_entity, info);
+            if (reequipWep != null)
+            {
+                this.m.Mode = "reequip_main";
+                this.m.WeaponToEquip = reequipWep;
+                return 1100.0;
+            }
+        }
+
+        // 2b-1c. Smart backpack Throwing Net unbagging (including 2H Crossbow/Bow/Polearm backliners) when a high-threat target is in same-turn range!
+        local bagNetPlan = F.findBagNetPlan(_entity, info);
+        if (bagNetPlan != null)
+        {
+            this.m.Mode = "unbag_net";
+            this.m.WeaponToEquip = bagNetPlan.Net;
+            return bagNetPlan.Score;
         }
 
         // 2b-2. Step out of Miasma / Fire / negative tile effects (2-3 AP) for unengaged living brothers before shooting/casting/attacking!
@@ -617,7 +639,40 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "switch_melee" || this.m.Mode == "hybrid_ranged_swap")
+        if (this.m.Mode == "unbag_net")
+        {
+            local net = this.m.WeaponToEquip;
+            this.m.Mode = null;
+            this.m.WeaponToEquip = null;
+            if (net != null)
+            {
+                local items = _entity.getItems();
+                local curMain = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
+                local curOff = items.getItemAtSlot(::Const.ItemSlot.Offhand);
+                local needDropMain = (curMain != null && curMain.getBlockedSlotType() == ::Const.ItemSlot.Offhand);
+                local swapList = needDropMain ? [curMain, net] : [net];
+                if (items.isActionAffordable(swapList))
+                {
+                    items.removeFromBag(net);
+                    if (needDropMain)
+                    {
+                        items.unequip(curMain);
+                        items.addToBag(curMain);
+                    }
+                    if (curOff != null)
+                    {
+                        items.unequip(curOff);
+                        items.addToBag(curOff);
+                    }
+                    items.equip(net);
+                    items.payForAction(swapList);
+                    this.getAgent().getIntentions().IsChangingWeapons = true;
+                }
+            }
+            return true;
+        }
+
+        if (this.m.Mode == "switch_melee" || this.m.Mode == "hybrid_ranged_swap" || this.m.Mode == "reequip_main")
         {
             local isHybrid = (this.m.Mode == "hybrid_ranged_swap");
             local w = this.m.WeaponToEquip;
@@ -628,12 +683,12 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 local items = _entity.getItems();
                 local curMain = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
                 local curOff = items.getItemAtSlot(::Const.ItemSlot.Offhand);
-                local needDropOff = (curOff != null && w.isItemType(::Const.Items.ItemType.TwoHanded));
+                local needDropOff = (curOff != null && w.getBlockedSlotType() == ::Const.ItemSlot.Offhand);
                 local swapList = [];
                 if (curMain != null) swapList.push(curMain);
                 if (needDropOff) swapList.push(curOff);
                 swapList.push(w);
-                if (items.isActionAffordable(swapList) && (!needDropOff || items.getNumberOfEmptyBagSlots() > 0))
+                if (items.isActionAffordable(swapList) && (!needDropOff || ::BGP.Autopilot.Frontline.emptyBagSlots(items) > 0))
                 {
                     items.removeFromBag(w);
                     if (curMain != null)

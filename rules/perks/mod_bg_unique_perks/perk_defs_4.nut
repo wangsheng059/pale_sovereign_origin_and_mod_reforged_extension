@@ -144,9 +144,9 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Active,
 		Description = [
-			"解锁“岁月诅咒”技能：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("24") + " 疲劳，施法距离 6 格，作用于目标格及相邻 1 格内的敌人（不影响友军），持续 3 回合。",
-			"被诅咒的敌人：主动值 " + ::MSU.Text.colorNegative("-20") + "，近战技能 / 远程技能 " + ::MSU.Text.colorNegative("-10") + "，近战 / 远程伤害 " + ::MSU.Text.colorNegative("-20%") + "。",
-			"诅咒期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲的当前耐久各额外 " + ::MSU.Text.colorNegative("-(10 + W/4)") + "（W = 施放时你的当前决心 − 20）。",
+			"解锁“岁月诅咒”技能：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("24") + " 疲劳，施法距离 7 格，作用于目标格及相邻 1 格内的敌人（不影响友军），持续 3 回合。",
+			"被诅咒的敌人：行动点 " + ::MSU.Text.colorNegative("-1") + "，主动值 " + ::MSU.Text.colorNegative("-20") + "，近战技能 / 远程技能 " + ::MSU.Text.colorNegative("-10") + "，近战 / 远程伤害 " + ::MSU.Text.colorNegative("-25%") + "。",
+			"诅咒期间每受到一次攻击伤害（含尸爆，哪怕只伤到护甲），命中部位护甲的当前耐久额外 " + ::MSU.Text.colorNegative("-(10 + W/4)") + "（W = 施放时你的当前决心 − 20）。",
 			"再次诅咒同一目标只刷新持续时间，不叠加。"
 		]
 	}]

@@ -9,7 +9,8 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 		BaseFatigue = 12,
 		HitpointsPct = 0.2,
 		ArmorPct = 0.25,
-		ArmorEfficiency = 1.5
+		ArmorEfficiency = 1.5,
+		BlastCastID = 0
 	},
 	function create()
 	{
@@ -33,7 +34,7 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 		this.m.IsTargetingActor = false;
 		this.m.IsVisibleTileNeeded = false;
 		this.m.IsStacking = false;
-		this.m.IsAttack = false;
+		this.m.IsAttack = true;
 		this.m.IsIgnoredAsAOO = true;
 		this.m.ActionPointCost = this.m.BaseAP;
 		this.m.FatigueCost = this.m.BaseFatigue;
@@ -92,6 +93,7 @@ this.bgp_corpse_explosion_skill <- ::inherit("scripts/skills/skill", {
 		local blast = this.getBlast(corpse, _user);
 		if (blast == null)
 			return false;
+		++this.m.BlastCastID;
 		local moraleDifficulty = -::BGP.Necro.WillScale.BlastMorale(::BGP.Necro.getWill(_user));
 		local extra = ::BGP.Necro.spellDurationBonus(_user);
 

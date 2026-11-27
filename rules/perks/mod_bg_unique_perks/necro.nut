@@ -876,7 +876,7 @@
 	Regen = function( _w ) { return 5 + ::Math.floor(_w / 5.0); },
 	// 钢铁之躯：复活时头甲、身甲各恢复上限的 10% + W/4 %（返回比例；恢复量本身不超过上限）
 	IronPct = function( _w ) { return 0.1 + _w / 400.0; },
-	// 岁月诅咒：每次挨打头甲、身甲各 -(10 + W/4)
+	// Curse of Ages: hit body part armor additionally decays by -(10 + W/4) per attack hit (including Corpse Explosion)
 	CurseDecay = function( _w ) { return 10 + ::Math.floor(_w / 4.0); },
 	// 尸爆：钝器伤害 = 生前最大生命 ×(20% + W/4 %)；被炸到的敌人士气检定难度 -W/5
 	BlastPct = function( _w ) { return 0.2 + _w / 400.0; },

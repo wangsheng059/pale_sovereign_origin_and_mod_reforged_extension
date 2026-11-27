@@ -916,46 +916,11 @@ foreach (path in ["bgp_necro_curse_of_ages_skill", "bgp_corpse_explosion_skill"]
             __original(_properties);
             local wielder = this.getContainer().getActor();
             local weapon = S.isChief(wielder) ? S.equippedStaff(wielder) : null;
-            this.m.MaxRange = weapon != null && weapon.getID() == "weapon.pale_staff_scourge" ? 7 : 6;
-            if (this.getID() == "actives.bgp_corpse_explosion")
-                this.m.IsAttack = S.isActive() && S.oath() == S.Oath.Scourge && S.isChief(wielder);
+            local baseRange = this.getID() == "actives.bgp_necro_curse_of_ages" ? 7 : 6;
+            this.m.MaxRange = baseRange + (weapon != null && weapon.getID() == "weapon.pale_staff_scourge" ? 1 : 0);
         };
     });
 }
-
-mod.hook("scripts/skills/actives/bgp_corpse_explosion_skill", function(q)
-{
-    q.onUse = @(__original) function( _user, _tile )
-    {
-        if (S.Battle != null)
-            S.Battle.Decayed.clear();
-        return __original(_user, _tile);
-    };
-});
-
-mod.hook("scripts/skills/effects/bgp_curse_of_ages_effect", function(q)
-{
-    q.m.PaleExplosion <- false;
-
-    q.onBeforeDamageReceived = @(__original) function( _attacker, _skill, _hit, _properties )
-    {
-        __original(_attacker, _skill, _hit, _properties);
-        this.m.PaleExplosion = S.Battle != null && _skill != null && _skill.getID() == "actives.bgp_corpse_explosion";
-    };
-
-    q.onDamageReceived = @(__original) function( _attacker, _hp, _armor )
-    {
-        if (this.m.IsPendingDecay && this.m.PaleExplosion && S.Battle != null)
-        {
-            local id = this.getContainer().getActor().getID();
-            if (id in S.Battle.Decayed)
-                this.m.IsPendingDecay = false;
-            else
-                S.Battle.Decayed[id] <- true;
-        }
-        __original(_attacker, _hp, _armor);
-    };
-});
 
 mod.rawHookTree("scripts/items/accessory/accessory", function(p)
 {

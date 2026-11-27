@@ -94,6 +94,7 @@ A.add("pale_soul_strike", "Enemies", function(c, s, t) {
     local target = t.getEntity(), hit = A.weaponChance(s, t);
     local value = 2.4 + (target.getHitpoints() <= 24 ? 1.2 : 0);
     if (!target.getSkills().hasSkill("effects.pale_prey")) value += 0.35 * ::Math.min(3, A.countNear(c.Allies, t, 2));
+    if (!target.getSkills().hasSkill("effects.dazed") && !target.getCurrentProperties().IsImmuneToDaze) value += 0.65;
     return value * hit * (S.isChief(c.Actor) ? staffStrikeMult : 1.0);
 });
 // Stock attack behaviors and Autopilot's step-and-hit also evaluate the staff independently.

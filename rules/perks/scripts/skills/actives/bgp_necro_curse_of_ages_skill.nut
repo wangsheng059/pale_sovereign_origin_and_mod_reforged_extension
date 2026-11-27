@@ -1,7 +1,7 @@
-// 1.6.0 岁月诅咒（亡灵天灾 6 层）：6 行动点、24 疲劳、6 格（不需要视野），目标格及相邻 1 格内的敌人（不影响友军），持续 3 回合：
-//   主动值 -20，近战技能 / 远程技能 -10，近战 / 远程伤害 -20%；
-//   诅咒期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲当前耐久各额外 -20。
-//   再次诅咒同一目标刷新持续时间，不叠加。
+// Curse of Ages (Scourge tier 6): 6 AP, 24 Fatigue, range 7 (no LOS), target tile + 6 adjacent enemies (friendly-safe), 3 turns:
+//   -1 AP, -20 Initiative, -10 MAtk/RAtk, -25% Melee/Ranged damage;
+//   each attack hit (including Corpse Explosion) decays the hit body part's armor by -(10 + W/4).
+//   Recasting refreshes duration and updates decay value without stacking.
 this.bgp_necro_curse_of_ages_skill <- ::inherit("scripts/skills/skill", {
 	m = {
 		BaseAP = 6,
@@ -34,7 +34,7 @@ this.bgp_necro_curse_of_ages_skill <- ::inherit("scripts/skills/skill", {
 		this.m.ActionPointCost = this.m.BaseAP;
 		this.m.FatigueCost = this.m.BaseFatigue;
 		this.m.MinRange = 1;
-		this.m.MaxRange = 6;
+		this.m.MaxRange = 7;
 		this.m.AIBehaviorID = null;
 	}
 
@@ -45,8 +45,8 @@ this.bgp_necro_curse_of_ages_skill <- ::inherit("scripts/skills/skill", {
 		local turns = 3 + ::BGP.Necro.spellDurationBonus(this.getContainer().getActor());
 		ret.extend([
 			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "技能范围为 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；作用于目标格及相邻 1 格内的敌人，不影响友军" },
-			{ id = 11, type = "text", icon = "ui/icons/initiative.png", text = "持续 " + turns + " 回合：主动值 " + ::MSU.Text.colorNegative("-20") + "，近战技能 / 远程技能 " + ::MSU.Text.colorNegative("-10") + "，近战 / 远程伤害 " + ::MSU.Text.colorNegative("-20%") },
-			{ id = 12, type = "text", icon = "ui/icons/armor_body.png", text = "诅咒期间每受到一次攻击伤害（哪怕只伤到护甲），头甲和身甲当前耐久各额外 " + ::MSU.Text.colorNegative("-" + ::BGP.Necro.WillScale.CurseDecay(w)) + ::BGP.Necro.willText(w) },
+			{ id = 11, type = "text", icon = "ui/icons/initiative.png", text = "持续 " + turns + " 回合：行动点 " + ::MSU.Text.colorNegative("-1") + "，主动值 " + ::MSU.Text.colorNegative("-20") + "，近战技能 / 远程技能 " + ::MSU.Text.colorNegative("-10") + "，近战 / 远程伤害 " + ::MSU.Text.colorNegative("-25%") },
+			{ id = 12, type = "text", icon = "ui/icons/armor_body.png", text = "诅咒期间每受到一次攻击伤害（含尸爆，哪怕只伤到护甲），命中部位护甲当前耐久额外 " + ::MSU.Text.colorNegative("-" + ::BGP.Necro.WillScale.CurseDecay(w)) + ::BGP.Necro.willText(w) },
 			{ id = 13, type = "text", icon = "ui/icons/special.png", text = "再次诅咒同一目标只刷新持续时间（护甲腐朽换成这次的数值），不叠加" }
 		]);
 		return ret;

@@ -130,7 +130,8 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
                     value *= 0.45;
             }
         }
-        if (hits >= 3 && (aliveUndead >= 6 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
+        local clumpUndeadFloor = (hits >= 3 && armoredHits >= 2 && moraleVulnerableHits >= 2) ? 5 : 6;
+        if (hits >= 3 && (aliveUndead >= clumpUndeadFloor || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
             && (armoredHits >= 2 || lethalCount >= 1)) {
             value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
         }
@@ -140,16 +141,24 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
 A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
     local smart = ::Autopilot.conf("bgpSmartFrontline");
     local alreadyCursed = 0;
+    local aliveUndead = 0;
+    local corpseCount = 0;
     if (smart) {
         foreach (tile in c.Enemies) {
             if (tile.getEntity().getSkills().hasSkill("effects.bgp_curse_of_ages"))
                 ++alreadyCursed;
         }
+        foreach (u in ::Tactical.Entities.getInstancesOfFaction(::Const.Faction.PlayerAnimals)) {
+            if (u != null && !::MSU.isNull(u) && u.isAlive() && !u.isDying() && u.isPlacedOnMap() && u.getFlags().has("undead"))
+                ++aliveUndead;
+        }
+        corpseCount = c.Behavior.targets(c, "Corpses").len();
     }
     local value = 0.0;
     local hits = 0;
-    local armoredHits = 0;
+    local highValueHits = 0;
     local nonGoblinHits = 0;
+    local engagedHits = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
@@ -157,23 +166,44 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
         ++hits;
         local isGoblin = enemy.getFlags().has("goblin");
         if (!isGoblin) ++nonGoblinHits;
-        local w = 1.45 + ::Math.minf(0.9, enemy.getHitpointsMax() / 140.0);
+        local w = 1.65 + ::Math.minf(1.0, enemy.getHitpointsMax() / 130.0);
         if (smart) {
-            if (isGoblin) w *= 0.55;
-            else if (enemy.getSkills().hasSkill("racial.champion") || enemy.getArmor(::Const.BodyPart.Body) >= 150 || enemy.getHitpointsMax() >= 140) {
-                w += 0.65;
-                ++armoredHits;
+            if (isGoblin) {
+                w *= 0.50;
+            } else {
+                local mainW = enemy.getMainhandItem();
+                local is2H = mainW != null && mainW.isItemType(::Const.Items.ItemType.TwoHanded) && mainW.isItemType(::Const.Items.ItemType.MeleeWeapon);
+                if (enemy.getSkills().hasSkill("racial.champion") || enemy.getArmor(::Const.BodyPart.Body) >= 130
+                    || enemy.getHitpointsMax() >= 130 || is2H) {
+                    w += 1.15;
+                    ++highValueHits;
+                }
+                if (tile.getZoneOfControlCountOtherThan(enemy.getAlliedFactions()) > 0) {
+                    w += 0.45;
+                    ++engagedHits;
+                }
             }
         }
         value += w;
     }
     if (smart) {
         if (hits < 2) return 0;
-        if (nonGoblinHits == 0 && (hits < 4 || c.Behavior.targets(c, "Corpses").len() > 0)) return 0;
-        if (alreadyCursed >= 3) value *= 0.40;
-        else if (hits >= 3 && armoredHits >= 2 && ::Time.getRound() >= 2)
-            value = ::Math.minf(10.2, value + 1.4);
-        value = ::Math.minf(10.2, value);
+        if (nonGoblinHits == 0 && (hits < 4 || corpseCount > 0)) return 0;
+        // Prioritize opening 5-AP Curse of Ages ahead of routine Raise Dead (11-13) on dense armored/elite clumps (Nobles, Ancients, Orcs)
+        // so Mentor casts Curse FIRST (5 AP) and still has 4 AP left to Raise Dead or Weaken on the same turn!
+        if (hits >= 3 && highValueHits >= 2) {
+            value += (hits >= 4 ? 3.5 : 2.2) + (highValueHits >= 3 ? 1.1 : 0.0) + (engagedHits >= 2 ? 0.5 : 0.0);
+        } else if (hits >= 3 && nonGoblinHits >= 3) {
+            value += 1.4;
+        }
+        if (alreadyCursed >= 6) value *= 0.48;
+        else if (alreadyCursed >= 3 && hits < 3) value *= 0.50;
+        // Do not starve Raise Dead when our undead frontline is thin and corpses are waiting, once an initial cluster is already cursed.
+        local cap = 15.2;
+        if (alreadyCursed >= 3 && corpseCount > 0 && aliveUndead <= 5 && !(hits >= 4 && highValueHits >= 3))
+            cap = 10.5;
+        // Stay below opening Lich King (~28.7), free Summons (~21.7-22.7), and Lich Possess (19.0).
+        value = ::Math.minf(cap, value);
     }
     return value;
 });
@@ -1965,6 +1995,222 @@ local F = A.Frontline <- {
         return bestTile != null ? { Skill = skill, Tile = bestTile, Score = bestScore } : null;
     },
 
+    // Count free unlocked backpack slots cleanly (vanilla/Reforged item_container has getUnlockedBagSlots(), not getNumberOfEmptyBagSlots()).
+    function emptyBagSlots( _items )
+    {
+        return ::Math.max(0, _items.getUnlockedBagSlots() - _items.getAllItemsAtSlot(::Const.ItemSlot.Bag).len());
+    },
+
+    // Smart backpack Throwing Net unbagging for ANY brother (including 2H Crossbow/Bow/Polearm backliners,
+    // whom upstream autopilot_unbag_net skips due to BlockedSlotType == Offhand!):
+    // requires same-turn unbag + throw AP/Fatigue and a genuinely high-threat target within exact throw_net range.
+    function findBagNetPlan( _actor, _info )
+    {
+        if (!::Autopilot.conf("nets") && !::Autopilot.conf("bgpAutoEquippedNet"))
+            return null;
+        // Already holding an equipped throwing net (handled by findBestNetTarget).
+        if (_actor.getSkills().hasSkill("actives.throw_net"))
+            return null;
+        if (_actor.getCurrentProperties().IsStunned)
+            return null;
+        local items = _actor.getItems();
+        local curOff = items.getItemAtSlot(::Const.ItemSlot.Offhand);
+        if (curOff != null)
+        {
+            local emptyAmmo = false;
+            try { emptyAmmo = curOff.isItemType(::Const.Items.ItemType.Ammo) && curOff.getAmmo() == 0; } catch (e) {}
+            if (!emptyAmmo)
+                return null; // Never drop an active Shield or offhand tool to unbag a net.
+        }
+        // Keep Mentor focused on summons/spells unless an urgent melee threat is right on top of him and no free summons remain.
+        local isCaster = this.isCasterRole(_actor);
+        if (isCaster)
+        {
+            foreach (sid in ["actives.unleash_companion", "actives.pale_summon_skeleton", "actives.pale_summon_zombie"])
+            {
+                local sk = _actor.getSkills().getSkillByID(sid);
+                if (sk != null && !sk.isHidden() && sk.isUsable() && sk.isAffordable())
+                    return null;
+            }
+        }
+
+        local bag = items.getAllItemsAtSlot(::Const.ItemSlot.Bag);
+        if (bag.len() == 0)
+            return null;
+        local bestNet = null;
+        local bestNetVal = -1;
+        foreach (it in bag)
+        {
+            if (it == null) continue;
+            local id = it.getID();
+            if (id != "tool.throwing_net" && id != "tool.reinforced_throwing_net") continue;
+            local emptyAmmo = false;
+            try { emptyAmmo = it.isItemType(::Const.Items.ItemType.Ammo) && it.getAmmo() == 0; } catch (e) {}
+            if (emptyAmmo) continue;
+            if (it.getValue() > bestNetVal) { bestNetVal = it.getValue(); bestNet = it; }
+        }
+        if (bestNet == null)
+            return null;
+
+        local curMain = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
+        local needUnequipMain = (curMain != null && curMain.getBlockedSlotType() == ::Const.ItemSlot.Offhand);
+        if (needUnequipMain && curOff != null && this.emptyBagSlots(items) <= 0)
+            return null;
+        local swapList = needUnequipMain ? [curMain, bestNet] : [bestNet];
+        if (!items.isActionAffordable(swapList))
+            return null;
+
+        // Probe exact runtime throw_net AP, Fatigue, Range, and target legality (Reforged: 5 AP, MaxRange 2, Reach immune check).
+        local probe = null;
+        local throwAP = 5;
+        local throwFat = 15;
+        local maxRng = 2;
+        try {
+            probe = ::new("scripts/skills/actives/throw_net");
+            probe.setContainer(_actor.getSkills());
+            try { probe.onAfterUpdate(_actor.getCurrentProperties()); } catch (e2) {}
+            throwAP = probe.getActionPointCost();
+            throwFat = probe.getFatigueCost();
+            maxRng = probe.getMaxRange();
+        } catch (e) { probe = null; }
+
+        local swapAP = items.getActionCost(swapList);
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        // Reserve +4 Fatigue buffer so equipping the net from bag (max stamina penalty) cannot push availFat below throwFat!
+        if (ap - swapAP < throwAP || availFat < throwFat + 4)
+            return null;
+
+        // With Quick Hands (0 AP swap) and a LOADED Crossbow at >= 8 AP, shoot the Crossbow FIRST (3 AP),
+        // then immediately unbag (0 AP) and throw the Net (5 AP) on the same turn!
+        if (needUnequipMain && swapAP == 0 && curMain != null)
+        {
+            local isLoadedXbow = false;
+            try {
+                isLoadedXbow = (curMain.isWeaponType(::Const.Items.WeaponType.Crossbow) || curMain.isWeaponType(::Const.Items.WeaponType.Firearm))
+                    && curMain.isLoaded();
+            } catch (e) {}
+            if (isLoadedXbow && ap >= 3 + throwAP && _actor.getTile().getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) == 0)
+                return null;
+        }
+
+        // For 2H brothers WITHOUT Quick Hands (4 AP unbag + 5 AP throw + 4 AP re-equip = 13 AP across 2 turns),
+        // reserve backpack nets strictly for genuine crises (adjacent attacker, Mentor breach, Champion/Knight/Berserker, or unengaged 2H Elite)
+        // rather than spending 13 AP netting ordinary shielded Footmen already pinned by our frontline tanks!
+        local highCost2H = (needUnequipMain && swapAP > 0);
+
+        local myTile = _actor.getTile();
+        local chiefTile = null;
+        foreach (bro in _info.Brothers)
+        {
+            if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+        }
+
+        local bestTargetScore = 0.0;
+        foreach (foe in _info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            if (foe.getCurrentProperties().IsRooted || foe.getCurrentProperties().IsStunned || foe.getCurrentProperties().IsImmuneToRoot) continue;
+            if (foe.getSkills().hasSkill("effects.net")) continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (d < 1 || d > maxRng || ::Math.abs(myTile.Level - ft.Level) > 1) continue;
+            if (probe != null)
+            {
+                local ok = false;
+                try { ok = probe.isUsableOn(ft, myTile); } catch (e) { ok = false; }
+                if (!ok) continue;
+            }
+            local elite = this.enemyEliteScore(foe, _info);
+            if (foe.getHitpoints() <= 28 && elite < 1.2) continue;
+            local unengaged = (ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0);
+            local nearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 2);
+            local inMyFace = (d == 1 && (this.isRangedRole(_actor) || isCaster));
+            local mdef = foe.getCurrentProperties().getMeleeDefense();
+            local isApexThreat = foe.getSkills().hasSkill("racial.champion") || foe.getSkills().hasSkill("effects.berserker_rage")
+                || foe.ClassName == "orc_berserker" || foe.ClassName == "orc_warlord"
+                || foe.ClassName == "knight" || foe.ClassName == "rf_knight_anointed"
+                || foe.ClassName == "rf_man_at_arms" || foe.ClassName == "noble_greatsword"
+                || foe.ClassName == "rf_skeleton_legatus" || foe.ClassName == "rf_skeleton_centurion";
+            local isHighThreat = false;
+            if (highCost2H)
+            {
+                isHighThreat = inMyFace || nearChief || isApexThreat || (unengaged && elite >= 1.4 && !foe.isArmedWithShield());
+            }
+            else
+            {
+                isHighThreat = inMyFace || nearChief || isApexThreat || (elite >= 1.2) || (!foe.isArmedWithShield() && mdef >= 22);
+            }
+            if (!isHighThreat)
+                continue;
+            if (isCaster && !nearChief && d > 1)
+                continue;
+
+            local sc = 20.0 + elite * 24.0 + (nearChief ? 28.0 : 0.0) + (inMyFace ? 22.0 : 0.0)
+                + (isApexThreat ? 18.0 : 0.0) + (unengaged ? 10.0 : 0.0) + (foe.getHitpointsPct() >= 0.50 ? 8.0 : 0.0);
+            if (sc > bestTargetScore)
+                bestTargetScore = sc;
+        }
+        if (bestTargetScore <= 0.0)
+            return null;
+        return { Net = bestNet, NeedUnequipMain = needUnequipMain, Score = 895.0 };
+    },
+
+    // Automatically re-equip a primary weapon from backpack whenever Mainhand is empty (e.g. right after a 2H backliner
+    // unequipped their Crossbow/Bow/Polearm to throw a backpack Net!).
+    function findReequipMainWeapon( _actor, _info )
+    {
+        local items = _actor.getItems();
+        if (items.getItemAtSlot(::Const.ItemSlot.Mainhand) != null)
+            return null;
+        // Wait until an equipped Throwing Net has actually been thrown first.
+        if (_actor.getSkills().hasSkill("actives.throw_net"))
+            return null;
+        local bag = items.getAllItemsAtSlot(::Const.ItemSlot.Bag);
+        if (bag.len() == 0)
+            return null;
+
+        local inZoC = _actor.getTile().getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0;
+        local isRanged = this.isRangedRole(_actor);
+        local curOff = items.getItemAtSlot(::Const.ItemSlot.Offhand);
+        local best = null;
+        local bestScore = -1.0;
+        foreach (it in bag)
+        {
+            if (it == null || !it.isItemType(::Const.Items.ItemType.Weapon))
+                continue;
+            local is2H = it.getBlockedSlotType() == ::Const.ItemSlot.Offhand;
+            if (is2H && curOff != null && this.emptyBagSlots(items) <= 0)
+                continue;
+            local swapList = (is2H && curOff != null) ? [curOff, it] : [it];
+            if (!items.isActionAffordable(swapList))
+                continue;
+
+            local isRngWep = it.isItemType(::Const.Items.ItemType.RangedWeapon);
+            local isThrow = false;
+            try { isThrow = it.isWeaponType(::Const.Items.WeaponType.Throwing); } catch (e) {}
+            if (isRngWep && !this.hasUsableRangedAmmo(_actor, it))
+                continue;
+
+            local sc = it.getValue().tofloat();
+            if (inZoC)
+            {
+                if (!isRngWep) sc += 10000.0;
+            }
+            else if (isRanged)
+            {
+                if (isRngWep && !isThrow) sc += 10000.0;
+                else if (isThrow) sc += 8000.0;
+            }
+            else
+            {
+                if (!isRngWep) sc += 10000.0;
+            }
+            if (sc > bestScore) { bestScore = sc; best = it; }
+        }
+        return best;
+    },
+
     function shouldSuppressEngageMelee( _actor, _agent )
     {
         if (!::Autopilot.isUnderAIControl(_actor) || !::Autopilot.conf("bgpSmartFrontline"))
@@ -1997,12 +2243,14 @@ local F = A.Frontline <- {
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Info.Enemies.len() == 0)
             return false;
-        // Never allow Mentor (caster) to walk forward into enemy archer sniper range (<= 7) or into unscreened melee range (<= 3)!
+        // Never allow Mentor (caster) to walk forward into unscreened enemy archer sniper fire (or into sniper range when HP < 40%) or into unscreened melee range!
         if (this.isCasterRole(_actor))
         {
             local curArch = this.nearestEnemyArcherDist(myTile, decision.Info.Enemies);
             local newArch = this.nearestEnemyArcherDist(_targetTile, decision.Info.Enemies);
-            if (decision.Info.EnemyProjectileRanged >= 3.0 && newArch <= 7 && newArch < curArch)
+            local lowHpMentor = _actor.getHitpointsPct() < 0.40;
+            local destHasCover = this.hasRangedCoverAt(_targetTile, _actor, decision.Info.Enemies, 8);
+            if (decision.Info.EnemyProjectileRanged >= 3.0 && newArch <= 7 && newArch < curArch && (lowHpMentor || !destHasCover))
                 return true;
             local curMelee = 99;
             local newMelee = 99;
@@ -2501,9 +2749,9 @@ local F = A.Frontline <- {
             local targetWep = (bestThrow != null && closeLive > 0) ? bestThrow : (bestLongRanged != null ? bestLongRanged : bestThrow);
             if (targetWep == null)
                 return null;
-            if (curOff != null && targetWep.isItemType(::Const.Items.ItemType.TwoHanded) && items.getNumberOfEmptyBagSlots() <= 0)
+            if (curOff != null && targetWep.getBlockedSlotType() == ::Const.ItemSlot.Offhand && this.emptyBagSlots(items) <= 0)
                 return null;
-            local swapList = (curOff != null && targetWep.isItemType(::Const.Items.ItemType.TwoHanded)) ? [curMain, curOff, targetWep] : [curMain, targetWep];
+            local swapList = (curOff != null && targetWep.getBlockedSlotType() == ::Const.ItemSlot.Offhand) ? [curMain, curOff, targetWep] : [curMain, targetWep];
             if (!items.isActionAffordable(swapList))
                 return null;
             return { Weapon = targetWep, Score = 720.0, EmptyBundle = true };
@@ -2514,9 +2762,9 @@ local F = A.Frontline <- {
         //   - Cannot afford another throw (ap == 3 < minThrowAP) AND bag holds a LOADED Crossbow ready to fire for 3 AP!
         if (bestLongRanged != null)
         {
-            if (curOff != null && bestLongRanged.isItemType(::Const.Items.ItemType.TwoHanded) && items.getNumberOfEmptyBagSlots() <= 0)
+            if (curOff != null && bestLongRanged.getBlockedSlotType() == ::Const.ItemSlot.Offhand && this.emptyBagSlots(items) <= 0)
                 return null;
-            local swapList = (curOff != null && bestLongRanged.isItemType(::Const.Items.ItemType.TwoHanded)) ? [curMain, curOff, bestLongRanged] : [curMain, bestLongRanged];
+            local swapList = (curOff != null && bestLongRanged.getBlockedSlotType() == ::Const.ItemSlot.Offhand) ? [curMain, curOff, bestLongRanged] : [curMain, bestLongRanged];
             if (items.isActionAffordable(swapList))
             {
                 local swapAP = items.getActionCost(swapList);
@@ -2655,29 +2903,71 @@ local F = A.Frontline <- {
         return best;
     },
 
-    // Check if an ally stands adjacent to _tile in the direction of enemy shooters (provides BB soft ranged cover).
-    function hasRangedCoverAt( _tile, _actor, _enemies )
+    // Check if frontline allies block enemy shooters' line of fire to _tile (adjacent BB soft ranged cover or ally directly on the frontal sightline).
+    function hasRangedCoverAt( _tile, _actor, _enemies, _maxDist = 9 )
     {
-        local nearestArch = null;
-        local bestD = 99;
+        local shooters = [];
+        local nearestDist = 99;
+        local nearestTile = null;
         foreach (foe in _enemies)
         {
             if (foe.getMoraleState() == ::Const.MoraleState.Fleeing || !foe.isArmedWithRangedWeapon())
                 continue;
-            local d = _tile.getDistanceTo(foe.getTile());
-            if (d < bestD) { bestD = d; nearestArch = foe.getTile(); }
+            local w = foe.getMainhandItem();
+            if (w != null && w.isItemType(::Const.Items.ItemType.Ammo))
+                continue;
+            local ft = foe.getTile();
+            local d = _tile.getDistanceTo(ft);
+            if (d <= _maxDist)
+            {
+                shooters.push({ Tile = ft, Dist = d });
+                if (d < nearestDist) { nearestDist = d; nearestTile = ft; }
+            }
         }
-        if (nearestArch == null) return true;
-        for (local dir = 0; dir < 6; ++dir)
+        if (shooters.len() == 0)
+            return true;
+
+        local blockers = [];
+        foreach (fac in [::Const.Faction.Player, ::Const.Faction.PlayerAnimals])
         {
-            if (!_tile.hasNextTile(dir)) continue;
-            local nt = _tile.getNextTile(dir);
-            if (!nt.IsOccupiedByActor) continue;
-            local occ = nt.getEntity();
-            if (occ.getID() != _actor.getID() && occ.isAlliedWith(_actor) && nt.getDistanceTo(nearestArch) < bestD)
-                return true;
+            foreach (ally in ::Tactical.Entities.getInstancesOfFaction(fac))
+            {
+                if (ally == null || ::MSU.isNull(ally) || !ally.isAlive() || ally.isDying() || !ally.isPlacedOnMap())
+                    continue;
+                if (ally.getID() == _actor.getID() || !ally.isAlliedWith(_actor))
+                    continue;
+                local at = ally.getTile();
+                local da = _tile.getDistanceTo(at);
+                if (da >= 1 && da <= 2)
+                    blockers.push({ Tile = at, Dist = da });
+            }
         }
-        return false;
+        if (blockers.len() == 0)
+            return false;
+
+        local covered = 0;
+        local nearestCovered = false;
+        foreach (sh in shooters)
+        {
+            local isBlocked = false;
+            foreach (bl in blockers)
+            {
+                local df = bl.Tile.getDistanceTo(sh.Tile);
+                // Adjacent ally closer to shooter (exact BB +50% soft cover) or ally 2 tiles ahead directly on the hex line of fire.
+                if ((bl.Dist == 1 && df < sh.Dist) || (bl.Dist == 2 && bl.Dist + df == sh.Dist))
+                {
+                    isBlocked = true;
+                    break;
+                }
+            }
+            if (isBlocked)
+            {
+                ++covered;
+                if (sh.Tile.ID == nearestTile.ID)
+                    nearestCovered = true;
+            }
+        }
+        return nearestCovered && covered * 2 >= shooters.len();
     },
 
     // Find a safe kiting/ally-screened tile for backline casters and ranged units under melee or sniper pressure.
@@ -2700,10 +2990,11 @@ local F = A.Frontline <- {
             ? (threat.UrgentHigh || threat.UnscreenedHigh3 || threat.LowThreatClose)
             : (curMeleeDist <= 2);
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
-        local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies) : true;
-        local hurtMentor = isCaster && _actor.getHitpointsPct() <= 0.75;
-        local sniperRange = _info.EnemyProjectileRanged >= 5.0 ? (hurtMentor ? 9 : 8) : 7;
-        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || curArcherDist <= (hurtMentor ? 7 : 6));
+        local lowHpMentor = isCaster && _actor.getHitpointsPct() < 0.40;
+        local sniperRange = _info.EnemyProjectileRanged >= 5.0 ? (lowHpMentor ? 9 : 8) : 7;
+        local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies, sniperRange) : true;
+        // Stay put and keep casting when frontline allies block enemy ranged line of fire, unless Mentor HP drops below 40%.
+        local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || lowHpMentor);
 
         if (!meleeDanger && !sniperDanger)
             return null;
@@ -2712,6 +3003,7 @@ local F = A.Frontline <- {
         // - Urgent high threat (dist <= 2 or swarm or fragile/hurt): up to 6 AP (escapes snow/swamp).
         // - Unscreened high threat at dist 3: up to 4 AP (leaves AP for spells).
         // - Single low-threat fodder at dist 2 (healthy armored/Nimble Mentor): cheap 2-AP sidestep only (never burns a spell turn!).
+        // - Sniper exposure with >= 40% HP: prefer a cheap 2-AP step behind cover so Mentor still casts spells.
         local maxMoveAP = 0;
         if (isCaster)
         {
@@ -2720,6 +3012,8 @@ local F = A.Frontline <- {
             else if (threat.UnscreenedHigh3)
                 maxMoveAP = ::Math.min(ap, 4);
             else if (threat.LowThreatClose && !sniperDanger)
+                maxMoveAP = ::Math.min(ap, 2);
+            else if (sniperDanger && !lowHpMentor)
                 maxMoveAP = ::Math.min(ap, 2);
             else
                 maxMoveAP = ap >= 7 ? 4 : (ap <= 2 ? ap : ::Math.min(ap - 3, 2));
@@ -2762,7 +3056,7 @@ local F = A.Frontline <- {
                 if (d < minMeleeDist) { minMeleeDist = d; destNearestThreat = ft; }
             }
             local newArcherDist = isCaster ? this.nearestEnemyArcherDist(dest, _info.Enemies) : 99;
-            local newCover = isCaster ? this.hasRangedCoverAt(dest, _actor, _info.Enemies) : false;
+            local newCover = isCaster ? this.hasRangedCoverAt(dest, _actor, _info.Enemies, sniperRange) : false;
             local newScreen = (isCaster && destNearestThreat != null)
                 ? this.countScreenBlockersBetween(dest, _actor, destNearestThreat)
                 : { Blockers = 0, Strong = 0 };
@@ -2809,7 +3103,7 @@ local F = A.Frontline <- {
                     score -= 14.0;
             }
             if (sniperDanger)
-                score += ::Math.max(0, newArcherDist - curArcherDist) * 8.0 + (newArcherDist >= 8 ? 10.0 : 0.0) + (newCover ? 7.0 : 0.0);
+                score += ::Math.max(0, newArcherDist - curArcherDist) * 8.0 + (newArcherDist >= 8 ? 10.0 : 0.0) + (newCover ? (lowHpMentor ? 8.0 : 16.0) : 0.0);
             score += ::Math.min(3, nearAllies) * 4.0 + ::Math.min(3, openExits) * 1.2
                 + this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, isCaster ? "caster" : "ranged") * 0.55
                 - cost.ActionPointsRequired * 1.0;
@@ -3331,7 +3625,8 @@ local F = A.Frontline <- {
     };
 });
 
-// Let BGP_Frontline handle smart Throwing Net targeting when bgpSmartFrontline is enabled so nets are not wasted on trash.
+// Let BGP_Frontline handle smart Throwing Net unbagging & targeting when bgpSmartFrontline is enabled so nets are not wasted on trash
+// or unbagged without a valid same-turn target.
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_throw_net", function(q) {
     q.evaluate = @(__original) function( _entity ) {
         if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
@@ -3341,6 +3636,50 @@ local F = A.Frontline <- {
             this.m.Skill = null;
             this.m.Score = 0;
             return true;
+        }
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/autopilot_unbag_net", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
+            return ::Const.AI.Behavior.Score.Zero;
+        return __original(_entity);
+    };
+});
+
+// Prevent vanilla SwitchToMelee (6000 score when Mainhand == null!) / SwitchToRanged from hijacking a 2H backliner
+// right after unbag_net (before throw_net fires) or right after throwing a net (before reequip_main restores their Bow/Crossbow)!
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_switchto_melee", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
+        {
+            local hasNet = _entity.getSkills().hasSkill("actives.throw_net");
+            local emptyMain = _entity.getItems().getItemAtSlot(::Const.ItemSlot.Mainhand) == null;
+            if (hasNet || emptyMain)
+            {
+                local info = F.assessBattle(_entity, this.getAgent());
+                if (hasNet && F.findBestNetTarget(_entity, info) != null)
+                    return ::Const.AI.Behavior.Score.Zero;
+                if (emptyMain && F.findReequipMainWeapon(_entity, info) != null)
+                    return ::Const.AI.Behavior.Score.Zero;
+            }
+        }
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_switchto_ranged", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
+        {
+            if (_entity.getSkills().hasSkill("actives.throw_net"))
+            {
+                local info = F.assessBattle(_entity, this.getAgent());
+                if (F.findBestNetTarget(_entity, info) != null)
+                    return ::Const.AI.Behavior.Score.Zero;
+            }
         }
         return __original(_entity);
     };
