@@ -114,7 +114,7 @@
 		this.m.IsRemovedAfterBattle = true;
 	}
 
-	// Keep caster possession active across turn starts while a Grandmaster-extended target still has turns left.
+	// Keep caster possession active across turn starts while a multi-turn BGP-possessed target still has turns left.
 	q.onTurnStart = @(__original) function()
 	{
 		if (this.m.BGP_KeepWhilePossessed)
@@ -213,8 +213,8 @@
 					row.text = "受到的所有伤害降低 " + ::MSU.Text.colorPositive(::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + "（W = 施放者决心 − " + ::BGP.Necro.WillOffset + " = " + w + "）";
 			}
 		}
-		if (this.m.BGP_Extended && this.m.BGP_TurnsLeft > 0)
-			ret.push({ id = 17, type = "text", icon = "ui/icons/special.png", text = "亡灵法术大师延长支配：还剩 " + ::MSU.Text.colorPositive(this.m.BGP_TurnsLeft) + " 个回合" });
+		if (this.m.BGP_Will != null && this.m.BGP_TurnsLeft > 0)
+			ret.push({ id = 17, type = "text", icon = "ui/icons/special.png", text = "支配持续：还剩 " + ::MSU.Text.colorPositive(this.m.BGP_TurnsLeft) + " 个回合" });
 		return ret;
 	}
 });

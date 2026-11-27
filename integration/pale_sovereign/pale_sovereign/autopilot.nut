@@ -118,11 +118,32 @@ local function summon(c, s, t) {
                     return value + 20.0;
                 return 0;
             }
-            // Round 2 pacing: after Mentor's first 4-AP summon leaves 5 AP, yield to 5-AP Curse of Ages (Scourge, up to 16.5)
-            // OR 3-AP Lich Infusion (Champion, up to 13.0) so Round 2 hits our key spell power-spike cleanly!
+            // Round 2 pacing:
+            // - Scourge: after Mentor's first 4-AP summon leaves 5 AP, yield to 5-AP Curse of Ages (up to 16.5).
+            // - Champion (4-AP base / 3-AP Mastery 2-3 turn Possess + 3-AP Infusion): on R2 when Lich King is deployed
+            //   and missing BOTH Possess & Infusion, yield so R2 plays Possess (3 AP) + Infusion (3 AP) = 16-AP Lich King
+            //   immediately for R2-R4, freeing full R3 AP for 2nd Skeleton + Flesh Reforge!
             local bonus = s.getID() == "actives.pale_summon_skeleton" ? 18.0 : 17.0;
-            if (freeLeft && rnd == 2 && c.Actor.getActionPoints() <= 5 && !crisis.AnyCrisis)
-                return value + 5.0;
+            if (freeLeft && rnd == 2 && !crisis.AnyCrisis) {
+                if (c.Actor.getActionPoints() <= 5)
+                    return value + 5.0;
+                local pet = S.mainPet();
+                if (pet != null && !c.Actor.getSkills().hasSkill("actives.bgp_corpse_explosion")) {
+                    local pSk = c.Actor.getSkills().getSkillByID("actives.possess_undead");
+                    local iSk = c.Actor.getSkills().getSkillByID("actives.bgp_necro_infusion");
+                    if (pSk != null && !pSk.isHidden() && pSk.isUsable() && iSk != null && !iSk.isHidden() && iSk.isUsable()
+                        && !c.Actor.getSkills().hasSkill("effects.possessing_undead")
+                        && c.Actor.getActionPoints() >= pSk.getActionPointCost() + iSk.getActionPointCost()) {
+                        foreach (at in c.Allies) {
+                            local u = at.getEntity();
+                            if (S.isDeployed(pet, u) && !u.getSkills().hasSkill("effects.possessed_undead")
+                                && !u.getSkills().hasSkill("effects.bgp_necro_infusion")
+                                && c.Origin.getDistanceTo(at) <= iSk.getMaxRange())
+                                return value + 5.0;
+                        }
+                    }
+                }
+            }
             if (rnd <= 3 && freeLeft) return value + bonus;
             if (freeLeft) return value + 10.0;
         } else {

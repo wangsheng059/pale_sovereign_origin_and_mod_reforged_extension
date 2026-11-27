@@ -21,8 +21,8 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Active,
 		Description = [
-			"解锁“支配亡灵”技能：消耗 " + ::MSU.Text.colorNegative("3") + " 行动点数、" + ::MSU.Text.colorNegative("10") + " 疲劳，施法距离 " + ::MSU.Text.colorPositive("99") + " 格（不需要视野），目标为一名友方亡灵（僵尸、骷髅、你复活的所有单位、常驻亡灵及亡灵宠物）。",
-			"被支配的亡灵直到它的回合结束：行动点上限变为 " + ::MSU.Text.colorPositive("12") + "（并立刻补满当回合行动点）、近战技能 " + ::MSU.Text.colorPositive("+W/5") + "、近战 / 远程防御 " + ::MSU.Text.colorPositive("+10") + "、主动值 " + ::MSU.Text.colorPositive("+50") + "、受到的伤害 " + ::MSU.Text.colorPositive("-(W/4 - 5)%") + "（0~30%）。",
+			"解锁“支配亡灵”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("16") + " 疲劳，施法距离 " + ::MSU.Text.colorPositive("99") + " 格（不需要视野），目标为一名友方亡灵（僵尸、骷髅、你复活的所有单位、常驻亡灵及亡灵宠物）。",
+			"被支配的亡灵持续 " + ::MSU.Text.colorPositive("2") + " 个回合（至目标第 2 个回合结束）：行动点上限变为 " + ::MSU.Text.colorPositive("12") + "（并立刻补满当回合行动点）、近战技能 " + ::MSU.Text.colorPositive("+W/5") + "、近战 / 远程防御 " + ::MSU.Text.colorPositive("+10") + "、主动值 " + ::MSU.Text.colorPositive("+50") + "、受到的伤害 " + ::MSU.Text.colorPositive("-(W/4 - 5)%") + "（0~30%）。",
 			"同一时间只能支配 1 名亡灵；施法者受到重伤或被支配者阵亡时支配提前结束。",
 			"（W = 亡灵法师当前决心 − 20，含装备和光环，施放时计算）"
 		]
