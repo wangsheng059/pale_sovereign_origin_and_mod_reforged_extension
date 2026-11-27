@@ -149,10 +149,26 @@ A.add("unleash_companion", "Adjacent", function(c, s, t) {
 local possess = A.Actions["actives.possess_undead"].Score;
 A.Actions["actives.possess_undead"].Score = function(c, s, t) {
     if (S.isChief(c.Actor) && s.ClassName == "bgp_necro_possess_skill") {
-        local pet = S.mainPet();
-        if (S.isDeployed(pet, t.getEntity())) return 19.0;
-        if (pet != null && ::Time.getRound() <= 2 && ::Autopilot.conf("paleAutoChampion") && !S.isDeployed(pet))
+        // Never overwrite an active Possession (especially ripping Possess off Lich King onto a fodder zombie!).
+        if (c.Actor.getSkills().hasSkill("effects.possessing_undead"))
             return 0;
+        local pet = S.mainPet();
+        local target = t.getEntity();
+        local smart = ::Autopilot.conf("bgpSmartFrontline");
+        if (S.isDeployed(pet, target))
+            // 13.2 * 130 = 1716: beats Raise Dead & Infusion while staying strictly BELOW Goblin24 deepVolleyZone backline_kite (1750)!
+            return smart ? 13.2 : 19.0;
+        if (pet != null && ::Autopilot.conf("paleAutoChampion")) {
+            // While Lich King is alive on the field (or about to be unleashed in R1-2), never waste Possess on disposable summons!
+            if (::Time.getRound() <= 2 && !S.isDeployed(pet))
+                return 0;
+            if (smart) {
+                foreach (at in c.Allies) {
+                    if (S.isDeployed(pet, at.getEntity()))
+                        return 0;
+                }
+            }
+        }
     }
     return possess(c, s, t);
 };

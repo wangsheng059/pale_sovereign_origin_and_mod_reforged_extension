@@ -74,10 +74,23 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
         if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
             ++aliveUndead;
     }
-    // Prioritize Raise Dead while building the early undead frontline.
+    // Prioritize Raise Dead while building/rebuilding the undead frontline, and aggressively deny corpses vs enemy Necromancers!
     local urgencyBonus = 0.0;
-    if (::Autopilot.conf("bgpSmartFrontline") && ::Time.getRound() >= 2 && ::Time.getRound() <= 8)
-        urgencyBonus = aliveUndead < 4 ? 1.6 : (aliveUndead < 6 ? 0.8 : 0.0);
+    if (::Autopilot.conf("bgpSmartFrontline")) {
+        if (aliveUndead < 4)
+            urgencyBonus = 2.2;
+        else if (aliveUndead < 6 && ::Time.getRound() >= 2)
+            urgencyBonus = 1.2;
+        // Champion-route casters rely on Raise Dead to maintain meatshields alongside Lich King (no Curse/CE).
+        if (aliveUndead < 5 && !c.Actor.getSkills().hasSkill("actives.bgp_corpse_explosion"))
+            urgencyBonus += 1.0;
+        foreach (et in c.Enemies) {
+            if (et.getEntity().getSkills().hasSkill("actives.raise_undead")) {
+                urgencyBonus += 2.2;
+                break;
+            }
+        }
+    }
     return (distance <= 2 ? 7.0 : distance <= 5 ? 5.9 : 3.2) + A.corpseValue(t) * 1.6 + shutdownBonus + backlineScreenBonus + urgencyBonus
         + (c.Engaged && c.Origin.getDistanceTo(t) <= 2 ? 0.9 : 0)
         - (pressure > 2 ? 0.65 : 0) - (c.Behavior.hasNegativeTileEffect(t, c.Actor) ? 1.1 : 0);
@@ -257,6 +270,9 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
 });
 A.add("possess_undead", "Allies", function(c, s, t) {
     if (s.ClassName != "bgp_necro_possess_skill") return 0;
+    // Never overwrite an active Possession on another undead.
+    if (::Autopilot.conf("bgpSmartFrontline") && c.Actor.getSkills().hasSkill("effects.possessing_undead"))
+        return 0;
     local distance = A.nearest(c.Enemies, t);
     local unit = t.getEntity();
     return (distance <= 1 ? 6.4 : distance <= 3 ? 5.2 : 3.3)
@@ -273,32 +289,48 @@ A.add("bgp_necro_infusion", "Allies", function(c, s, t) {
         local isMainPet = false;
         try { isMainPet = ("PaleSovereign" in ::getroottable()) && ::PaleSovereign.isActive() && ::PaleSovereign.isDeployed(::PaleSovereign.mainPet(), unit); } catch (e) {}
         local isPermUndeadBro = (unit.getFaction() == ::Const.Faction.Player && unit.getFlags().has("undead"));
+        local aliveUndead = 0;
+        foreach (at in c.Allies) {
+            local u = at.getEntity();
+            if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
+                ++aliveUndead;
+        }
+        local corpseCount = c.Behavior.targets(c, "Corpses").len();
+        local enemyHasNecro = false;
+        foreach (et in c.Enemies) {
+            if (et.getEntity().getSkills().hasSkill("actives.raise_undead")) { enemyHasNecro = true; break; }
+        }
+        // Keep ALL Infusion scores <= 13.0 (*130 = 1690) so Mentor ALWAYS executes deepVolleyZone backline_kite (1750) first!
         if (isGuard || isMainPet) {
-            // Core Champion synergy: +4 AP (+75 Ini, -1 move AP, instant HP/Fat restore) turns Possessed Lich King into a 16-AP juggernaut!
             if (hasInf) {
-                if (wound < 0.35 && fatigue < 0.70) return 0;
-                return 13.5 + 8.0 * wound + 2.5 * fatigue;
+                // Never spam Infusion every round just for fatigue; only refresh on already-infused Lich King for genuine low-HP emergency heal (<= 50% HP)!
+                if (wound < 0.50) return 0;
+                return ::Math.minf(13.0, 11.2 + 3.2 * wound);
             }
             if (dist > 6 && ::Time.getRound() < 2) return 0;
-            return 14.5 + (unit.isTurnDone() ? 0.0 : 2.5) + 4.5 * wound + 2.0 * fatigue;
+            // When our undead frontline is thin (< 4) and corpses are ready to raise, rebuild blockers FIRST before buffing!
+            if (aliveUndead < 4 && corpseCount > 0)
+                return 8.5;
+            return ::Math.minf(13.0, 12.1 + (unit.isTurnDone() ? 0.0 : 0.7) + 1.5 * wound);
         }
         if (isPermUndeadBro) {
             local isShield = ::BGP.hasShield(unit);
             if (hasInf) {
-                if (wound < 0.40 && fatigue < 0.75) return 0;
-                return 12.0 + 7.5 * wound + 2.5 * fatigue;
+                // Only emergency-heal already-infused permanent undead brothers below 45% HP.
+                if (wound < 0.55) return 0;
+                return ::Math.minf(12.2, 10.5 + 3.0 * wound);
             }
-            if (!isShield && dist <= 4) {
-                // Permanent Undead 2H/DPS bro (e.g. 2H Hammer): +4 AP enables double 2H attacks & +75 Ini leapfrog!
-                return 13.2 + (unit.isTurnDone() ? 0.0 : 2.2) + 4.0 * wound + 2.5 * fatigue;
+            // Wait until our undead meatshield line is healthy (>= 5, or >= 6 vs enemy Necromancer stealing corpses) before infusing permanent undead bros!
+            local minScreen = enemyHasNecro ? 6 : 5;
+            if (!isShield && dist <= 3 && (aliveUndead >= minScreen || corpseCount == 0)) {
+                return ::Math.minf(11.8, 10.2 + (unit.isTurnDone() ? 0.0 : 0.8) + 2.0 * wound);
             }
-            if (wound >= 0.30 || fatigue >= 0.65)
-                return 11.5 + 7.5 * wound + 2.5 * fatigue;
-            return dist <= 2 ? 7.0 + 3.0 * wound : 0;
+            if (wound >= 0.45)
+                return ::Math.minf(11.8, 10.4 + 2.8 * wound);
+            return 0;
         }
-        // Disposable summoned/raised undead: only infuse for emergency rescue when no priority undead needs it.
-        if (hasInf && wound < 0.45) return 0;
-        return dist <= 2 && wound >= 0.35 ? 2.5 + 3.5 * wound : 0;
+        // Never waste Mentor AP/Fatigue infusing disposable summoned/raised zombies.
+        return 0;
     }
     if (hasInf && wound < 0.35) return 0;
     return (dist <= 2 ? 2.1 : 0.25) + 4.0 * wound + fatigue;
@@ -319,16 +351,22 @@ A.add("bgp_necro_flesh_reforge", "Allies", function(c, s, t) {
             if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
                 ++aliveUndead;
         }
+        local corpseCount = c.Behavior.targets(c, "Corpses").len();
         local hasBone = unit.getSkills().hasSkill("effects.bgp_graft_bone");
+        // Keep Reforge <= 13.0 (*130 = 1690) so Mentor NEVER overrides deepVolleyZone backline_kite (1750)!
         if (isGuard || isMainPet) {
-            // Graft 1 (+Bone Armor + Thorns) & Graft 2 (+2 Max AP, -1 move AP, +15% Headshot) are huge permanent buffs for Lich King / Eternal Guard!
-            if (aliveUndead < 3 && c.Behavior.targets(c, "Corpses").len() <= 1)
+            if (aliveUndead < 4 && corpseCount <= 1)
                 return 6.0;
-            return (hasBone ? 14.5 : 15.5) + (dist <= 3 ? 1.5 : 0.0);
+            if (!hasBone)
+                return ::Math.minf(13.0, 12.5 + (dist <= 3 ? 0.5 : 0.0));
+            // Graft 2 (+2 Max AP): prioritize once undead screen is stable (>= 5) or corpses are plentiful (>= 2).
+            if (aliveUndead >= 5 || corpseCount >= 2)
+                return ::Math.minf(12.4, 11.8 + (dist <= 3 ? 0.5 : 0.0));
+            return 7.0;
         }
-        // Only graft onto high-HP elite raised undead when our undead screen is already thick (>= 5); never waste corpses on fragile fodder zombies!
-        if (aliveUndead >= 5 && dist <= 3 && unit.getHitpointsMax() >= 110)
-            return 7.5 + (hasBone ? 0.35 : 0.0);
+        // Only graft onto high-HP elite raised undead when our undead screen is thick (>= 6) and corpses are plentiful (>= 3).
+        if (aliveUndead >= 6 && corpseCount >= 3 && dist <= 3 && unit.getHitpointsMax() >= 110)
+            return 6.8 + (hasBone ? 0.35 : 0.0);
         return 0;
     }
     return (dist <= 3 ? 3.4 : 1.8) + (unit.getSkills().hasSkill("effects.bgp_graft_bone") ? 0.35 : 0);
