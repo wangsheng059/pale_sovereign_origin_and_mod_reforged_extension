@@ -197,6 +197,16 @@ S.Mod.hook("scripts/ai/tactical/behaviors/ai_defend_shieldwall", function(q) {
                 }
                 local need = isChamp ? (hpPct <= 0.55 || polearms2 >= 2 || (polearms2 >= 1 && hpPct <= 0.70) || (heavyAdj && hpPct <= 0.75)) : (hpPct <= 0.45);
                 if (!need) return ::Const.AI.Behavior.Score.Zero;
+            } else if (isChamp && hpPct >= 0.65 && _entity.getActionPoints() >= 8) {
+                // Attack-first discipline for healthy 12/16-AP Lich King: swing down to 4-7 AP FIRST to kill threats (often dropping meleeAdj 2->1!),
+                // then raise Shieldwall at the end of the turn with remaining 4 AP if still surrounded!
+                local sw = _entity.getSkills().getSkillByID("actives.shieldwall");
+                local atk = F.cheapestMeleeSkill(_entity);
+                local availFat = _entity.getFatigueMax() - _entity.getFatigue();
+                if (sw != null && atk != null && F.hasAdjacentTarget(_entity, atk, enemies)
+                    && _entity.getActionPoints() >= atk.getActionPointCost() + sw.getActionPointCost()
+                    && availFat >= atk.getFatigueCost() + sw.getFatigueCost() + 10)
+                    return ::Const.AI.Behavior.Score.Zero;
             }
         }
         return __original(_entity);

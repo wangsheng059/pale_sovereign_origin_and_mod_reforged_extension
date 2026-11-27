@@ -76,10 +76,10 @@ this.pale_champion_rotation <- ::inherit("scripts/ai/tactical/behavior", {
 
             local score = 0.0;
 
-            // Priority 1: Rescue Mentor from enemy ZoC when Lich King stands on a safer tile or has much better survivability.
-            if (isChief && allyZone > 0 && (myZone < allyZone || (myZone == allyZone && myHP > ally.getHitpointsPct() + 0.15)))
+            // Priority 1: Rescue Mentor from enemy ZoC onto a strictly safer tile (especially 0-ZoC full rescue!).
+            if (isChief && allyZone > 0 && myZone < allyZone)
             {
-                score = 1350.0 + allyZone * 150.0 + (1.0 - ally.getHitpointsPct()) * 300.0;
+                score = (myZone == 0 ? 1550.0 : 1380.0) + allyZone * 150.0 + (1.0 - ally.getHitpointsPct()) * 300.0;
             }
             else if (allyZone > 0)
             {

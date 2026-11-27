@@ -91,9 +91,42 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
             }
         }
     }
-    return (distance <= 2 ? 7.0 : distance <= 5 ? 5.9 : 3.2) + A.corpseValue(t) * 1.6 + shutdownBonus + backlineScreenBonus + urgencyBonus
+    local score = (distance <= 2 ? 7.0 : distance <= 5 ? 5.9 : 3.2) + A.corpseValue(t) * 1.6 + shutdownBonus + backlineScreenBonus + urgencyBonus
         + (c.Engaged && c.Origin.getDistanceTo(t) <= 2 ? 0.9 : 0)
         - (pressure > 2 ? 0.65 : 0) - (c.Behavior.hasNegativeTileEffect(t, c.Actor) ? 1.1 : 0);
+    // On Champion route, if Lich King / Eternal Guard is freshly revived or low-HP (<= 55%) and missing Possess or Infusion,
+    // yield slightly below Possess (13.2) & emergency Infusion (13.1) so Mentor stabilizes Lich King first, then raises with remaining AP!
+    if (::Autopilot.conf("bgpSmartFrontline") && backlineScreenBonus == 0.0
+        && !c.Actor.getSkills().hasSkill("actives.bgp_corpse_explosion")) {
+        local canPossess = false;
+        local canInfuse = false;
+        local pSk = c.Actor.getSkills().getSkillByID("actives.possess_undead");
+        if (pSk != null && !pSk.isHidden() && pSk.isUsable() && pSk.isAffordable() && !c.Actor.getSkills().hasSkill("effects.possessing_undead"))
+            canPossess = true;
+        local iSk = c.Actor.getSkills().getSkillByID("actives.bgp_necro_infusion");
+        if (iSk != null && !iSk.isHidden() && iSk.isUsable() && iSk.isAffordable())
+            canInfuse = true;
+        if (canPossess || canInfuse) {
+            foreach (at in c.Allies) {
+                local u = at.getEntity();
+                if (u == null || ::MSU.isNull(u) || !u.isAlive() || u.isDying()) continue;
+                local isChampPet = ::BGP.Champion.isGuard(u);
+                if (!isChampPet) {
+                    try { isChampPet = ("PaleSovereign" in ::getroottable()) && ::PaleSovereign.isActive() && ::PaleSovereign.isDeployed(::PaleSovereign.mainPet(), u); } catch (e) {}
+                }
+                if (isChampPet && u.getHitpointsPct() <= 0.55) {
+                    local needP = canPossess && !u.getSkills().hasSkill("effects.possessed_undead");
+                    local needI = canInfuse && (!u.getSkills().hasSkill("effects.bgp_necro_infusion") || u.getHitpointsPct() <= 0.50)
+                        && c.Origin.getDistanceTo(at) <= iSk.getMaxRange();
+                    if (needP || needI) {
+                        score = ::Math.minf(score, 12.6);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return score;
 });
 A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
     local corpse = ::BGP.Necro.getCorpse(t);
@@ -300,15 +333,21 @@ A.add("bgp_necro_infusion", "Allies", function(c, s, t) {
         foreach (et in c.Enemies) {
             if (et.getEntity().getSkills().hasSkill("actives.raise_undead")) { enemyHasNecro = true; break; }
         }
-        // Keep ALL Infusion scores <= 13.0 (*130 = 1690) so Mentor ALWAYS executes deepVolleyZone backline_kite (1750) first!
+        // Keep ALL Infusion scores <= 13.1 (*130 = 1703) so Mentor ALWAYS executes deepVolleyZone backline_kite (1750) first!
         if (isGuard || isMainPet) {
             if (hasInf) {
                 // Never spam Infusion every round just for fatigue; only refresh on already-infused Lich King for genuine low-HP emergency heal (<= 50% HP)!
                 if (wound < 0.50) return 0;
-                return ::Math.minf(13.0, 11.2 + 3.2 * wound);
+                return ::Math.minf(13.1, 11.4 + 3.2 * wound);
             }
             if (dist > 6 && ::Time.getRound() < 2) return 0;
-            // When our undead frontline is thin (< 4) and corpses are ready to raise, rebuild blockers FIRST before buffing!
+            // Revived or wounded Lich King (<= 60% HP) gets immediate emergency Infusion (heal + 16 AP) above capped Raise Dead (12.6)!
+            if (wound >= 0.40)
+                return 13.1;
+            // Opening R2-3 spike: always get Lich King to 16 AP first instead of throttling behind a single corpse!
+            if (::Time.getRound() <= 3)
+                return ::Math.minf(13.0, 12.4 + (unit.isTurnDone() ? 0.0 : 0.6));
+            // Later rounds when our undead frontline is thin (< 4) and corpses are ready to raise, rebuild blockers FIRST before routine buffs!
             if (aliveUndead < 4 && corpseCount > 0)
                 return 8.5;
             return ::Math.minf(13.0, 12.1 + (unit.isTurnDone() ? 0.0 : 0.7) + 1.5 * wound);
@@ -1285,13 +1324,46 @@ local F = A.Frontline <- {
         return mdef < 20 || !hasDefPerk || bodyArm < 80 || _actor.getHitpointsPct() <= 0.50;
     },
 
-    // Continuous enemy elite threat rating (scales cleanly from Day 1 Lv1 fights to Day 100+ late-game camps).
+    // Read live effective enemy combat attributes (real-time MSk/MDef/RSk/RDef + Fatigue headroom, including Shieldwall, injuries, perks, and curses).
+    function enemyLiveStats( _foe )
+    {
+        local msk = 50, mdef = 0, rsk = 40, rdef = 0, curFat = 0, maxFat = 100;
+        try {
+            local p = _foe.getCurrentProperties();
+            msk = p.getMeleeSkill();
+            mdef = p.getMeleeDefense();
+            rsk = p.getRangedSkill();
+            rdef = p.getRangedDefense();
+        } catch (e) {}
+        try {
+            curFat = _foe.getFatigue();
+            maxFat = _foe.getFatigueMax();
+        } catch (e) {}
+        local remFat = ::Math.max(0, maxFat - curFat);
+        local fatPct = maxFat > 0 ? (curFat.tofloat() / maxFat.tofloat()) : 0.0;
+        // Requiring curFat >= 25 cleanly excludes zero-fatigue undead (Ancient Dead / Zombies) who never stam out.
+        local isExhausted = (maxFat >= 50 && curFat >= 25 && (remFat <= 18 || fatPct >= 0.85));
+        return {
+            MSk = msk,
+            MDef = mdef,
+            RSk = rsk,
+            RDef = rdef,
+            CurFat = curFat,
+            MaxFat = maxFat,
+            RemFat = remFat,
+            FatPct = fatPct,
+            IsExhausted = isExhausted
+        };
+    },
+
+    // Continuous enemy elite threat rating (scales cleanly from Day 1 Lv1 fights to Day 100+ late-game camps, using real-time attributes).
     function enemyEliteScore( _foe, _info = null )
     {
         if (!this.isDangerousMeleeEnemy(_foe))
             return 0.0;
         local score = 0.0;
         local skills = _foe.getSkills();
+        local st = this.enemyLiveStats(_foe);
         if (skills.hasSkill("racial.champion"))
             score += 2.5;
         local w = _foe.getMainhandItem();
@@ -1310,6 +1382,11 @@ local F = A.Frontline <- {
             || cn == "swordmaster" || cn == "blade_dancer" || cn == "rf_fencer"
             || cn == "lindwurm" || cn == "unhold" || cn == "schrat")
             score += 1.25;
+        // Real-time skill & stamina awareness: dynamically catch high-MSk / high-MDef killers (including modded/Reforged elites) and discount stam-out foes.
+        if (st.MSk >= 85) score += 1.0;
+        else if (st.MSk >= 72) score += 0.55;
+        if (st.MDef >= 35) score += 0.45;
+        if (st.IsExhausted) score -= 0.45;
         // Relative durability tier compared to other enemies on the field.
         local avgHP = 90.0;
         local avgArm = 70.0;
@@ -1333,7 +1410,7 @@ local F = A.Frontline <- {
             score += 1.1;
         if (_foe.getArmorMax(::Const.BodyPart.Body) >= 60 && _foe.getArmorMax(::Const.BodyPart.Body) >= avgArm * 1.35)
             score += 0.6;
-        return score;
+        return ::Math.maxf(0.0, score);
     },
 
     // Identify weaker or fragile high-threat targets that unshielded DPS should focus down first.
@@ -2231,11 +2308,14 @@ local F = A.Frontline <- {
 
             local unengaged = ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0;
             local nearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3);
-            local mdef = foe.getCurrentProperties().getMeleeDefense();
+            local st = this.enemyLiveStats(foe);
             local sc = 15.0 + elite * 24.0;
             if (nearChief) sc += 22.0;
             if (unengaged) sc += 14.0;
-            if (mdef >= 18) sc += 12.0;
+            if (st.MDef >= 28) sc += 22.0;
+            else if (st.MDef >= 18) sc += 12.0;
+            if (st.MSk >= 75) sc += 12.0;
+            if (st.IsExhausted && !nearChief) sc -= 14.0;
             if (foe.getHitpointsPct() >= 0.60) sc += 8.0;
             if (foe.getArmor(::Const.BodyPart.Body) >= 70) sc += 6.0;
             // Bonus if netting stops an enemy currently adjacent to a fragile ally.
@@ -2502,7 +2582,7 @@ local F = A.Frontline <- {
         return false;
     },
 
-    function shouldSuppressEngageRanged( _actor, _agent, _targetTile )
+    function shouldSuppressEngageRanged( _actor, _agent, _targetTile, _skill = null )
     {
         if (_targetTile == null || !::Autopilot.isUnderAIControl(_actor) || !::Autopilot.conf("bgpSmartFrontline"))
             return false;
@@ -2514,9 +2594,21 @@ local F = A.Frontline <- {
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Info.Enemies.len() == 0)
             return false;
-        // Never allow Mentor (caster) to walk forward into unscreened enemy archer sniper fire, saturated 5+ shooter volleys, or sniper range when HP < 55% (or goblin-poisoned < 78%)!
+        // Never allow Mentor (caster) to undo a same-turn kite, walk forward without enough AP to cast, or step closer into melee/sniper danger for pale_weaken!
         if (this.isCasterRole(_actor))
         {
+            if (_targetTile.ID != myTile.ID)
+            {
+                local fl = _agent.getBehavior(::Const.AI.Behavior.ID.BGP_Frontline);
+                if (fl != null && fl.m.KitedRound == ::Time.getRound())
+                    return true;
+                if (_skill != null)
+                {
+                    local minStepAP = myTile.getDistanceTo(_targetTile) * 2;
+                    if (_actor.getActionPoints() - minStepAP < _skill.getActionPointCost())
+                        return true;
+                }
+            }
             local curArch = this.nearestEnemyArcherDist(myTile, decision.Info.Enemies);
             local newArch = this.nearestEnemyArcherDist(_targetTile, decision.Info.Enemies);
             local isGoblinPoisoned = _actor.getSkills().hasSkill("effects.goblin_poison");
@@ -2538,6 +2630,8 @@ local F = A.Frontline <- {
                 if (nd < newMelee) { newMelee = nd; nearestThreatTile = ft; }
             }
             if (newMelee <= 2)
+                return true;
+            if (_skill != null && _skill.getID() == "actives.pale_weaken" && _targetTile.ID != myTile.ID && newMelee <= 4 && newMelee < curMelee)
                 return true;
             if (newMelee <= 4 && newMelee < curMelee && nearestThreatTile != null)
             {
@@ -2754,6 +2848,14 @@ local F = A.Frontline <- {
             local isBow = weapon != null && weapon.isWeaponType(::Const.Items.WeaponType.Bow);
             if (tSkills.hasSkill("effects.shieldwall"))
                 mult *= 0.48;
+            // Real-time RDef / RSk / MSk targeting: avoid dumping arrows/bolts into 38+ RDef shield walls, prioritize low-RDef high-skill killers/snipers!
+            local stR = this.enemyLiveStats(_target);
+            if (stR.RDef >= 38 && hit < 48)
+                mult *= 0.58;
+            else if (stR.RDef <= 15 && !fleeing && (stR.MSk >= 70 || stR.RSk >= 65))
+                mult *= 1.24;
+            if (stR.IsExhausted && !fleeing)
+                mult *= 0.90;
             if (isBow)
             {
                 if (bodyArmor <= 90)
@@ -2782,10 +2884,18 @@ local F = A.Frontline <- {
                 mult *= 0.48;
             if (tSkills.hasSkill("effects.shieldwall") && _skill.getID() != "actives.split_shield" && hit < 65)
                 mult *= 0.52;
-            // Deprioritize ultra-heavy armored shield tanks for normal blades/spears, EXCEPT armor-shredding Hammers (smite/shatter/rf_pummel) which LOVE heavy armor!
+            // Real-time MDef / MSk / Fatigue awareness: avoid low-odds swings into 42+ MDef turtle walls; prioritize fresh high-MSk low-MDef killers!
+            local stM = this.enemyLiveStats(_target);
             local sid = _skill.getID();
             local isArmorBreaker = sid == "actives.split_shield" || sid == "actives.destroy_armor" || sid == "actives.crush_armor"
                 || sid == "actives.smite" || sid == "actives.shatter" || sid == "actives.rf_pummel";
+            if (stM.MDef >= 42 && hit < 55 && sid != "actives.split_shield" && sid != "actives.knock_out" && !tSkills.hasSkill("effects.shieldwall"))
+                mult *= 0.62;
+            if (!fleeing && stM.MSk >= 75 && stM.MDef <= 22 && !stM.IsExhausted)
+                mult *= 1.22;
+            if (!fleeing && stM.IsExhausted)
+                mult *= 0.88;
+            // Deprioritize ultra-heavy armored shield tanks for normal blades/spears, EXCEPT armor-shredding Hammers (smite/shatter/rf_pummel) which LOVE heavy armor!
             if (isArmorBreaker && bodyArmor >= 140)
                 mult *= 1.22;
             else if (bodyArmor >= 200 && _target.isArmedWithShield() && !isArmorBreaker)
@@ -2841,6 +2951,9 @@ local F = A.Frontline <- {
         local skills = _foe.getSkills();
         if (skills.hasSkill("actives.charge") || skills.hasSkill("actives.line_breaker")
             || skills.hasSkill("racial.champion") || skills.hasSkill("actives.warcry"))
+            return true;
+        local st = this.enemyLiveStats(_foe);
+        if (st.MSk >= 80 && !st.IsExhausted)
             return true;
         return _foe.getHitpointsMax() >= 140;
     },
@@ -4240,7 +4353,7 @@ local F = A.Frontline <- {
                 return true;
             throw e;
         }
-        if (done && this.m.Score > 0 && F.shouldSuppressEngageRanged(_entity, this.getAgent(), this.m.TargetTile))
+        if (done && this.m.Score > 0 && F.shouldSuppressEngageRanged(_entity, this.getAgent(), this.m.TargetTile, this.m.Skill))
         {
             this.m.TargetTile = null;
             this.m.Score = 0;

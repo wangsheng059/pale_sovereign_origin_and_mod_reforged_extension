@@ -118,11 +118,11 @@ local function summon(c, s, t) {
                     return value + 20.0;
                 return 0;
             }
-            // Round 2 pacing: after Mentor's first 4-AP summon leaves 5 AP, yield to 5-AP Curse of Ages (up to 16.5)
-            // so Round 2 plays Summon (4 AP) + Curse of Ages (5 AP) cleanly instead of spending 8 AP on double summons!
+            // Round 2 pacing: after Mentor's first 4-AP summon leaves 5 AP, yield to 5-AP Curse of Ages (Scourge, up to 16.5)
+            // OR 3-AP Lich Infusion (Champion, up to 13.0) so Round 2 hits our key spell power-spike cleanly!
             local bonus = s.getID() == "actives.pale_summon_skeleton" ? 18.0 : 17.0;
             if (freeLeft && rnd == 2 && c.Actor.getActionPoints() <= 5 && !crisis.AnyCrisis)
-                return value + 6.5;
+                return value + 5.0;
             if (rnd <= 3 && freeLeft) return value + bonus;
             if (freeLeft) return value + 10.0;
         } else {
@@ -225,17 +225,39 @@ A.add("pale_weaken", "Enemies", function(c, s, t) {
                 lethal += (hp <= 12 ? 5.0 : 3.0);
         }
     } else if (!enemy.getSkills().hasSkill("effects.pale_prey") && enemy.getMoraleState() != ::Const.MoraleState.Fleeing) {
-        // When no lethal snipe is available, prioritize marking dangerous high-HP bosses/elites as Prey (+10 hit / +20% dmg for all undead).
+        // When no lethal snipe is available, prioritize marking dangerous high-HP/high-MSk/high-MDef bosses/elites as Prey (+10 hit / +20% dmg for all undead).
+        local st = A.Frontline.enemyLiveStats(enemy);
         if (enemy.getHitpointsMax() >= 130 || enemy.getSkills().hasSkill("racial.champion")
-            || enemy.getArmor(::Const.BodyPart.Body) >= 180)
+            || enemy.getArmor(::Const.BodyPart.Body) >= 180 || st.MSk >= 78 || st.MDef >= 35)
             value += 2.2;
+        if (st.MDef >= 38 && !st.IsExhausted)
+            value += 1.0;
     }
     // Guaranteed-hit direct-HP snipe bonus against ultra-high-MDef Geists/Banshees and Ancient Priests!
-    if (enemy.ClassName == "ghost" || enemy.ClassName == "rf_banshee" || enemy.getSkills().hasSkill("actives.ghastly_touch"))
+    local isPrioritySnipe = false;
+    if (enemy.ClassName == "ghost" || enemy.ClassName == "rf_banshee" || enemy.getSkills().hasSkill("actives.ghastly_touch")) {
         value += 4.5;
-    else if (enemy.getSkills().hasSkill("actives.miasma") || enemy.getSkills().hasSkill("actives.horror"))
+        isPrioritySnipe = true;
+    } else if (enemy.getSkills().hasSkill("actives.miasma") || enemy.getSkills().hasSkill("actives.horror")
+        || enemy.getSkills().hasSkill("actives.raise_undead")) {
         value += 3.0;
-    return value + lethal;
+        isPrioritySnipe = true;
+    }
+    local total = value + lethal;
+    if (::Autopilot.conf("bgpSmartFrontline")) {
+        // Stay strictly below Goblin24 deepVolleyZone backline_kite (1750 = 13.46 * 130).
+        // On Champion route (!Scourge), keep routine pale_weaken below Lich Possess (13.2), Infusion (13.0), Reforge (13.0), and urgent Raise Dead
+        // unless executing a guaranteed lethal snipe on a Geist/Banshee/Priest/Necromancer/Champion or Mentor-breacher!
+        if (!s.m.Scourge) {
+            local nearMentor = c.Origin.getDistanceTo(t) <= 2;
+            local allowHigh = (lethal >= 9.0 && (isPrioritySnipe || nearMentor || enemy.getSkills().hasSkill("racial.champion")));
+            local cap = allowHigh ? 13.35 : (lethal >= 9.0 ? 12.1 : 10.6);
+            total = ::Math.minf(cap, total);
+        } else {
+            total = ::Math.minf(13.4, total);
+        }
+    }
+    return total;
 });
 A.add("pale_soul_chain", "Enemies", @(c, s, t) ::Autopilot.conf("paleAutoChain") ? 8.5 + (t.getEntity().getSkills().hasSkill("racial.champion") ? 1 : 0) : 0);
 A.add("pale_soul_bind", "Corpses", @(c, s, t) ::Autopilot.conf("paleAutoChain") ? 8.0 + A.corpseValue(t) : 0);

@@ -33,15 +33,21 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
     {
         local chiefTile = chief.getTile();
         local distance = tile.getDistanceTo(chiefTile);
-        if (smart && distance <= 2 && ::Math.abs(tile.Level - chiefTile.Level) <= 1)
+        if (smart && distance == 1 && ::Math.abs(tile.Level - chiefTile.Level) <= 1)
         {
-            local threatened = chief.getHitpoints() * 2 <= chief.getHitpointsMax();
-            priority = ::Math.maxf(priority, threatened ? (_champion ? 2.2 : 1.7) : (_champion ? 1.55 : 1.30));
+            // Strict dist==1 peel: any enemy actively standing in Mentor's ZoC gets top priority over dist==2 threats!
+            local chiefHurt = chief.getHitpointsPct() <= 0.75 || chiefTile.getZoneOfControlCountOtherThan(chief.getAlliedFactions()) >= 2;
+            priority = ::Math.maxf(priority, chiefHurt ? (_champion ? 3.8 : 2.6) : (_champion ? 2.8 : 2.0));
+        }
+        else if (smart && distance == 2 && ::Math.abs(tile.Level - chiefTile.Level) <= 1)
+        {
+            local threatened = chief.getHitpointsPct() <= 0.65;
+            priority = ::Math.maxf(priority, threatened ? (_champion ? 1.85 : 1.45) : (_champion ? 1.30 : 1.10));
         }
         else if (smart && distance == 3 && tile.getZoneOfControlCountOtherThan(_target.getAlliedFactions()) == 0)
         {
             // Intercept unengaged melee threats closing in on Mentor before they enter strike range.
-            priority = ::Math.maxf(priority, _champion ? 1.30 : 1.05);
+            priority = ::Math.maxf(priority, _champion ? 1.25 : 1.05);
         }
         else if (!smart && distance <= 2 && distance <= _target.getIdealRange() && ::Math.abs(tile.Level - chiefTile.Level) <= 1)
         {
@@ -89,6 +95,14 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
         // Avoid killing RF_Squire before enemy Knight is down (killing Squire buffs the Knight!).
         if (_target.ClassName == "rf_squire")
             priority *= 0.25;
+        // Real-time enemy stats awareness: prioritize deadly high-MSk / low-MDef targets over stam-out or turtle walls.
+        local st = ::BGP.Autopilot.Frontline.enemyLiveStats(_target);
+        if (st.MSk >= 78 && !st.IsExhausted)
+            priority += 0.45;
+        if (!_target.isArmedWithShield() && st.MDef <= 18)
+            priority += 0.30;
+        if (st.IsExhausted && priority < 2.0)
+            priority *= 0.85;
         // Wounded & armor-stripped focus-fire bonus so undead swarm collapses single enemies fast.
         local hpPct = _target.getHitpointsPct();
         if (hpPct <= 0.50)
@@ -143,11 +157,13 @@ S.championAttackScore <- function( _score, _actor, _target, _skill )
         bonus -= (_actor.getHitpointsPct() < 0.45 ? 0.65 : 0.35) * (1.0 - hit / 100.0);
 
     local mult = ::Math.maxf(0.20, 1.0 + bonus);
-    // Stop Lich King and undead minions from mindlessly whacking Shieldwall / ultra-heavy armored shield tanks when non-lethal.
-    if (smart && !_skill.isRanged() && !isLethal)
+    // Stop Lich King and undead minions from mindlessly whacking high-MDef Shieldwall / ultra-heavy shielded tanks when non-lethal
+    // (unless peeling an enemy actively adjacent to Mentor).
+    if (smart && !_skill.isRanged() && !isLethal && bonus < 2.5)
     {
-        if (tSkills.hasSkill("effects.shieldwall") && _skill.getID() != "actives.split_shield" && hit < 65)
-            mult *= 0.50;
+        local st = ::BGP.Autopilot.Frontline.enemyLiveStats(_target);
+        if ((tSkills.hasSkill("effects.shieldwall") || st.MDef >= 42) && _skill.getID() != "actives.split_shield" && hit < 60)
+            mult *= 0.45;
         else if (_target.getArmor(::Const.BodyPart.Body) >= 200 && _target.isArmedWithShield() && _skill.getID() != "actives.split_shield")
             mult *= 0.72;
     }
