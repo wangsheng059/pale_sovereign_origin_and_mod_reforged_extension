@@ -522,6 +522,10 @@ local F = A.Frontline <- {
 
     function isRangedRole( _actor )
     {
+        // If a former ranged brother switched to a melee weapon after running completely out of all ranged ammo, treat them as melee!
+        local curMain = _actor.getItems().getItemAtSlot(::Const.ItemSlot.Mainhand);
+        if (curMain != null && !curMain.isItemType(::Const.Items.ItemType.RangedWeapon) && !this.hasAnyRangedAmmoLeft(_actor))
+            return false;
         if ("_autopilot" in _actor.m && _actor.m._autopilot.ranged && !_actor.m._autopilot.throwing)
             return true;
         return _actor.isArmedWithRangedWeapon() && !("_autopilot" in _actor.m && _actor.m._autopilot.throwing);
@@ -541,17 +545,108 @@ local F = A.Frontline <- {
         local maxAmmo = 0;
         local curAmmo = 0;
         try { maxAmmo = _weapon.getAmmoMax(); curAmmo = _weapon.getAmmo(); } catch (e) { maxAmmo = 0; curAmmo = 0; }
-        if (maxAmmo <= 0 || curAmmo > 0)
+        if (maxAmmo > 0)
+            return curAmmo > 0;
+        // Loaded crossbow / handgonne still has 1 chambered shot even when quiver hits 0.
+        local loaded = false;
+        try { if ("isLoaded" in _weapon) loaded = _weapon.isLoaded(); } catch (e) {}
+        if (loaded)
             return true;
-        // Bow/crossbow uses separate ammo slot; check ammo slot & backpack quivers.
-        local ammoItem = _actor.getItems().getItemAtSlot(::Const.ItemSlot.Ammo);
+        local isBow = false, isCrossbow = false, isFirearm = false;
+        try {
+            isBow = _weapon.isWeaponType(::Const.Items.WeaponType.Bow);
+            isCrossbow = _weapon.isWeaponType(::Const.Items.WeaponType.Crossbow);
+            isFirearm = _weapon.isWeaponType(::Const.Items.WeaponType.Firearm);
+        } catch (e) {}
+        // Slings / staves that do not consume ammo quivers have infinite ammo.
+        if (!isBow && !isCrossbow && !isFirearm)
+            return true;
+        local wantType = null;
+        try {
+            if (isBow) wantType = ::Const.Items.AmmoType.Arrows;
+            else if (isCrossbow) wantType = ::Const.Items.AmmoType.Bolts;
+            else if (isFirearm) wantType = ::Const.Items.AmmoType.Powder;
+        } catch (e) { wantType = null; }
+        // Bow/crossbow/handgonne uses separate ammo slot; check ammo slot & matching backpack quivers.
+        local items = _actor.getItems();
+        local ammoItem = items.getItemAtSlot(::Const.ItemSlot.Ammo);
         if (ammoItem != null)
         {
             local a = 0;
-            try { a = ammoItem.getAmmo(); } catch (e) { a = 0; }
-            if (a > 0)
+            local aType = null;
+            try { a = ammoItem.getAmmo(); aType = ammoItem.getAmmoType(); } catch (e) { a = 0; }
+            if (a > 0 && (wantType == null || aType == null || aType == wantType))
                 return true;
         }
+        foreach (bi in items.getAllItemsAtSlot(::Const.ItemSlot.Bag))
+        {
+            if (bi == null || bi.getSlotType() != ::Const.ItemSlot.Ammo) continue;
+            local ba = 0;
+            local bType = null;
+            try { ba = bi.getAmmo(); bType = bi.getAmmoType(); } catch (e) { ba = 0; }
+            if (ba > 0 && (wantType == null || bType == null || bType == wantType))
+                return true;
+        }
+        return false;
+    },
+
+    // Return true if _actor still has ANY usable ranged weapon ammo anywhere (equipped weapon, chamber, ammo slot, or backpack quivers/throwing bundles).
+    function hasAnyRangedAmmoLeft( _actor )
+    {
+        local items = _actor.getItems();
+        local curMain = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
+        if (curMain != null && curMain.isItemType(::Const.Items.ItemType.RangedWeapon) && this.hasUsableRangedAmmo(_actor, curMain))
+            return true;
+        foreach (bi in items.getAllItemsAtSlot(::Const.ItemSlot.Bag))
+        {
+            if (bi != null && bi.isItemType(::Const.Items.ItemType.RangedWeapon) && this.hasUsableRangedAmmo(_actor, bi))
+                return true;
+        }
+        return false;
+    },
+
+    // Late-battle out-of-ammo melee join: when an archer/crossbowman has 0 ranged ammo left anywhere,
+    // has a backup melee weapon and healthy HP (>= 45%), and enemies are wounded/routing/late-battle, switch to melee and help surround!
+    function shouldOutOfAmmoJoinMelee( _actor, _info )
+    {
+        if (this.isCasterRole(_actor) || _actor.getHitpointsPct() < 0.45)
+            return false;
+        if (this.hasAnyRangedAmmoLeft(_actor))
+            return false;
+        local curMain = _actor.getItems().getItemAtSlot(::Const.ItemSlot.Mainhand);
+        local hasMelee = (curMain != null && !curMain.isItemType(::Const.Items.ItemType.RangedWeapon))
+            || (this.findBestBagMeleeWeapon(_actor) != null);
+        if (!hasMelee)
+            return false;
+        if (::Tactical.Entities.isEnemyRetreating())
+            return true;
+        local activeEnemies = 0;
+        local fleeingEnemies = 0;
+        local woundedOrStripped = 0;
+        local engagedEnemies = 0;
+        foreach (foe in _info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing)
+            {
+                ++fleeingEnemies;
+                continue;
+            }
+            ++activeEnemies;
+            local maxArm = foe.getArmorMax(::Const.BodyPart.Body);
+            local stripped = maxArm >= 40 && foe.getArmor(::Const.BodyPart.Body) <= maxArm * 0.25;
+            if (foe.getHitpointsPct() <= 0.70 || stripped
+                || foe.getCurrentProperties().IsStunned || foe.getSkills().hasSkill("effects.net"))
+                ++woundedOrStripped;
+            if (foe.getTile().getZoneOfControlCountOtherThan(foe.getAlliedFactions()) > 0)
+                ++engagedEnemies;
+        }
+        if (activeEnemies == 0 || fleeingEnemies >= activeEnemies)
+            return true;
+        local rnd = ::Time.getRound();
+        if (rnd >= 5 && (woundedOrStripped * 2 >= activeEnemies || activeEnemies <= 5 || (engagedEnemies >= 2 && woundedOrStripped >= 2)))
+            return true;
+        if (rnd >= 8 && woundedOrStripped >= 1)
+            return true;
         return false;
     },
 
@@ -680,6 +775,7 @@ local F = A.Frontline <- {
         local enemyChargers = 0;
         local enemyUrgentCasters = 0;
         local enemyMiasmaPriests = 0;
+        local enemyStrongMelee = 0;
         foreach (foe in enemies)
         {
             if (foe.getMoraleState() != ::Const.MoraleState.Fleeing)
@@ -692,6 +788,17 @@ local F = A.Frontline <- {
                     ++enemyUrgentCasters;
                 if (fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma"))
                     ++enemyMiasmaPriests;
+                if (this.isDangerousMeleeEnemy(foe))
+                {
+                    local w = foe.getMainhandItem();
+                    local is2H = (w != null && w.isItemType(::Const.Items.ItemType.TwoHanded) && w.isItemType(::Const.Items.ItemType.MeleeWeapon));
+                    local msk = 50;
+                    try { msk = foe.getCurrentProperties().getMeleeSkill(); } catch (e) {}
+                    if (foe.getHitpointsMax() >= 100 || foe.getArmorMax(::Const.BodyPart.Body) >= 110
+                        || is2H || msk >= 70
+                        || (fs.hasSkill("racial.champion") && foe.getHitpointsMax() >= 75))
+                        ++enemyStrongMelee;
+                }
             }
         }
         foreach (bro in brothers)
@@ -746,6 +853,10 @@ local F = A.Frontline <- {
         local holdLine = rangedAdvantage && enemyChargers < 3 && !casterPush && !state.StallBroken && !state.MeleeJoined && activeEnemies > 0;
         local noEnemyRanged = (enemyProjectileRanged <= 0.01 && enemyMiasmaPriests == 0 && enemyChargers < 3
             && !state.StallBroken && !::Tactical.Entities.isEnemyRetreating() && activeEnemies > 0);
+        // Distinguish pure light-melee archer swarms (e.g. Goblins: rush to silence bows) from hybrid heavy-ranged + elite-melee armies
+        // (e.g. Nomads with Executioners/Desert Devils, Noble/Southern armies: advance cohesively behind Shieldwalls instead of scatter-sprinting!).
+        local lightMeleeVolleyRush = (enemyProjectileRanged >= 10.0 && enemyStrongMelee <= 4);
+        local hybridRangedHeavyMelee = (enemyProjectileRanged >= 5.0 && enemyStrongMelee >= 5);
 
         return {
             Enemies = enemies,
@@ -756,6 +867,9 @@ local F = A.Frontline <- {
             EnemyChargers = enemyChargers,
             EnemyUrgentCasters = enemyUrgentCasters,
             EnemyMiasmaPriests = enemyMiasmaPriests,
+            EnemyStrongMelee = enemyStrongMelee,
+            LightMeleeVolleyRush = lightMeleeVolleyRush,
+            HybridRangedHeavyMelee = hybridRangedHeavyMelee,
             FrontlineMinDist = frontlineMinDist,
             EngagedBrothers = engagedBrothers,
             RangedAdvantage = rangedAdvantage,
@@ -1530,7 +1644,7 @@ local F = A.Frontline <- {
             || cn == "knight" || cn == "rf_knight_anointed" || cn == "executioner"
             || cn == "rf_skeleton_heavy_elite" || cn == "rf_skeleton_legatus"
             || cn == "rf_zombie_hero" || cn == "zombie_knight"
-            || cn == "swordmaster" || cn == "blade_dancer" || cn == "rf_fencer"
+            || cn == "swordmaster" || cn == "blade_dancer" || cn == "desert_devil" || cn == "nomad_leader" || cn == "rf_fencer"
             || cn == "lindwurm" || cn == "unhold" || cn == "schrat")
             score += 1.25;
         // Relative offensive threat (foe.MSk - ally.MDef + surround) & relative evasiveness (our avg MSk - foe.MDef) + turn order.
@@ -2427,6 +2541,123 @@ local F = A.Frontline <- {
         return bestTile != null ? { Tile = bestTile, ChiefPeel = bestChiefPeel } : null;
     },
 
+    // Cohesive R1-R2 advance against hybrid heavy-ranged + strong-melee armies (e.g. Nomad mega-camps, Southern/Noble stacks):
+    // Shieldbearers advance 1-2 tiles together keeping full Shieldwall AP/Fat; unshielded melee step 1-2 tiles right behind/beside them
+    // with ranged cover instead of scattering 4 tiles ahead into Executioners/Desert Devils/Halberdiers!
+    function findCohesiveAdvanceTile( _behavior, _actor, _info )
+    {
+        if (::Time.getRound() > 2 || !_info.HybridRangedHeavyMelee || _info.HoldLine)
+            return null;
+        if (this.isRangedRole(_actor) || this.isCasterRole(_actor) || _actor.getCurrentProperties().IsRooted)
+            return null;
+        local myTile = _actor.getTile();
+        if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return null;
+        local atk = this.cheapestMeleeSkill(_actor);
+        if (atk != null && this.hasAdjacentTarget(_actor, atk, _info.Enemies))
+            return null;
+        // Never pass up a real same-turn step-and-attack (e.g. R2 2-tile polearms or counter-strikers).
+        if (this.findSameTurnStrikePlan(_actor, _info.Enemies) != null)
+            return null;
+
+        local isShield = ::BGP.hasShield(_actor);
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local reserveAP = 0;
+        local reserveFat = 0;
+        if (isShield)
+        {
+            local sw = _actor.getSkills().getSkillByID("actives.shieldwall");
+            if (sw != null && !sw.isHidden() && sw.isUsable())
+            {
+                reserveAP = sw.getActionPointCost();
+                reserveFat = sw.getFatigueCost();
+            }
+        }
+        local moveAPBudget = isShield ? (ap - reserveAP) : ::Math.min(ap, 4);
+        if (moveAPBudget < 2)
+            return null;
+
+        local curEnemyDist = 99;
+        local nearestFoeTile = null;
+        foreach (foe in _info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (d < curEnemyDist) { curEnemyDist = d; nearestFoeTile = ft; }
+        }
+        if (nearestFoeTile == null || curEnemyDist <= 2)
+            return null;
+
+        local chiefTile = null;
+        foreach (bro in _info.Brothers)
+            if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+
+        local navigator = ::Tactical.getNavigator();
+        local settings = this.navSettings(_actor, navigator);
+        local candidates = this.tilesInRange(myTile, 1, 2);
+        local bestTile = null;
+        local bestScore = 0.0;
+
+        foreach (dest in candidates)
+        {
+            if (!dest.IsEmpty || dest.ID == myTile.ID) continue;
+            if (_behavior.hasNegativeTileEffect(dest, _actor)) continue;
+            local dZoc = dest.getZoneOfControlCountOtherThan(_actor.getAlliedFactions());
+            if (!isShield && dZoc > 0) continue;
+            if (isShield && dZoc > 1) continue;
+
+            local newEnemyDist = 99;
+            foreach (foe in _info.Enemies)
+            {
+                if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                local d = dest.getDistanceTo(foe.getTile());
+                if (d < newEnemyDist) newEnemyDist = d;
+            }
+            local climbs = dest.Level > myTile.Level;
+            if (newEnemyDist >= curEnemyDist && !(climbs && newEnemyDist == curEnemyDist))
+                continue;
+            // Unshielded melee never step within 2 tiles of unengaged dangerous melee killers on opening R1-R2 without striking!
+            local newMeleeDist = this.nearestDangerousMeleeDistAt(dest, _info.Enemies);
+            if (!isShield && newMeleeDist <= 2)
+                continue;
+
+            if (!navigator.findPath(myTile, dest, settings, 0)) continue;
+            local cost = navigator.getCostForPath(_actor, settings, moveAPBudget, availFat);
+            if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.Tiles > 2 || cost.ActionPointsRequired > moveAPBudget)
+                continue;
+            if (isShield && reserveFat > 0 && (availFat - cost.FatigueRequired) < reserveFat)
+                continue;
+
+            local exp = this.evaluateTileExposure(_actor, dest, _info);
+            if (exp.AdjAllies == 0 && exp.NearAllies2 < 2)
+                continue;
+
+            local sc = (curEnemyDist - newEnemyDist) * 14.0
+                + ::Math.min(2, exp.AdjAllies) * 10.0
+                + ::Math.min(2, exp.AdjShieldAllies) * (isShield ? 8.0 : 12.0)
+                + ::Math.min(3, exp.NearAllies2) * 3.5
+                + this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, isShield ? "tank" : "dps") * 0.75
+                - cost.ActionPointsRequired * 0.5;
+            if (isShield)
+            {
+                if (exp.AdjEnemies >= 2) sc -= 18.0;
+                if (chiefTile != null && dest.getDistanceTo(chiefTile) <= 4 && dest.getDistanceTo(nearestFoeTile) < chiefTile.getDistanceTo(nearestFoeTile))
+                    sc += 8.0;
+            }
+            else
+            {
+                if (this.hasRangedCoverAt(dest, _actor, _info.Enemies, 8))
+                    sc += 10.0;
+                if (exp.Polearms2 >= 1 && exp.AdjShieldAllies == 0)
+                    sc -= 10.0;
+            }
+            if (sc > bestScore) { bestScore = sc; bestTile = dest; }
+        }
+        return bestTile;
+    },
+
     // Smart target selection for equipped Throwing Nets (prioritizes enemy elites, Mentor-breachers, and high-MDef threats).
     function findBestNetTarget( _actor, _info )
     {
@@ -2662,6 +2893,7 @@ local F = A.Frontline <- {
                 || foe.ClassName == "orc_berserker" || foe.ClassName == "orc_warlord"
                 || foe.ClassName == "knight" || foe.ClassName == "rf_knight_anointed";
             local isApexThreat = isChampion || isChargerOrApexBoss
+                || foe.ClassName == "desert_devil" || foe.ClassName == "executioner"
                 || foe.ClassName == "rf_man_at_arms" || foe.ClassName == "noble_greatsword"
                 || foe.ClassName == "rf_skeleton_legatus" || foe.ClassName == "rf_skeleton_centurion";
             local isHighThreat = false;
@@ -2989,7 +3221,7 @@ local F = A.Frontline <- {
                 || _target.ClassName == "rf_skeleton_centurion" || _target.ClassName == "rf_skeleton_decanus"
                 || _target.ClassName == "rf_marshal")
                 mult *= 1.50;
-            else if (_target.ClassName == "executioner")
+            else if (_target.ClassName == "executioner" || _target.ClassName == "desert_devil")
                 mult *= 1.45;
             else
             {
@@ -3485,7 +3717,8 @@ local F = A.Frontline <- {
         if (_foe.getIdealRange() >= 2)
             return true;
         local cn = _foe.ClassName;
-        if (cn == "orc_berserker" || cn == "goblin_wolfrider" || cn == "ghost" || cn == "rf_banshee")
+        if (cn == "orc_berserker" || cn == "goblin_wolfrider" || cn == "desert_devil" || cn == "executioner"
+            || cn == "ghost" || cn == "rf_banshee")
             return true;
         local fs = _foe.getSkills();
         return fs.hasSkill("actives.ghastly_touch") || fs.hasSkill("actives.werewolf_bite") || fs.hasSkill("effects.berserker_rage");
@@ -3899,26 +4132,31 @@ local F = A.Frontline <- {
         if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || mdef < 35 || isFragile || !hasUnderdog || _apAfter < minAtkAP))
             return true;
         // Stop isolated solo flank leaps (zero allies even within 2 tiles, zero attack AP left) into enemy convergence
-        // (allow BF frontliners to rush extreme archer swarms like Goblin24 when at most 1 melee enemy is adjacent).
+        // (allow BF frontliners to rush pure light-melee archer swarms like Goblin24, NOT Nomad Executioner/Desert Devil hybrids!).
         if (exp.AdjAllies == 0 && exp.NearAllies2 == 0 && _apAfter < minAtkAP
-            && !(_info.EnemyProjectileRanged >= 10.0 && !isFragile && exp.AdjEnemies <= 1)
+            && !(_info.LightMeleeVolleyRush && !isFragile && exp.AdjEnemies <= 1)
             && (exp.AdjEnemies >= 1 || exp.ThreatDist2 >= 2 || exp.Polearms2 >= 1))
             return true;
         // Stop unshielded melee brothers (e.g. 2H Hammer/Sword) from sprinting 3+ tiles ahead of the frontline on opening R1-R2
         // into isolated forward tiles (dAllies == 0, no shield/undead support, zero attack AP left) where enemies swarm them next turn!
         // Restrict to opening rounds (<= 2) so mid/late-battle flankers returning from killing backline Priests never freeze in Idle!
         local moveDist = _actor.getTile().getDistanceTo(_destTile);
-        if (::Time.getRound() <= 2 && moveDist >= 3 && exp.AdjAllies == 0 && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP
-            && !(_info.EnemyProjectileRanged >= 10.0 && !isFragile && exp.AdjEnemies <= 1))
+        if (::Time.getRound() <= 2 && moveDist >= 3 && _apAfter < minAtkAP
+            && !(_info.LightMeleeVolleyRush && !isFragile && exp.AdjEnemies <= 1))
         {
-            local nearEnemies3 = 0;
-            foreach (foe in _info.Enemies)
-            {
-                if (this.isDangerousMeleeEnemy(foe) && _destTile.getDistanceTo(foe.getTile()) <= 3)
-                    ++nearEnemies3;
-            }
-            if (nearEnemies3 >= 2)
+            if (_info.HybridRangedHeavyMelee && (exp.AdjAllies == 0 || (exp.AdjShieldAllies == 0 && this.nearestDangerousMeleeDistAt(_destTile, _info.Enemies) <= 4)))
                 return true;
+            if (exp.AdjAllies == 0 && exp.AdjShieldAllies == 0)
+            {
+                local nearEnemies3 = 0;
+                foreach (foe in _info.Enemies)
+                {
+                    if (this.isDangerousMeleeEnemy(foe) && _destTile.getDistanceTo(foe.getTile()) <= 3)
+                        ++nearEnemies3;
+                }
+                if (nearEnemies3 >= 2)
+                    return true;
+            }
         }
         // Never walk into a Halberdier/Ancient Polearm kill-box (2+ adjacent + reach-2 polearms) with zero shield support and zero attack AP left!
         if (exp.AdjEnemies >= 2 && (exp.Polearms2 >= 2 || (exp.Polearms2 >= 1 && mdef < 28)) && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP && mdef < 35)
@@ -4341,7 +4579,8 @@ local F = A.Frontline <- {
                         this.m.Score *= 0.45;
                 }
             }
-            // Also stop shieldbearers from being dragged by vanilla EngageMelee into 3+ surrounds or pure isolated solo dives without Shieldwall AP.
+            // Also stop shieldbearers from being dragged by vanilla EngageMelee into 3+ surrounds, isolated solo dives,
+            // or R1-R2 3+ tile scatter-sprints without Shieldwall AP against hybrid heavy-ranged + strong-melee armies!
             if (!veto && ::BGP.hasShield(_entity) && this.m.TargetTile.ID != myTile.ID)
             {
                 local exp = F.evaluateTileExposure(_entity, this.m.TargetTile, info);
@@ -4350,6 +4589,9 @@ local F = A.Frontline <- {
                 if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || (approxApAfter < swAP && _entity.getCurrentProperties().getMeleeDefense() < 40)))
                     veto = true;
                 else if (exp.AdjAllies == 0 && exp.NearAllies2 == 0 && approxApAfter < swAP && exp.AdjEnemies >= 2)
+                    veto = true;
+                else if (::Time.getRound() <= 2 && info.HybridRangedHeavyMelee && approxApAfter < swAP
+                    && (myTile.getDistanceTo(this.m.TargetTile) >= 3 || (exp.AdjAllies == 0 && exp.NearAllies2 == 0)))
                     veto = true;
             }
             if (veto)
@@ -4569,6 +4811,9 @@ local F = A.Frontline <- {
     q.onEvaluate = @(__original) function( _entity ) {
         if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
         {
+            // Never switch back to a ranged weapon when completely out of all ranged ammo!
+            if (!F.hasAnyRangedAmmoLeft(_entity))
+                return ::Const.AI.Behavior.Score.Zero;
             if (_entity.getSkills().hasSkill("actives.throw_net"))
             {
                 local info = F.assessBattle(_entity, this.getAgent());

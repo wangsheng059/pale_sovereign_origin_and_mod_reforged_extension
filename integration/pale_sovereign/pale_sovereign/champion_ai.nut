@@ -75,7 +75,7 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
             || _target.ClassName == "rf_banshee" || _target.ClassName == "ghost" || tSkills.hasSkill("actives.ghastly_touch"))
             priority = ::Math.maxf(priority, 1.45);
         else if (tSkills.hasSkill("effects.berserker_rage") || _target.ClassName == "orc_berserker"
-            || _target.ClassName == "desert_stalker" || _target.ClassName == "executioner")
+            || _target.ClassName == "desert_stalker" || _target.ClassName == "executioner" || _target.ClassName == "desert_devil")
             priority = ::Math.maxf(priority, 1.15);
         else if (tSkills.hasSkill("actives.rally_the_troops") || tSkills.hasSkill("actives.barbarian_drum")
             || tSkills.hasSkill("actives.warcry") || _target.ClassName == "rf_skeleton_legatus"

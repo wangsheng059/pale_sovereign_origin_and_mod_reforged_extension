@@ -67,6 +67,16 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         local myTile = _entity.getTile();
         local inZoC = myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) > 0;
         local isShield = ::BGP.hasShield(_entity);
+        // If a former ranged brother already holds a melee weapon and has 0 ranged ammo left, ensure Autopilot treats them as melee.
+        if (("_autopilot" in _entity.m) && _entity.m._autopilot.ranged && !_entity.isArmedWithRangedWeapon() && !F.hasAnyRangedAmmoLeft(_entity))
+        {
+            _entity.m._autopilot.ranged = false;
+            local wMult = "autopilot_mults" in agent ? agent.autopilot_mults : agent.m.Properties.BehaviorMult;
+            if (::Const.AI.Behavior.ID.EngageMelee < wMult.len())
+                wMult[::Const.AI.Behavior.ID.EngageMelee] = 1.0;
+            if (::Const.AI.Behavior.ID.Disengage < wMult.len())
+                wMult[::Const.AI.Behavior.ID.Disengage] = 0.35;
+        }
         local isRanged = F.isRangedRole(_entity);
         local isCaster = F.isCasterRole(_entity);
         local canWait = ::Tactical.TurnSequenceBar.canEntityWait(_entity);
@@ -242,6 +252,30 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     this.m.Mode = "switch_melee";
                     this.m.WeaponToEquip = backup;
                     return 780.0;
+                }
+            }
+        }
+
+        // 2d-1b. Late-battle Out-of-Ammo Melee Join: when a ranged brother has 0 ranged ammo left anywhere
+        // and enemies are wounded/routing/late-battle, swap to backup melee weapon and join the surround!
+        if (isRanged && !inZoC && _entity.isArmedWithRangedWeapon() && F.shouldOutOfAmmoJoinMelee(_entity, info))
+        {
+            local backup = F.findBestBagMeleeWeapon(_entity);
+            if (backup != null)
+            {
+                local items = _entity.getItems();
+                local curMain = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
+                local curOff = items.getItemAtSlot(::Const.ItemSlot.Offhand);
+                local needDropOff = (curOff != null && backup.getBlockedSlotType() == ::Const.ItemSlot.Offhand);
+                local swapList = [];
+                if (curMain != null) swapList.push(curMain);
+                if (needDropOff) swapList.push(curOff);
+                swapList.push(backup);
+                if (items.isActionAffordable(swapList) && (!needDropOff || F.emptyBagSlots(items) > 0))
+                {
+                    this.m.Mode = "out_of_ammo_melee";
+                    this.m.WeaponToEquip = backup;
+                    return 720.0;
                 }
             }
         }
@@ -435,6 +469,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     || (meleeAdj == 1 && (lowHP || (::Time.getRound() <= 2 && meleeWithin2 >= 2)
                         || (eliteAdj && (justIntercepted || _entity.getCurrentProperties().getMeleeDefense() < 35))))
                     || (zone == 0 && info.HoldLine && meleeWithin2 >= 2)
+                    || (zone == 0 && ::Time.getRound() <= 2 && info.HybridRangedHeavyMelee && (justIntercepted || _entity.getActionPoints() <= 5))
                     || rootedUnderFire;
                 // Skip pointless Shieldwall when engaged but ZERO adjacent/reach foes can attack before our next turn!
                 if (needSW && inZoC && !(info.EnemyProjectileRanged >= 4.0 && _entity.getHitpointsPct() <= 0.65))
@@ -581,6 +616,23 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
+        // 5c. Cohesive R1-R2 advance against hybrid heavy-ranged + strong-melee armies (Nomads/Nobles/Southern armies):
+        // Shieldbearers advance 1-2 tiles retaining Shieldwall AP; unshielded melee advance 1-2 tiles right behind/beside them with cover!
+        if (!inZoC && !isRanged && !isCaster && !_entity.getCurrentProperties().IsRooted
+            && ::Time.getRound() <= 2 && info.HybridRangedHeavyMelee && !info.HoldLine
+            && !_entity.getSkills().hasSkill("effects.shieldwall")
+            && !_entity.getSkills().hasSkill("effects.spearwall")
+            && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
+        {
+            local advTile = F.findCohesiveAdvanceTile(this, _entity, info);
+            if (advTile != null && advTile.ID != myTile.ID)
+            {
+                this.m.Mode = "cohesive_advance";
+                this.m.TargetTile = advTile;
+                return 410.0;
+            }
+        }
+
         // 6. Lower-priority terrain anchor (chokepoint / flank anchoring ONLY when otherwise idle; score 90 never overrides EngageMelee assaults).
         if (terrainPlan != null && terrainPlan.Tile.ID != myTile.ID && info.EnemyChargers < 3 && ::Time.getRound() <= 4)
         {
@@ -716,9 +768,10 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "switch_melee" || this.m.Mode == "hybrid_ranged_swap" || this.m.Mode == "reequip_main")
+        if (this.m.Mode == "switch_melee" || this.m.Mode == "out_of_ammo_melee" || this.m.Mode == "hybrid_ranged_swap" || this.m.Mode == "reequip_main")
         {
             local isHybrid = (this.m.Mode == "hybrid_ranged_swap");
+            local isOutOfAmmo = (this.m.Mode == "out_of_ammo_melee");
             local w = this.m.WeaponToEquip;
             this.m.Mode = null;
             this.m.WeaponToEquip = null;
@@ -747,7 +800,23 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     }
                     items.equip(w);
                     items.payForAction(swapList);
-                    this.getAgent().getIntentions().IsChangingWeapons = true;
+                    local ag = this.getAgent();
+                    ag.getIntentions().IsChangingWeapons = true;
+                    if (isOutOfAmmo)
+                    {
+                        if ("_autopilot" in _entity.m)
+                            _entity.m._autopilot.ranged = false;
+                        local wMult = "autopilot_mults" in ag ? ag.autopilot_mults : ag.m.Properties.BehaviorMult;
+                        if (::Const.AI.Behavior.ID.EngageMelee < wMult.len())
+                            wMult[::Const.AI.Behavior.ID.EngageMelee] = 1.0;
+                        if (::Const.AI.Behavior.ID.Disengage < wMult.len())
+                            wMult[::Const.AI.Behavior.ID.Disengage] = 0.35;
+                        if (ag.getBehavior(::Const.AI.Behavior.ID.EngageMelee) == null)
+                        {
+                            ag.addBehavior(::new("scripts/ai/tactical/behaviors/ai_engage_melee"));
+                            ag.finalizeBehaviors();
+                        }
+                    }
                     if (isHybrid)
                     {
                         if (this.m.HybridSwapRound != ::Time.getRound())
@@ -762,7 +831,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "vanguard_move" || this.m.Mode == "dynamic_melee_move" || this.m.Mode == "wounded_retreat" || this.m.Mode == "terrain_anchor" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
+        if (this.m.Mode == "vanguard_move" || this.m.Mode == "cohesive_advance" || this.m.Mode == "dynamic_melee_move" || this.m.Mode == "wounded_retreat" || this.m.Mode == "terrain_anchor" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
         {
             local navigator = ::Tactical.getNavigator();
             if (this.m.IsFirstExecuted)
