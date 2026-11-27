@@ -95,11 +95,12 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
         // Avoid killing RF_Squire before enemy Knight is down (killing Squire buffs the Knight!).
         if (_target.ClassName == "rf_squire")
             priority *= 0.25;
-        // Real-time enemy stats awareness: prioritize deadly high-MSk / low-MDef targets over stam-out or turtle walls.
+        // Relative squad threat & turn-order awareness: prioritize foes with high hit chance against our squad & unacted threats!
         local st = ::BGP.Autopilot.Frontline.enemyLiveStats(_target);
-        if (st.MSk >= 78 && !st.IsExhausted)
+        local sq = ::BGP.Autopilot.Frontline.enemySquadThreat(_target, null);
+        if (sq.MaxHit >= 55 && !st.IsExhausted)
             priority += 0.45;
-        if (!_target.isArmedWithShield() && st.MDef <= 18)
+        if (st.CanActThisRound && st.TurnsUntil <= 3)
             priority += 0.30;
         if (st.IsExhausted && priority < 2.0)
             priority *= 0.85;
@@ -156,15 +157,17 @@ S.championAttackScore <- function( _score, _actor, _target, _skill )
         && tSkills.hasSkill("effects.riposte") && !isLethal)
         bonus -= (_actor.getHitpointsPct() < 0.45 ? 0.65 : 0.35) * (1.0 - hit / 100.0);
 
+    local stLive = smart ? ::BGP.Autopilot.Frontline.enemyLiveStats(_target) : null;
+    if (isLethal && stLive != null && stLive.CanActThisRound)
+        bonus += (stLive.TurnsUntil <= 3 ? 0.35 : 0.20);
     local mult = ::Math.maxf(0.20, 1.0 + bonus);
-    // Stop Lich King and undead minions from mindlessly whacking high-MDef Shieldwall / ultra-heavy shielded tanks when non-lethal
-    // (unless peeling an enemy actively adjacent to Mentor).
+    // Use live engine hitchance (already fuses Lich King's MSk - foe MDef + real-time surround bonus + height!)
+    // instead of absolute MDef cutoffs: low-hit attackers pivot away, while high-MSk/surrounding Lich King smashes through!
     if (smart && !_skill.isRanged() && !isLethal && bonus < 2.5)
     {
-        local st = ::BGP.Autopilot.Frontline.enemyLiveStats(_target);
-        if ((tSkills.hasSkill("effects.shieldwall") || st.MDef >= 42) && _skill.getID() != "actives.split_shield" && hit < 60)
+        if (_skill.getID() != "actives.split_shield" && ((tSkills.hasSkill("effects.shieldwall") && hit < 55) || hit < 35))
             mult *= 0.45;
-        else if (_target.getArmor(::Const.BodyPart.Body) >= 200 && _target.isArmedWithShield() && _skill.getID() != "actives.split_shield")
+        else if (_target.getArmor(::Const.BodyPart.Body) >= 200 && _target.isArmedWithShield() && _skill.getID() != "actives.split_shield" && hit < 65)
             mult *= 0.72;
     }
     return _score * mult;

@@ -387,7 +387,12 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                         local hit = 0;
                         try { hit = bash.getHitchance(foe); } catch (e) {}
                         if (hit < 50) continue;
+                        local stB = F.enemyLiveStats(foe);
                         local sc = hit + (foe.getSkills().hasSkill("racial.champion") ? 45.0 : 20.0) + (foe.getHitpointsPct() >= 0.50 ? 15.0 : 0.0);
+                        // Prioritize dazing enemies BEFORE they act this round, especially high relative hit-chance attackers!
+                        if (stB.CanActThisRound) sc += (stB.TurnsUntil <= 3 ? 28.0 : 18.0);
+                        else sc -= 20.0;
+                        if (F.enemyEffectiveHitOn(foe, _entity) >= 50) sc += 14.0;
                         if (sc > bestBashScore) { bestBashScore = sc; bestBashTile = ft; }
                     }
                     if (bestBashTile != null)
@@ -430,6 +435,12 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                         || (eliteAdj && (justIntercepted || _entity.getCurrentProperties().getMeleeDefense() < 35))))
                     || (zone == 0 && info.HoldLine && meleeWithin2 >= 2)
                     || rootedUnderFire;
+                // Skip pointless Shieldwall when engaged but ZERO adjacent/reach foes can attack before our next turn!
+                if (needSW && inZoC && !(info.EnemyProjectileRanged >= 4.0 && _entity.getHitpointsPct() <= 0.65))
+                {
+                    if (F.hasThreatBeforeNextTurn(_entity, info.Enemies).Count == 0)
+                        needSW = false;
+                }
                 if (needSW)
                 {
                     local attackFirst = meleeAdj > 0 && !lowHP && F.shouldShieldbearerAttackFirst(_entity, sw, info.Enemies, meleeAdj);
@@ -460,6 +471,11 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     local lowHP = _entity.getHitpointsPct() <= (isShield ? 0.50 : (canComboWithAtk ? 0.65 : 0.45));
                     local needIndom = lowHP || (hasSW ? meleeAdj >= 3 : (canComboWithAtk ? (meleeAdj >= 2 || (heavyAdj && _entity.getHitpointsPct() <= 0.80))
                                                                                          : (meleeAdj >= 3 && _entity.getHitpointsPct() <= 0.70)));
+                    if (needIndom && !(info.EnemyProjectileRanged >= 4.0 && _entity.getHitpointsPct() <= 0.55))
+                    {
+                        if (F.hasThreatBeforeNextTurn(_entity, info.Enemies).Count == 0)
+                            needIndom = false;
+                    }
                     if (needIndom)
                     {
                         local attackFirst = false;
@@ -552,8 +568,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         }
 
         // 5b. No-ranged melee discipline: when enemy has ZERO ranged units (no archers/crossbows/javelins) and no Miasma/Horror priests,
-        // wait in Phase 1 whenever an unengaged melee brother cannot strike this turn (lets Zombies/melee walk into OUR first-strike range!).
-        if (info.NoEnemyRanged && !isRanged && !isCaster && !inZoC && canWait
+        // wait in Phase 1 during early/mid engagements whenever an unengaged melee brother cannot strike this turn (lets Zombies/melee walk into OUR first-strike range!).
+        if (info.NoEnemyRanged && !isRanged && !isCaster && !inZoC && canWait && ::Time.getRound() <= 8
             && _entity.getActionPoints() >= 4 && !F.hasBacklineBreach(info))
         {
             local strikeNow = F.findSameTurnStrikePlan(_entity, info.Enemies);

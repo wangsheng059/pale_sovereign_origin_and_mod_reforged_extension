@@ -183,7 +183,13 @@ S.Mod.hook("scripts/ai/tactical/behaviors/ai_defend_shieldwall", function(q) {
             if (meleeAdj == 0) {
                 local within2 = F.countDangerousMeleeWithin(_entity, enemies, 2);
                 if (within2 < 2) return ::Const.AI.Behavior.Score.Zero;
-            } else if (meleeAdj == 1) {
+            } else {
+                // Turn-order discipline: if ZERO adjacent/reach enemies can attack before our next turn starts
+                // (e.g. they already acted this round and high-Initiative Lich King acts before them next round), skip Shieldwall and attack!
+                if (F.hasThreatBeforeNextTurn(_entity, enemies).Count == 0)
+                    return ::Const.AI.Behavior.Score.Zero;
+            }
+            if (meleeAdj == 1) {
                 // Single melee enemy: keep Shieldwall up if reach-2 polearms threaten Lich King from dist 2, or wounded / heavy boss while hurt; otherwise swing twice!
                 local polearms2 = 0;
                 if (isChamp) {

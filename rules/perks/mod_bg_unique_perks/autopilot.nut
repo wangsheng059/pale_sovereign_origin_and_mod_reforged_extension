@@ -313,6 +313,11 @@ A.add("possess_undead", "Allies", function(c, s, t) {
 });
 A.add("bgp_necro_infusion", "Allies", function(c, s, t) {
     local unit = t.getEntity();
+    // Never cast Infusion twice on the same target in the exact same round.
+    if (::Autopilot.conf("bgpSmartFrontline") && "BGPAutoInfuseRound" in s.m
+        && s.m.BGPAutoInfuseRound == ::Time.getRound() && s.m.BGPAutoInfuseTargets != null
+        && (unit.getID() in s.m.BGPAutoInfuseTargets))
+        return 0;
     local wound = 1.0 - unit.getHitpointsPct();
     local hasInf = unit.getSkills().hasSkill("effects.bgp_necro_infusion");
     local fatigue = unit.getFatigue() / ::Math.maxf(1.0, unit.getFatigueMax());
@@ -1324,25 +1329,36 @@ local F = A.Frontline <- {
         return mdef < 20 || !hasDefPerk || bodyArm < 80 || _actor.getHitpointsPct() <= 0.50;
     },
 
-    // Read live effective enemy combat attributes (real-time MSk/MDef/RSk/RDef + Fatigue headroom, including Shieldwall, injuries, perks, and curses).
+    // Read live effective enemy combat attributes, real-time fatigue headroom, and current-round turn order / remaining AP.
     function enemyLiveStats( _foe )
     {
         local msk = 50, mdef = 0, rsk = 40, rdef = 0, curFat = 0, maxFat = 100;
+        local turnDone = false, ap = 9, turnsUntil = 99;
+        local stunned = false, fleeing = false;
         try {
             local p = _foe.getCurrentProperties();
             msk = p.getMeleeSkill();
             mdef = p.getMeleeDefense();
             rsk = p.getRangedSkill();
             rdef = p.getRangedDefense();
+            stunned = p.IsStunned;
         } catch (e) {}
         try {
             curFat = _foe.getFatigue();
             maxFat = _foe.getFatigueMax();
         } catch (e) {}
+        try {
+            turnDone = _foe.isTurnDone();
+            ap = _foe.getActionPoints();
+            fleeing = (_foe.getMoraleState() == ::Const.MoraleState.Fleeing);
+            if (!turnDone)
+                turnsUntil = ::Tactical.TurnSequenceBar.getTurnsUntilActive(_foe.getID());
+        } catch (e) {}
         local remFat = ::Math.max(0, maxFat - curFat);
         local fatPct = maxFat > 0 ? (curFat.tofloat() / maxFat.tofloat()) : 0.0;
         // Requiring curFat >= 25 cleanly excludes zero-fatigue undead (Ancient Dead / Zombies) who never stam out.
         local isExhausted = (maxFat >= 50 && curFat >= 25 && (remFat <= 18 || fatPct >= 0.85));
+        local canActThisRound = (!turnDone && ap >= 4 && !stunned && !fleeing);
         return {
             MSk = msk,
             MDef = mdef,
@@ -1352,11 +1368,133 @@ local F = A.Frontline <- {
             MaxFat = maxFat,
             RemFat = remFat,
             FatPct = fatPct,
-            IsExhausted = isExhausted
+            IsExhausted = isExhausted,
+            TurnDone = turnDone,
+            AP = ap,
+            TurnsUntil = turnsUntil,
+            CanActThisRound = canActThisRound
         };
     },
 
-    // Continuous enemy elite threat rating (scales cleanly from Day 1 Lv1 fights to Day 100+ late-game camps, using real-time attributes).
+    // Compute relative effective hit chance (5-95%) of _foe hitting _defender, factoring live skill-vs-defense delta,
+    // real-time surround bonus (checking Underdog / Backstabber), and elevation difference.
+    function enemyEffectiveHitOn( _foe, _defender, _atTile = null )
+    {
+        if (_foe == null || _defender == null || ::MSU.isNull(_foe) || ::MSU.isNull(_defender))
+            return 50;
+        local ft = _foe.getTile();
+        local dt = _atTile != null ? _atTile : _defender.getTile();
+        local fp = _foe.getCurrentProperties();
+        local dp = _defender.getCurrentProperties();
+        local hBonus = (ft != null && dt != null) ? (ft.Level - dt.Level) * 10 : 0;
+        if (_foe.isArmedWithRangedWeapon())
+        {
+            local w = _foe.getMainhandItem();
+            if (w == null || !w.isItemType(::Const.Items.ItemType.Ammo))
+                return ::Math.max(5, ::Math.min(95, fp.getRangedSkill() - dp.getRangedDefense() + hBonus));
+        }
+        local surround = 0;
+        if (dt != null && !_defender.getSkills().hasSkill("perk.underdog"))
+        {
+            local adjHostiles = 0;
+            local foeAlreadyAdj = false;
+            for (local d = 0; d < 6; ++d)
+            {
+                if (!dt.hasNextTile(d)) continue;
+                local nt = dt.getNextTile(d);
+                if (!nt.IsOccupiedByActor || ::Math.abs(nt.Level - dt.Level) > 1) continue;
+                local occ = nt.getEntity();
+                if (occ != null && !::MSU.isNull(occ) && occ.isAlive() && !occ.isDying() && !occ.isAlliedWith(_defender)
+                    && occ.getMoraleState() != ::Const.MoraleState.Fleeing && !occ.getCurrentProperties().IsStunned)
+                {
+                    ++adjHostiles;
+                    if (occ.getID() == _foe.getID()) foeAlreadyAdj = true;
+                }
+            }
+            if (!foeAlreadyAdj) ++adjHostiles;
+            local perSurr = _foe.getSkills().hasSkill("perk.backstabber") ? 10 : 5;
+            surround = ::Math.max(0, adjHostiles - 1) * perSurr;
+        }
+        return ::Math.max(5, ::Math.min(95, fp.getMeleeSkill() - dp.getMeleeDefense() + surround + hBonus));
+    },
+
+    // Evaluate an enemy's relative threat against the player squad it is ACTUALLY threatening (plus company average melee skill).
+    function enemySquadThreat( _foe, _info = null )
+    {
+        local bros = (_info != null && "Brothers" in _info) ? _info.Brothers : ::Tactical.Entities.getInstancesOfFaction(::Const.Faction.Player);
+        local ft = _foe.getTile();
+        local isRangedFoe = _foe.isArmedWithRangedWeapon();
+        local maxReach = isRangedFoe ? 8 : ::Math.max(2, _foe.getIdealRange() + 1);
+        local maxHit = 0;
+        local nearestBro = null;
+        local nearestDist = 99;
+        local mskSum = 0;
+        local mskCnt = 0;
+        foreach (bro in bros)
+        {
+            if (bro == null || ::MSU.isNull(bro) || !bro.isAlive() || bro.isDying() || !bro.isPlacedOnMap()) continue;
+            if (!this.isCasterRole(bro) && !this.isRangedRole(bro))
+            {
+                try { mskSum += bro.getCurrentProperties().getMeleeSkill(); ++mskCnt; } catch (e) {}
+            }
+            local d = ft.getDistanceTo(bro.getTile());
+            if (d < nearestDist) { nearestDist = d; nearestBro = bro; }
+            if (d <= maxReach)
+            {
+                local h = this.enemyEffectiveHitOn(_foe, bro);
+                if (this.isCasterRole(bro) || this.isRangedRole(bro) || bro.getHitpointsPct() <= 0.50)
+                    h = ::Math.min(95, h + 10);
+                if (h > maxHit) maxHit = h;
+            }
+        }
+        if (maxHit == 0 && nearestBro != null)
+            maxHit = this.enemyEffectiveHitOn(_foe, nearestBro);
+        local avgAllyMSk = mskCnt > 0 ? (mskSum / mskCnt) : 72;
+        return { MaxHit = maxHit, AvgAllyMSk = avgAllyMSk };
+    },
+
+    // Check how many dangerous melee/reach enemies can actually attack _actor BEFORE _actor's next turn starts
+    // (either still able to act this round, OR faster Initiative next round with non-trivial hit chance).
+    function hasThreatBeforeNextTurn( _actor, _enemies )
+    {
+        local myTile = _actor.getTile();
+        local myFatRec = 15;
+        try { myFatRec = _actor.getCurrentProperties().getFatigueRecoveryRate(); } catch (e) { myFatRec = 15; }
+        local myNextIni = _actor.getInitiative() + ::Math.min(_actor.getFatigue(), myFatRec);
+        local count = 0;
+        local maxHit = 0;
+        local urgentThisRound = 0;
+        foreach (foe in _enemies)
+        {
+            if (!this.isDangerousMeleeEnemy(foe)) continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            local canReach = (d == 1 && ::Math.abs(myTile.Level - ft.Level) <= 1)
+                || (d == 2 && foe.getIdealRange() >= 2 && ::Math.abs(myTile.Level - ft.Level) <= 1);
+            if (!canReach) continue;
+            local st = this.enemyLiveStats(foe);
+            local actsBeforeNext = st.CanActThisRound;
+            if (!actsBeforeNext)
+            {
+                local eFatRec = 15;
+                try { eFatRec = foe.getCurrentProperties().getFatigueRecoveryRate(); } catch (e) { eFatRec = 15; }
+                local eNextIni = foe.getInitiative() + ::Math.min(foe.getFatigue(), eFatRec);
+                if (eNextIni >= myNextIni - 2 || foe.getSkills().hasSkill("effects.adrenaline"))
+                    actsBeforeNext = true;
+            }
+            if (!actsBeforeNext) continue;
+            local effHit = this.enemyEffectiveHitOn(foe, _actor);
+            if (effHit >= 18 || this.isHeavyMeleeThreat(foe, _actor))
+            {
+                ++count;
+                if (st.CanActThisRound) ++urgentThisRound;
+                if (effHit > maxHit) maxHit = effHit;
+            }
+        }
+        return { Count = count, MaxHit = maxHit, UrgentThisRound = urgentThisRound };
+    },
+
+    // Continuous enemy elite threat rating (scales across all game stages using relative skill-vs-defense deltas & turn order).
     function enemyEliteScore( _foe, _info = null )
     {
         if (!this.isDangerousMeleeEnemy(_foe))
@@ -1364,6 +1502,7 @@ local F = A.Frontline <- {
         local score = 0.0;
         local skills = _foe.getSkills();
         local st = this.enemyLiveStats(_foe);
+        local sq = this.enemySquadThreat(_foe, _info);
         if (skills.hasSkill("racial.champion"))
             score += 2.5;
         local w = _foe.getMainhandItem();
@@ -1382,10 +1521,12 @@ local F = A.Frontline <- {
             || cn == "swordmaster" || cn == "blade_dancer" || cn == "rf_fencer"
             || cn == "lindwurm" || cn == "unhold" || cn == "schrat")
             score += 1.25;
-        // Real-time skill & stamina awareness: dynamically catch high-MSk / high-MDef killers (including modded/Reforged elites) and discount stam-out foes.
-        if (st.MSk >= 85) score += 1.0;
-        else if (st.MSk >= 72) score += 0.55;
-        if (st.MDef >= 35) score += 0.45;
+        // Relative offensive threat (foe.MSk - ally.MDef + surround) & relative evasiveness (our avg MSk - foe.MDef) + turn order.
+        if (sq.MaxHit >= 65) score += 1.05;
+        else if (sq.MaxHit >= 48) score += 0.55;
+        else if (sq.MaxHit <= 22) score -= 0.35;
+        if (sq.AvgAllyMSk - st.MDef <= 45) score += 0.45;
+        if (st.CanActThisRound && st.TurnsUntil <= 3) score += 0.35;
         if (st.IsExhausted) score -= 0.45;
         // Relative durability tier compared to other enemies on the field.
         local avgHP = 90.0;
@@ -2309,12 +2450,43 @@ local F = A.Frontline <- {
             local unengaged = ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0;
             local nearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3);
             local st = this.enemyLiveStats(foe);
+            local sq = this.enemySquadThreat(foe, _info);
+            // Compute marginal hit-chance value of Net's -45% MDef based on our nearby attackers' actual MSk + surround vs foe MDef!
+            local adjFriendlyAttackers = 0;
+            local minNearbyHit = 95;
+            for (local d0 = 0; d0 < 6; ++d0)
+            {
+                if (!ft.hasNextTile(d0)) continue;
+                local nt0 = ft.getNextTile(d0);
+                if (!nt0.IsOccupiedByActor) continue;
+                local a0 = nt0.getEntity();
+                if (a0.isAlive() && a0.isAlliedWith(_actor) && !this.isCasterRole(a0) && !this.isRangedRole(a0))
+                    ++adjFriendlyAttackers;
+            }
+            local surrOnFoe = foe.getSkills().hasSkill("perk.underdog") ? 0 : ::Math.max(0, adjFriendlyAttackers - 1) * 5;
+            foreach (bro in _info.Brothers)
+            {
+                if (this.isCasterRole(bro) || this.isRangedRole(bro)) continue;
+                if (bro.getTile().getDistanceTo(ft) <= 2)
+                {
+                    local estHit = ::Math.max(5, ::Math.min(95, bro.getCurrentProperties().getMeleeSkill() - st.MDef + surrOnFoe));
+                    if (estHit < minNearbyHit) minNearbyHit = estHit;
+                }
+            }
+            if (minNearbyHit == 95)
+                minNearbyHit = ::Math.max(5, ::Math.min(95, sq.AvgAllyMSk - st.MDef + surrOnFoe));
+
             local sc = 15.0 + elite * 24.0;
             if (nearChief) sc += 22.0;
             if (unengaged) sc += 14.0;
-            if (st.MDef >= 28) sc += 22.0;
-            else if (st.MDef >= 18) sc += 12.0;
-            if (st.MSk >= 75) sc += 12.0;
+            // High marginal net value when our attackers' actual hit chance (including surround) is suppressed <= 55%.
+            if (minNearbyHit <= 38) sc += 24.0;
+            else if (minNearbyHit <= 55) sc += 14.0;
+            // High relative offensive threat against our threatened brothers.
+            if (sq.MaxHit >= 55) sc += 14.0;
+            // Turn-order priority: net dangerous enemies BEFORE they move/act this round!
+            if (st.CanActThisRound) sc += (st.TurnsUntil <= 3 ? 14.0 : 8.0);
+            else if (!nearChief) sc -= 10.0;
             if (st.IsExhausted && !nearChief) sc -= 14.0;
             if (foe.getHitpointsPct() >= 0.60) sc += 8.0;
             if (foe.getArmor(::Const.BodyPart.Body) >= 70) sc += 6.0;
@@ -2605,7 +2777,10 @@ local F = A.Frontline <- {
                 if (_skill != null)
                 {
                     local minStepAP = myTile.getDistanceTo(_targetTile) * 2;
-                    if (_actor.getActionPoints() - minStepAP < _skill.getActionPointCost())
+                    local liveCnt = 0;
+                    foreach (e in decision.Info.Enemies)
+                        if (e.getMoraleState() != ::Const.MoraleState.Fleeing) ++liveCnt;
+                    if (liveCnt > 2 && _actor.getActionPoints() - minStepAP < _skill.getActionPointCost())
                         return true;
                 }
             }
@@ -2711,15 +2886,35 @@ local F = A.Frontline <- {
         local bodyArmor = _target.getArmor(::Const.BodyPart.Body);
         local isLethal = !fleeing && expectedHP >= hp && hit >= 40;
 
-        // 1. Strongly prioritize guaranteed / likely kills on active enemies (extra weight for Berserk chaining).
+        // 1. Strongly prioritize guaranteed / likely kills on active enemies (extra weight for Berserk chaining & denying unacted enemy turns!).
+        local stLive = this.enemyLiveStats(_target);
         if (isLethal)
         {
             mult *= 1.60 + 0.40 * ::Math.minf(1.0, (hit - 35) / 45.0);
             if (_actor.getSkills().hasSkill("perk.berserk"))
                 mult *= 1.15;
+            if (stLive.CanActThisRound)
+                mult *= (stLive.TurnsUntil <= 3 ? 1.28 : 1.16);
         }
         else if (!fleeing && hpPct <= 0.45)
             mult *= 1.0 + (0.50 - hpPct) * 1.15;
+
+        // 1b. Relative threat to our threatened brothers (foe.MSk/RSk - ally.MDef/RDef + surround) & turn-order urgency.
+        if (!fleeing && !isLethal)
+        {
+            local sqT = this.enemySquadThreat(_target, null);
+            if (!stLive.IsExhausted)
+            {
+                if (sqT.MaxHit >= 55)
+                    mult *= 1.24;
+                else if (sqT.MaxHit <= 22 && _target.getTile().getZoneOfControlCountOtherThan(_target.getAlliedFactions()) > 0)
+                    mult *= 0.85;
+            }
+            if (stLive.CanActThisRound && stLive.TurnsUntil <= 3)
+                mult *= 1.12;
+            if (stLive.IsExhausted)
+                mult *= 0.88;
+        }
 
         // 2. Focus armor-stripped enemies so follow-ups finish them rapidly.
         if (!fleeing && _target.getArmorMax(::Const.BodyPart.Body) > 30 && bodyArmor <= 10)
@@ -2848,14 +3043,14 @@ local F = A.Frontline <- {
             local isBow = weapon != null && weapon.isWeaponType(::Const.Items.WeaponType.Bow);
             if (tSkills.hasSkill("effects.shieldwall"))
                 mult *= 0.48;
-            // Real-time RDef / RSk / MSk targeting: avoid dumping arrows/bolts into 38+ RDef shield walls, prioritize low-RDef high-skill killers/snipers!
-            local stR = this.enemyLiveStats(_target);
-            if (stR.RDef >= 38 && hit < 48)
-                mult *= 0.58;
-            else if (stR.RDef <= 15 && !fleeing && (stR.MSk >= 70 || stR.RSk >= 65))
-                mult *= 1.24;
-            if (stR.IsExhausted && !fleeing)
-                mult *= 0.90;
+            // Relative hit-chance targeting (already incorporates our RSk - foe.RDef + height + shield + cover):
+            // avoid dumping shots into <30% brick walls, reward clean >=65% high-hit shots!
+            if (hit < 30)
+                mult *= 0.55;
+            else if (hit < 42 && _target.isArmedWithShield())
+                mult *= 0.70;
+            else if (hit >= 65 && !fleeing)
+                mult *= 1.15;
             if (isBow)
             {
                 if (bodyArmor <= 90)
@@ -2882,19 +3077,22 @@ local F = A.Frontline <- {
         {
             if (tSkills.hasSkill("effects.riposte"))
                 mult *= 0.48;
-            if (tSkills.hasSkill("effects.shieldwall") && _skill.getID() != "actives.split_shield" && hit < 65)
+            if (tSkills.hasSkill("effects.shieldwall") && _skill.getID() != "actives.split_shield" && hit < 60)
                 mult *= 0.52;
-            // Real-time MDef / MSk / Fatigue awareness: avoid low-odds swings into 42+ MDef turtle walls; prioritize fresh high-MSk low-MDef killers!
-            local stM = this.enemyLiveStats(_target);
+            // Relative hit-chance targeting via engine getHitchance (already fuses our MSk - foe.MDef + real-time surround bonus + height):
+            // low-hit brothers pivot away from turtle walls, while high-MSk/surrounding attackers smash right through!
             local sid = _skill.getID();
             local isArmorBreaker = sid == "actives.split_shield" || sid == "actives.destroy_armor" || sid == "actives.crush_armor"
                 || sid == "actives.smite" || sid == "actives.shatter" || sid == "actives.rf_pummel";
-            if (stM.MDef >= 42 && hit < 55 && sid != "actives.split_shield" && sid != "actives.knock_out" && !tSkills.hasSkill("effects.shieldwall"))
-                mult *= 0.62;
-            if (!fleeing && stM.MSk >= 75 && stM.MDef <= 22 && !stM.IsExhausted)
-                mult *= 1.22;
-            if (!fleeing && stM.IsExhausted)
-                mult *= 0.88;
+            if (sid != "actives.split_shield" && sid != "actives.knock_out")
+            {
+                if (hit < 30)
+                    mult *= 0.52;
+                else if (hit < 45 && _target.isArmedWithShield() && !tSkills.hasSkill("effects.shieldwall"))
+                    mult *= 0.68;
+                else if (hit >= 70)
+                    mult *= 1.15;
+            }
             // Deprioritize ultra-heavy armored shield tanks for normal blades/spears, EXCEPT armor-shredding Hammers (smite/shatter/rf_pummel) which LOVE heavy armor!
             if (isArmorBreaker && bodyArmor >= 140)
                 mult *= 1.22;
@@ -2930,6 +3128,11 @@ local F = A.Frontline <- {
                     local heavy = (w != null && w.isItemType(::Const.Items.ItemType.TwoHanded))
                         || _target.getHitpointsMax() >= 110 || tSkills.hasSkill("racial.champion");
                     mult *= heavy ? 1.45 : 1.0;
+                    // Turn-order stun discipline: stunning an unacted enemy before they swing denies their entire turn!
+                    if (!stLive.CanActThisRound)
+                        mult *= 0.55;
+                    else if (stLive.TurnsUntil <= 4)
+                        mult *= 1.28;
                 }
                 else
                 {
@@ -2941,7 +3144,7 @@ local F = A.Frontline <- {
         return _score * mult;
     },
 
-    function isHeavyMeleeThreat( _foe )
+    function isHeavyMeleeThreat( _foe, _defender = null )
     {
         if (!this.isDangerousMeleeEnemy(_foe))
             return false;
@@ -2953,7 +3156,8 @@ local F = A.Frontline <- {
             || skills.hasSkill("racial.champion") || skills.hasSkill("actives.warcry"))
             return true;
         local st = this.enemyLiveStats(_foe);
-        if (st.MSk >= 80 && !st.IsExhausted)
+        local relHit = _defender != null ? this.enemyEffectiveHitOn(_foe, _defender) : this.enemySquadThreat(_foe, null).MaxHit;
+        if (relHit >= 58 && !st.IsExhausted)
             return true;
         return _foe.getHitpointsMax() >= 140;
     },
@@ -3682,6 +3886,22 @@ local F = A.Frontline <- {
             && !(_info.EnemyProjectileRanged >= 10.0 && !isFragile && exp.AdjEnemies <= 1)
             && (exp.AdjEnemies >= 1 || exp.ThreatDist2 >= 2 || exp.Polearms2 >= 1))
             return true;
+        // Stop unshielded melee brothers (e.g. 2H Hammer/Sword) from sprinting 3+ tiles ahead of the frontline on opening R1-R2
+        // into isolated forward tiles (dAllies == 0, no shield/undead support, zero attack AP left) where enemies swarm them next turn!
+        // Restrict to opening rounds (<= 2) so mid/late-battle flankers returning from killing backline Priests never freeze in Idle!
+        local moveDist = _actor.getTile().getDistanceTo(_destTile);
+        if (::Time.getRound() <= 2 && moveDist >= 3 && exp.AdjAllies == 0 && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP
+            && !(_info.EnemyProjectileRanged >= 10.0 && !isFragile && exp.AdjEnemies <= 1))
+        {
+            local nearEnemies3 = 0;
+            foreach (foe in _info.Enemies)
+            {
+                if (this.isDangerousMeleeEnemy(foe) && _destTile.getDistanceTo(foe.getTile()) <= 3)
+                    ++nearEnemies3;
+            }
+            if (nearEnemies3 >= 2)
+                return true;
+        }
         // Never walk into a Halberdier/Ancient Polearm kill-box (2+ adjacent + reach-2 polearms) with zero shield support and zero attack AP left!
         if (exp.AdjEnemies >= 2 && (exp.Polearms2 >= 2 || (exp.Polearms2 >= 1 && mdef < 28)) && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP && mdef < 35)
             return true;
@@ -4220,19 +4440,28 @@ local F = A.Frontline <- {
 });
 
 // Prevent unengaged brothers who just raised Spearwall from burning 20 extra fatigue stacking vanilla Shieldwall on the same turn,
-// and prevent shieldbearers peeling a melee enemy off Mentor from wasting attack AP on Shieldwall instead of striking!
+// prevent shieldbearers peeling a melee enemy off Mentor from wasting attack AP on Shieldwall,
+// and skip pointless Shieldwall when ZERO adjacent/reach enemies can attack before our next turn!
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_defend_shieldwall", function(q) {
     q.onEvaluate = @(__original) function( _entity ) {
         if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
         {
-            if (_entity.getSkills().hasSkill("effects.spearwall")
-                && _entity.getTile().getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0)
+            local myTile = _entity.getTile();
+            local inZoC = myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) > 0;
+            if (_entity.getSkills().hasSkill("effects.spearwall") && !inZoC)
             {
                 return ::Const.AI.Behavior.Score.Zero;
             }
-            if (::BGP.hasShield(_entity) && F.isPeelingMentorMelee(_entity, F.assessBattle(_entity, this.getAgent())))
+            local info = F.assessBattle(_entity, this.getAgent());
+            if (::BGP.hasShield(_entity) && F.isPeelingMentorMelee(_entity, info))
             {
                 return ::Const.AI.Behavior.Score.Zero;
+            }
+            if (inZoC && !(info.EnemyProjectileRanged >= 4.0 && _entity.getHitpointsPct() <= 0.65))
+            {
+                local preThreat = F.hasThreatBeforeNextTurn(_entity, info.Enemies);
+                if (preThreat.Count == 0)
+                    return ::Const.AI.Behavior.Score.Zero;
             }
         }
         return __original(_entity);
@@ -4404,6 +4633,30 @@ local F = A.Frontline <- {
         if (ret && _user != null && !::MSU.isNull(_user) && _user.getFaction() == ::Const.Faction.Player)
             F.battleState().LastCurseRound = ::Time.getRound();
         return ret;
+    };
+});
+
+// Track per-round Infusion casts so Mentor never casts Infusion twice on the same undead target in one turn.
+::BGP.HooksMod.hook("scripts/skills/actives/bgp_necro_infusion_skill", function(q) {
+    q.m.BGPAutoInfuseRound <- -1;
+    q.m.BGPAutoInfuseTargets <- null;
+    q.onCombatStarted = @(__original) function() {
+        __original();
+        this.m.BGPAutoInfuseRound = -1;
+        this.m.BGPAutoInfuseTargets = null;
+    };
+    q.onUse = @(__original) function(user, tile) {
+        local ent = tile != null && tile.IsOccupiedByActor ? tile.getEntity() : null;
+        local id = ent != null ? ent.getID() : -1;
+        local result = __original(user, tile);
+        if (result && id != -1) {
+            if (this.m.BGPAutoInfuseRound != ::Time.getRound()) {
+                this.m.BGPAutoInfuseRound = ::Time.getRound();
+                this.m.BGPAutoInfuseTargets = {};
+            }
+            this.m.BGPAutoInfuseTargets[id] <- true;
+        }
+        return result;
     };
 });
 

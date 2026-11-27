@@ -225,13 +225,16 @@ A.add("pale_weaken", "Enemies", function(c, s, t) {
                 lethal += (hp <= 12 ? 5.0 : 3.0);
         }
     } else if (!enemy.getSkills().hasSkill("effects.pale_prey") && enemy.getMoraleState() != ::Const.MoraleState.Fleeing) {
-        // When no lethal snipe is available, prioritize marking dangerous high-HP/high-MSk/high-MDef bosses/elites as Prey (+10 hit / +20% dmg for all undead).
+        // When no lethal snipe is available, prioritize marking relatively dangerous or hard-to-hit bosses/elites as Prey (+10 hit / +20% dmg for all undead).
         local st = A.Frontline.enemyLiveStats(enemy);
+        local sq = A.Frontline.enemySquadThreat(enemy, null);
         if (enemy.getHitpointsMax() >= 130 || enemy.getSkills().hasSkill("racial.champion")
-            || enemy.getArmor(::Const.BodyPart.Body) >= 180 || st.MSk >= 78 || st.MDef >= 35)
+            || enemy.getArmor(::Const.BodyPart.Body) >= 180 || sq.MaxHit >= 55 || (sq.AvgAllyMSk - st.MDef) <= 45)
             value += 2.2;
-        if (st.MDef >= 38 && !st.IsExhausted)
+        if ((sq.AvgAllyMSk - st.MDef) <= 38 && !st.IsExhausted)
             value += 1.0;
+        if (st.CanActThisRound && st.TurnsUntil <= 3)
+            value += 0.8;
     }
     // Guaranteed-hit direct-HP snipe bonus against ultra-high-MDef Geists/Banshees and Ancient Priests!
     local isPrioritySnipe = false;
