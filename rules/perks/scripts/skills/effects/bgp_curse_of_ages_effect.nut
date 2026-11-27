@@ -1,4 +1,4 @@
-// Curse of Ages status effect: -1 AP, -20 Initiative, -10 MAtk/RAtk, -25% Melee/Ranged damage, 3 turns (decremented on target turn end);
+// Curse of Ages status effect: -1 AP, -50 Initiative, -10 MAtk/RAtk, -20% Melee/Ranged damage, 3 turns (decremented on target turn end);
 // each attack hit (including Corpse Explosion, deduplicated once per explosion) decays ONLY the hit body part's armor by -(10 + W/4).
 this.bgp_curse_of_ages_effect <- ::inherit("scripts/skills/skill", {
 	m = {
@@ -28,9 +28,9 @@ this.bgp_curse_of_ages_effect <- ::inherit("scripts/skills/skill", {
 		local ret = this.skill.getTooltip();
 		ret.extend([
 			{ id = 9, type = "text", icon = "ui/icons/action_points.png", text = ::MSU.Text.colorNegative("-1") + " 行动点" },
-			{ id = 10, type = "text", icon = "ui/icons/initiative.png", text = ::MSU.Text.colorNegative("-20") + " 主动值" },
+			{ id = 10, type = "text", icon = "ui/icons/initiative.png", text = ::MSU.Text.colorNegative("-50") + " 主动值" },
 			{ id = 11, type = "text", icon = "ui/icons/melee_skill.png", text = ::MSU.Text.colorNegative("-10") + " 近战技能、远程技能" },
-			{ id = 12, type = "text", icon = "ui/icons/regular_damage.png", text = "近战 / 远程伤害 " + ::MSU.Text.colorNegative("-25%") },
+			{ id = 12, type = "text", icon = "ui/icons/regular_damage.png", text = "近战 / 远程伤害 " + ::MSU.Text.colorNegative("-20%") },
 			{ id = 13, type = "text", icon = "ui/icons/armor_body.png", text = "每受到一次攻击伤害（含尸爆），命中部位护甲耐久额外 " + ::MSU.Text.colorNegative("-" + this.m.Decay) },
 			{ id = 14, type = "text", icon = "ui/icons/special.png", text = "还剩 " + this.m.TurnsLeft + " 回合" }
 		]);
@@ -47,11 +47,11 @@ this.bgp_curse_of_ages_effect <- ::inherit("scripts/skills/skill", {
 	function onUpdate( _properties )
 	{
 		_properties.ActionPoints -= 1;
-		_properties.Initiative -= 20;
+		_properties.Initiative -= 50;
 		_properties.MeleeSkill -= 10;
 		_properties.RangedSkill -= 10;
-		_properties.MeleeDamageMult *= 0.75;
-		_properties.RangedDamageMult *= 0.75;
+		_properties.MeleeDamageMult *= 0.8;
+		_properties.RangedDamageMult *= 0.8;
 	}
 
 	function onBeforeDamageReceived( _attacker, _skill, _hitInfo, _properties )

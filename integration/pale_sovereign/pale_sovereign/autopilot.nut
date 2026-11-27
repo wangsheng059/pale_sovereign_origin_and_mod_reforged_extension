@@ -7,6 +7,69 @@ page.addElement(::MSU.Class.BooleanSetting("paleAutoCorpseShot", true, "自动�
 page.addRangeSetting("paleAutoCorpseShotLimit", 3, 0, 20, 1, "尸弹每场允许使用次数", "自动战斗中每场战斗最多允许投掷尸弹的次数（默认 3 次；0 表示自动战斗不投掷）。不影响手动操作。");
 page.addElement(::MSU.Class.BooleanSetting("paleAutoChain", false, "自动使用缚魂锁链", "允许导师标记可吞魂的强敌，或用一条锁链复活可收编的亡灵强敌。"));
 
+// Count Mentor's total remaining free summon charges across Skeleton & Zombie summons.
+local function totalFreeSummonsLeft( _actor ) {
+    local total = 0;
+    foreach (sid in ["actives.pale_summon_skeleton", "actives.pale_summon_zombie"]) {
+        local sk = _actor.getSkills().getSkillByID(sid);
+        if (sk != null && !sk.isHidden()) {
+            try { total += ::Math.max(0, sk.getFreeUses() - sk.m.FreeUsed); } catch (e) {}
+        }
+    }
+    return total;
+}
+
+// Inspect whether Mentor faces a melee breach (<=3 tiles / ZoC) or exposed ranged fire (needs an immediate summon blocker).
+local function mentorSummonCrisis( c ) {
+    if ("MentorCrisis" in c.Cache)
+        return c.Cache.MentorCrisis;
+    local origin = c.Origin;
+    local F = A.Frontline;
+    local meleeThreatTile = null;
+    local meleeThreatDist = 99;
+    local shooterTile = null;
+    local shooterDist = 99;
+    local enemies = [];
+    foreach (et in c.Enemies) {
+        local foe = et.getEntity();
+        if (foe == null || ::MSU.isNull(foe) || !foe.isAlive() || foe.isDying() || foe.getMoraleState() == ::Const.MoraleState.Fleeing)
+            continue;
+        enemies.push(foe);
+        local d = origin.getDistanceTo(et);
+        if (F.isLiveBacklineThreat(foe) && d < meleeThreatDist) {
+            meleeThreatDist = d;
+            meleeThreatTile = et;
+        }
+        if (foe.isArmedWithRangedWeapon()) {
+            local w = foe.getMainhandItem();
+            if (w == null || !w.isItemType(::Const.Items.ItemType.Ammo)) {
+                if (d < shooterDist) { shooterDist = d; shooterTile = et; }
+            }
+        }
+    }
+    local inZoC = A.zone(c.Actor, origin) > 0;
+    local meleeCrisis = inZoC || (meleeThreatDist <= 2) || (meleeThreatDist == 3 && meleeThreatTile != null && F.countScreenBlockersBetween(origin, c.Actor, meleeThreatTile).Blockers == 0);
+    local rangedNeedCover = (shooterTile != null && shooterDist <= 8 && !F.hasRangedCoverAt(origin, c.Actor, enemies, 8));
+    local aliveUndead = 0;
+    foreach (u in ::Tactical.Entities.getInstancesOfFaction(::Const.Faction.PlayerAnimals)) {
+        if (u != null && !::MSU.isNull(u) && u.isAlive() && !u.isDying() && u.isPlacedOnMap() && u.getFlags().has("undead"))
+            ++aliveUndead;
+    }
+    local lineCollapse = (::Time.getRound() >= 6 && aliveUndead <= 2);
+    local res = {
+        MeleeCrisis = meleeCrisis,
+        MeleeTile = meleeThreatTile,
+        MeleeDist = meleeThreatDist,
+        RangedNeedCover = rangedNeedCover,
+        ShooterTile = shooterTile,
+        ShooterDist = shooterDist,
+        LineCollapse = lineCollapse,
+        AnyCrisis = meleeCrisis || rangedNeedCover || lineCollapse
+    };
+    c.Cache.MentorCrisis <- res;
+    return res;
+}
+
 local function screen(c, s, t) {
     if (c.Behavior.hasNegativeTileEffect(t, c.Actor)) return 0;
     local distance = A.nearest(c.Enemies, t);
@@ -27,16 +90,11 @@ local function screen(c, s, t) {
     if (::Autopilot.conf("bgpSmartFrontline") && S.isChief(c.Actor) && distance < 99) {
         local originDist = A.nearest(c.Enemies, c.Origin);
         if (distance < originDist) coverBonus = 1.8;
-        local nearestThreat = null;
-        local nearestThreatD = 99;
-        foreach (et in c.Enemies) {
-            local foe = et.getEntity();
-            if (foe == null || foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
-            local od = c.Origin.getDistanceTo(et);
-            if (od < nearestThreatD) { nearestThreatD = od; nearestThreat = et; }
-        }
-        if (nearestThreat != null && nearestThreatD <= 4 && t.getDistanceTo(nearestThreat) < nearestThreatD)
-            coverBonus += 4.5;
+        local crisis = mentorSummonCrisis(c);
+        if (crisis.MeleeTile != null && crisis.MeleeDist <= 4 && t.getDistanceTo(crisis.MeleeTile) < crisis.MeleeDist)
+            coverBonus += (crisis.MeleeCrisis ? 7.5 : 4.5);
+        if (crisis.RangedNeedCover && crisis.ShooterTile != null && t.getDistanceTo(crisis.ShooterTile) < crisis.ShooterDist)
+            coverBonus += 8.0;
     }
     return 4.7 - formationPenalty + coverBonus + (distance == 99 ? 0 : 1.4 / ::Math.maxf(1.0, distance))
         + 0.13 * (t.Level - c.Origin.Level) - (t.IsBadTerrain ? 0.32 : 0) - 0.45 * ::Math.max(0, zones - 1);
@@ -48,9 +106,21 @@ local function summon(c, s, t) {
     if (value <= 0) return 0;
     if (S.isChief(c.Actor)) {
         if (::Autopilot.conf("bgpSmartFrontline")) {
-            // Prioritize free summons during the opening rounds.
+            local totalFree = totalFreeSummonsLeft(c.Actor);
+            local crisis = mentorSummonCrisis(c);
+            local rnd = ::Time.getRound();
+            // Always reserve the LAST free summon charge for a Mentor crisis (melee breach, ranged exposure, or line collapse).
+            if (freeLeft && totalFree <= 1) {
+                if (crisis.AnyCrisis)
+                    return value + 20.0;
+                return 0;
+            }
+            // Round 2 pacing: after Mentor's first 4-AP summon leaves 5 AP, yield to 5-AP Curse of Ages (up to 16.5)
+            // so Round 2 plays Summon (4 AP) + Curse of Ages (5 AP) cleanly instead of spending 8 AP on double summons!
             local bonus = s.getID() == "actives.pale_summon_skeleton" ? 18.0 : 17.0;
-            if (::Time.getRound() <= 3 && freeLeft) return value + bonus;
+            if (freeLeft && rnd == 2 && c.Actor.getActionPoints() <= 5 && !crisis.AnyCrisis)
+                return value + 6.5;
+            if (rnd <= 3 && freeLeft) return value + bonus;
             if (freeLeft) return value + 10.0;
         } else {
             if (::Time.getRound() <= 1 || (freeLeft && ::Time.getRound() <= 3))

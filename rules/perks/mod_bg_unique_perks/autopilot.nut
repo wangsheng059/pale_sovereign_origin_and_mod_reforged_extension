@@ -93,6 +93,7 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
     local lethalCount = 0;
     local moraleVulnerableHits = 0;
     local goblinHits = 0;
+    local cursedHits = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
@@ -100,6 +101,7 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
         if (enemy.getArmor(::Const.BodyPart.Body) >= 130) ++armoredHits;
         if (!enemy.getFlags().has("undead")) ++moraleVulnerableHits;
         if (enemy.getFlags().has("goblin")) ++goblinHits;
+        if (enemy.getSkills().hasSkill("effects.bgp_curse_of_ages")) ++cursedHits;
         value += 1.1 + ::Math.minf(1.8, (blast.Blunt + blast.Cutting * 0.45) / 35.0);
         if (enemy.getHitpoints() <= blast.Blunt * 0.65) {
             value += 1.6;
@@ -130,10 +132,12 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
                     value *= 0.45;
             }
         }
-        local clumpUndeadFloor = (hits >= 3 && armoredHits >= 2 && moraleVulnerableHits >= 2) ? 5 : 6;
-        if (hits >= 3 && (aliveUndead >= clumpUndeadFloor || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
-            && (armoredHits >= 2 || lethalCount >= 1)) {
-            value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0);
+        // Protect our undead frontline: when fewer than 5 undead are alive, prioritize Raise Dead over blowing up corpses (unless multi-kill).
+        if (aliveUndead < 5 && lethalCount < 2) {
+            value = ::Math.minf(9.5, value * 0.55);
+        } else if (hits >= 3 && (aliveUndead >= 6 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
+            && (armoredHits >= 2 || cursedHits >= 2 || lethalCount >= 1)) {
+            value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0) + (cursedHits >= 2 ? 1.2 : 0.0);
         }
     }
     return value;
@@ -143,6 +147,7 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
     local alreadyCursed = 0;
     local aliveUndead = 0;
     local corpseCount = 0;
+    local roundsSinceCurse = 99;
     if (smart) {
         foreach (tile in c.Enemies) {
             if (tile.getEntity().getSkills().hasSkill("effects.bgp_curse_of_ages"))
@@ -153,56 +158,48 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
                 ++aliveUndead;
         }
         corpseCount = c.Behavior.targets(c, "Corpses").len();
+        roundsSinceCurse = ::Time.getRound() - A.Frontline.battleState().LastCurseRound;
     }
     local value = 0.0;
     local hits = 0;
-    local highValueHits = 0;
-    local nonGoblinHits = 0;
     local engagedHits = 0;
     foreach (tile in c.Enemies) {
         if (tile.getDistanceTo(t) > 1) continue;
         local enemy = tile.getEntity();
         if (enemy.getMoraleState() == ::Const.MoraleState.Fleeing || enemy.getSkills().hasSkill("effects.bgp_curse_of_ages")) continue;
         ++hits;
-        local isGoblin = enemy.getFlags().has("goblin");
-        if (!isGoblin) ++nonGoblinHits;
-        local w = 1.65 + ::Math.minf(1.0, enemy.getHitpointsMax() / 130.0);
+        local w = 1.75 + ::Math.minf(0.9, enemy.getHitpointsMax() / 140.0);
         if (smart) {
-            if (isGoblin) {
-                w *= 0.50;
-            } else {
-                local mainW = enemy.getMainhandItem();
-                local is2H = mainW != null && mainW.isItemType(::Const.Items.ItemType.TwoHanded) && mainW.isItemType(::Const.Items.ItemType.MeleeWeapon);
-                if (enemy.getSkills().hasSkill("racial.champion") || enemy.getArmor(::Const.BodyPart.Body) >= 130
-                    || enemy.getHitpointsMax() >= 130 || is2H) {
-                    w += 1.15;
-                    ++highValueHits;
-                }
-                if (tile.getZoneOfControlCountOtherThan(enemy.getAlliedFactions()) > 0) {
-                    w += 0.45;
-                    ++engagedHits;
-                }
+            if (enemy.getSkills().hasSkill("racial.champion"))
+                w += 0.75;
+            if (tile.getZoneOfControlCountOtherThan(enemy.getAlliedFactions()) > 0) {
+                w += 0.35;
+                ++engagedHits;
             }
         }
         value += w;
     }
     if (smart) {
         if (hits < 2) return 0;
-        if (nonGoblinHits == 0 && (hits < 4 || corpseCount > 0)) return 0;
-        // Prioritize opening 5-AP Curse of Ages ahead of routine Raise Dead (11-13) on dense armored/elite clumps (Nobles, Ancients, Orcs)
-        // so Mentor casts Curse FIRST (5 AP) and still has 4 AP left to Raise Dead or Weaken on the same turn!
-        if (hits >= 3 && highValueHits >= 2) {
-            value += (hits >= 4 ? 3.5 : 2.2) + (highValueHits >= 3 ? 1.1 : 0.0) + (engagedHits >= 2 ? 0.5 : 0.0);
-        } else if (hits >= 3 && nonGoblinHits >= 3) {
-            value += 1.4;
+        // 2-round pacing cooldown prevents consecutive-turn Curse spam (T03+T04) and late-game fatigue burnout,
+        // unless almost no enemies remain cursed (< 2) and a fresh 4+ uncursed clump appears.
+        if (roundsSinceCurse < 2 && !(alreadyCursed < 2 && hits >= 4))
+            return 0;
+
+        // Core rule: >= 4 uncursed enemies in the 7-tile AoE (regardless of armor class) gets high casting priority
+        // (enabling Round-2 Summon 4 AP + Curse 5 AP); fewer than 4 stays low priority below Raise Dead / Corpse Explosion!
+        local cap = 9.8;
+        if (hits >= 4) {
+            value += 4.2 + ::Math.minf(2.0, (hits - 4) * 0.9) + (engagedHits >= 2 ? 0.5 : 0.0);
+            cap = 16.5;
+            // Still protect Raise Dead if our undead frontline is critically thin (< 4) and corpses are waiting after an initial Curse.
+            if (alreadyCursed >= 3 && corpseCount > 0 && aliveUndead < 4)
+                cap = 10.5;
+        } else {
+            value *= (alreadyCursed >= 3 ? 0.55 : 0.78);
+            cap = 9.8;
         }
-        if (alreadyCursed >= 6) value *= 0.48;
-        else if (alreadyCursed >= 3 && hits < 3) value *= 0.50;
-        // Do not starve Raise Dead when our undead frontline is thin and corpses are waiting, once an initial cluster is already cursed.
-        local cap = 15.2;
-        if (alreadyCursed >= 3 && corpseCount > 0 && aliveUndead <= 5 && !(hits >= 4 && highValueHits >= 3))
-            cap = 10.5;
-        // Stay below opening Lich King (~28.7), free Summons (~21.7-22.7), and Lich Possess (19.0).
+        // Stay below opening Lich King (~28.7), Round-1/first-R2 free Summons (~21.7-22.7), emergency reserve summon (~25), and Lich Possess (19.0).
         value = ::Math.minf(cap, value);
     }
     return value;
@@ -287,6 +284,7 @@ local F = A.Frontline <- {
             LastMinDist = 99,
             StallRounds = 0,
             LastOffenseRound = 0,
+            LastCurseRound = -99,
             StallBroken = false,
             MeleeJoined = false
         };
@@ -2095,8 +2093,9 @@ local F = A.Frontline <- {
         }
 
         // For 2H brothers WITHOUT Quick Hands (4 AP unbag + 5 AP throw + 4 AP re-equip = 13 AP across 2 turns),
-        // reserve backpack nets strictly for genuine crises (adjacent attacker, Mentor breach, Champion/Knight/Berserker, or unengaged 2H Elite)
-        // rather than spending 13 AP netting ordinary shielded Footmen already pinned by our frontline tanks!
+        // reserve backpack nets strictly for genuine crises: adjacent attacker (d==1), Mentor breach (<=2),
+        // unengaged Knight/Orc Warlord/Berserker/charger about to crash our line, or Goblin Champion.
+        // Do NOT spend 13 AP netting ordinary Goblins or regular elites already pinned in our frontline ZoC!
         local highCost2H = (needUnequipMain && swapAP > 0);
 
         local myTile = _actor.getTile();
@@ -2127,15 +2126,21 @@ local F = A.Frontline <- {
             local nearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 2);
             local inMyFace = (d == 1 && (this.isRangedRole(_actor) || isCaster));
             local mdef = foe.getCurrentProperties().getMeleeDefense();
-            local isApexThreat = foe.getSkills().hasSkill("racial.champion") || foe.getSkills().hasSkill("effects.berserker_rage")
+            local isGoblin = foe.getFlags().has("goblin");
+            local isChampion = foe.getSkills().hasSkill("racial.champion");
+            local isChargerOrApexBoss = foe.getSkills().hasSkill("effects.berserker_rage") || foe.getSkills().hasSkill("actives.charge")
                 || foe.ClassName == "orc_berserker" || foe.ClassName == "orc_warlord"
-                || foe.ClassName == "knight" || foe.ClassName == "rf_knight_anointed"
+                || foe.ClassName == "knight" || foe.ClassName == "rf_knight_anointed";
+            local isApexThreat = isChampion || isChargerOrApexBoss
                 || foe.ClassName == "rf_man_at_arms" || foe.ClassName == "noble_greatsword"
                 || foe.ClassName == "rf_skeleton_legatus" || foe.ClassName == "rf_skeleton_centurion";
             local isHighThreat = false;
             if (highCost2H)
             {
-                isHighThreat = inMyFace || nearChief || isApexThreat || (unengaged && elite >= 1.4 && !foe.isArmedWithShield());
+                if (isGoblin)
+                    isHighThreat = isChampion || inMyFace || nearChief;
+                else
+                    isHighThreat = inMyFace || nearChief || (unengaged && isChargerOrApexBoss);
             }
             else
             {
@@ -2243,12 +2248,12 @@ local F = A.Frontline <- {
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Info.Enemies.len() == 0)
             return false;
-        // Never allow Mentor (caster) to walk forward into unscreened enemy archer sniper fire (or into sniper range when HP < 40%) or into unscreened melee range!
+        // Never allow Mentor (caster) to walk forward into unscreened enemy archer sniper fire (or into sniper range when HP < 55%) or into unscreened melee range!
         if (this.isCasterRole(_actor))
         {
             local curArch = this.nearestEnemyArcherDist(myTile, decision.Info.Enemies);
             local newArch = this.nearestEnemyArcherDist(_targetTile, decision.Info.Enemies);
-            local lowHpMentor = _actor.getHitpointsPct() < 0.40;
+            local lowHpMentor = _actor.getHitpointsPct() < 0.55;
             local destHasCover = this.hasRangedCoverAt(_targetTile, _actor, decision.Info.Enemies, 8);
             if (decision.Info.EnemyProjectileRanged >= 3.0 && newArch <= 7 && newArch < curArch && (lowHpMentor || !destHasCover))
                 return true;
@@ -2990,10 +2995,10 @@ local F = A.Frontline <- {
             ? (threat.UrgentHigh || threat.UnscreenedHigh3 || threat.LowThreatClose)
             : (curMeleeDist <= 2);
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
-        local lowHpMentor = isCaster && _actor.getHitpointsPct() < 0.40;
+        local lowHpMentor = isCaster && _actor.getHitpointsPct() < 0.55;
         local sniperRange = _info.EnemyProjectileRanged >= 5.0 ? (lowHpMentor ? 9 : 8) : 7;
         local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies, sniperRange) : true;
-        // Stay put and keep casting when frontline allies block enemy ranged line of fire, unless Mentor HP drops below 40%.
+        // Stay put and keep casting when frontline allies block enemy ranged line of fire, unless Mentor HP drops below 55%.
         local sniperDanger = isCaster && _info.EnemyProjectileRanged >= 2.0 && curArcherDist <= sniperRange && (!hasCoverNow || lowHpMentor);
 
         if (!meleeDanger && !sniperDanger)
@@ -3003,7 +3008,7 @@ local F = A.Frontline <- {
         // - Urgent high threat (dist <= 2 or swarm or fragile/hurt): up to 6 AP (escapes snow/swamp).
         // - Unscreened high threat at dist 3: up to 4 AP (leaves AP for spells).
         // - Single low-threat fodder at dist 2 (healthy armored/Nimble Mentor): cheap 2-AP sidestep only (never burns a spell turn!).
-        // - Sniper exposure with >= 40% HP: prefer a cheap 2-AP step behind cover so Mentor still casts spells.
+        // - Sniper exposure with >= 55% HP: prefer a cheap 2-AP step behind cover so Mentor still casts spells.
         local maxMoveAP = 0;
         if (isCaster)
         {
@@ -3649,6 +3654,40 @@ local F = A.Frontline <- {
     };
 });
 
+// Guard upstream autopilot_swap_quiver against throwing weapons (ItemType.Ammo without getAmmoType()) crashing in an infinite loop when a quiver empties!
+::BGP.HooksMod.hook("scripts/ai/autopilot_swap_quiver", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        this.m.QuiverToEquip = null;
+        local scoreMult = this.getProperties().BehaviorMult[this.m.ID];
+        if (_entity.getMoraleState() == ::Const.MoraleState.Fleeing || _entity.getCurrentProperties().IsStunned)
+            return 0;
+        if (!_entity.getItems().isActionAffordable([]) || this.queryTargetsInMeleeRange().len() != 0)
+            return 0;
+        local ammoItem = _entity.getItems().getItemAtSlot(::Const.ItemSlot.Ammo);
+        if (ammoItem == null || ammoItem.getAmmo() != 0)
+            return 0;
+        local ammoType = null;
+        try { ammoType = ammoItem.getAmmoType(); } catch (e) { return 0; }
+        local bestQuiver = null;
+        foreach (item in _entity.getItems().getAllItemsAtSlot(::Const.ItemSlot.Bag))
+        {
+            if (item == null || item.getSlotType() != ::Const.ItemSlot.Ammo)
+                continue;
+            local itType = null;
+            try { itType = item.getAmmoType(); } catch (e) { continue; }
+            if (item.getAmmo() > 0 && itType == ammoType)
+            {
+                if (bestQuiver == null || item.getAmmo() > bestQuiver.getAmmo())
+                    bestQuiver = item;
+            }
+        }
+        if (bestQuiver == null)
+            return 0;
+        this.m.QuiverToEquip = bestQuiver;
+        return ::Const.AI.Behavior.Score.AP_SwapQuiver * scoreMult;
+    };
+});
+
 // Prevent vanilla SwitchToMelee (6000 score when Mainhand == null!) / SwitchToRanged from hijacking a 2H backliner
 // right after unbag_net (before throw_net fires) or right after throwing a net (before reequip_main restores their Bow/Crossbow)!
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_switchto_melee", function(q) {
@@ -3728,6 +3767,16 @@ local F = A.Frontline <- {
                 return true;
         }
         return false;
+    };
+});
+
+// Track last round player-side Curse of Ages was cast for 2-round AI pacing cooldown.
+::BGP.HooksMod.hook("scripts/skills/actives/bgp_necro_curse_of_ages_skill", function(q) {
+    q.onUse = @(__original) function( _user, _targetTile ) {
+        local ret = __original(_user, _targetTile);
+        if (ret && _user != null && !::MSU.isNull(_user) && _user.getFaction() == ::Const.Faction.Player)
+            F.battleState().LastCurseRound = ::Time.getRound();
+        return ret;
     };
 });
 
