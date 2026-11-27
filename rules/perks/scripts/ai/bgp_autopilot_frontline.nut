@@ -8,7 +8,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         IsMoving = false,
         MovedTileID = -1,
         BlockedRound = -1,
-        BashedRound = -1
+        BashedRound = -1,
+        TerrainMovedRound = -1
     },
 
     function create()
@@ -168,6 +169,19 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     return 1400.0;
                 }
                 return 650.0;
+            }
+        }
+
+        // 2c-2. Critically wounded unshielded melee bro (<= 28% HP, free of ZoC) retreats behind healthy allies to survive!
+        if (!isShield && !isRanged && !isCaster && !inZoC && !_entity.getCurrentProperties().IsRooted
+            && _entity.getHitpointsPct() <= 0.28 && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
+        {
+            local retreatTile = F.findWoundedRetreatTile(this, _entity, info);
+            if (retreatTile != null && retreatTile.ID != myTile.ID)
+            {
+                this.m.Mode = "wounded_retreat";
+                this.m.TargetTile = retreatTile;
+                return 820.0;
             }
         }
 
@@ -418,28 +432,48 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 5. Dynamic safe melee routing for unshielded 1-tile DPS: prefer flanking weaker/pinned enemies with allies,
-        // and Wait in Phase 1 rather than diving solo into snow/surrounds with zero attacks left.
-        if (!isShield && !isRanged && !isCaster && !inZoC && !_entity.getCurrentProperties().IsRooted
-            && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
+        // 4c. High-priority terrain positioning (climb high ground or leave Swamp/bad terrain) BEFORE waiting/holding (at most once per round).
+        local terrainPlan = null;
+        if (!inZoC && !_entity.getCurrentProperties().IsRooted
+            && !_entity.getSkills().hasSkill("effects.shieldwall")
+            && !_entity.getSkills().hasSkill("effects.spearwall")
+            && this.m.BlockedRound != ::Time.getRound()
+            && this.m.TerrainMovedRound != ::Time.getRound()
+            && this.m.MovedTileID == -1)
         {
-            local smartTile = F.findSmartDpsMeleeTile(this, _entity, info);
-            if (smartTile != null && smartTile.ID != myTile.ID)
+            terrainPlan = F.findTacticalTerrainTile(this, _entity, info);
+            if (terrainPlan != null && terrainPlan.HighPriority && terrainPlan.Tile.ID != myTile.ID)
             {
-                this.m.Mode = "dynamic_melee_move";
-                this.m.TargetTile = smartTile;
-                return 520.0;
+                this.m.Mode = "terrain_anchor";
+                this.m.TargetTile = terrainPlan.Tile;
+                return 545.0;
             }
-            if (info.HoldLine && decision.StrikePlan != null
-                && decision.StrikePlan.Tile != null && decision.StrikePlan.Tile.ID != myTile.ID
-                && !F.isSuicidalDiveV2(_entity, decision.StrikePlan.Tile, info, 4))
-            {
-                this.m.Mode = "step_attack";
-                this.m.TargetTile = decision.StrikePlan.Tile;
-                return 320.0;
-            }
-            // If fragile DPS has no safe same-turn strike tile and enemies are still closing, Wait instead of solo diving!
+        }
+
+        // 5. Dynamic safe melee routing for unshielded 1-tile DPS: prefer flanking weaker/pinned enemies with allies,
+        // and Wait rather than diving solo into snow/surrounds with zero attacks left.
+        if (!isShield && !isRanged && !isCaster && !inZoC && !_entity.getCurrentProperties().IsRooted)
+        {
             local chkAtk = F.cheapestMeleeSkill(_entity);
+            if (this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
+            {
+                local smartTile = F.findSmartDpsMeleeTile(this, _entity, info);
+                if (smartTile != null && smartTile.ID != myTile.ID)
+                {
+                    this.m.Mode = "dynamic_melee_move";
+                    this.m.TargetTile = smartTile;
+                    return 520.0;
+                }
+                if (info.HoldLine && decision.StrikePlan != null
+                    && decision.StrikePlan.Tile != null && decision.StrikePlan.Tile.ID != myTile.ID
+                    && !F.isSuicidalDiveV2(_entity, decision.StrikePlan.Tile, info, 4))
+                {
+                    this.m.Mode = "step_attack";
+                    this.m.TargetTile = decision.StrikePlan.Tile;
+                    return 320.0;
+                }
+            }
+            // If fragile DPS has no safe same-turn strike tile and enemies are closing, Wait instead of solo diving!
             if (canWait && F.isFragileMelee(_entity) && _entity.getActionPoints() >= 4 && info.EnemyProjectileRanged < 3.0
                 && (chkAtk == null || !F.hasAdjacentTarget(_entity, chkAtk, info.Enemies))
                 && F.nearestDangerousMeleeDist(_entity, info.Enemies) <= 5)
@@ -447,6 +481,14 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.Mode = "wait";
                 return 480.0;
             }
+        }
+
+        // 6. Lower-priority terrain anchor (chokepoint / flank anchoring when otherwise idle).
+        if (terrainPlan != null && terrainPlan.Tile.ID != myTile.ID)
+        {
+            this.m.Mode = "terrain_anchor";
+            this.m.TargetTile = terrainPlan.Tile;
+            return 380.0;
         }
 
         return ::Const.AI.Behavior.Score.Zero;
@@ -569,7 +611,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "vanguard_move" || this.m.Mode == "dynamic_melee_move" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
+        if (this.m.Mode == "vanguard_move" || this.m.Mode == "dynamic_melee_move" || this.m.Mode == "wounded_retreat" || this.m.Mode == "terrain_anchor" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
         {
             local navigator = ::Tactical.getNavigator();
             if (this.m.IsFirstExecuted)
@@ -600,6 +642,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 }
                 this.getAgent().adjustCameraToTarget(dest);
                 this.m.MovedTileID = _entity.getTile().ID;
+                if (this.m.Mode == "terrain_anchor")
+                    this.m.TerrainMovedRound = ::Time.getRound();
                 this.m.IsMoving = true;
                 return false;
             }

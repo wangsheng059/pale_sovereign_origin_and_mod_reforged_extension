@@ -964,6 +964,318 @@ local F = A.Frontline <- {
         return { Blockers = blockers, Strong = strongBlockers };
     },
 
+    // Unified terrain & elevation tactical scorer: rewards high ground (+10% MAtk/MDef/RAtk per level),
+    // penalizes fighting uphill or stepping off high ground, avoids bad terrain (swamp/deep snow),
+    // and rewards natural flank protection (trees/rocks/cliffs limiting surround slots).
+    function scoreTerrainAdvantage( _actor, _tile, _originTile, _enemies, _role = "melee" )
+    {
+        if (_tile == null)
+            return 0.0;
+        local score = 0.0;
+        local myLvl = _tile.Level;
+        local isRangedOrCaster = (_role == "ranged" || _role == "caster");
+        local isTank = (_role == "tank");
+        local isFragile = (_role == "dps" && this.isFragileMelee(_actor));
+
+        // 1. Elevation delta against nearby live enemies (within 4 tiles, or nearest enemy if farther).
+        local enemyLvlSum = 0.0;
+        local enemyCnt = 0;
+        local nearestDist = 99;
+        local nearestLvl = myLvl;
+        foreach (foe in _enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            local ft = foe.getTile();
+            local d = _tile.getDistanceTo(ft);
+            if (d < nearestDist) { nearestDist = d; nearestLvl = ft.Level; }
+            if (d <= 4)
+            {
+                enemyLvlSum += ft.Level;
+                ++enemyCnt;
+            }
+        }
+        local refLvl = enemyCnt > 0 ? (enemyLvlSum / enemyCnt) : nearestLvl.tofloat();
+        local dLvl = myLvl - refLvl;
+        if (dLvl > 0.0)
+            score += dLvl * (isRangedOrCaster ? 14.0 : 12.0);
+        else if (dLvl < 0.0)
+            score += dLvl * (isFragile ? 18.0 : (isRangedOrCaster ? 10.0 : 14.0));
+
+        // Penalize stepping DOWN off high ground we already hold (force enemies to climb uphill into us).
+        if (_originTile != null && myLvl < _originTile.Level && nearestDist <= 5)
+            score -= (_originTile.Level - myLvl) * (isRangedOrCaster ? 8.0 : 10.0);
+
+        // 2. Bad terrain (Swamp -25% MAtk/MDef, Deep Snow, etc.) & movement AP cost preference.
+        if (_tile.IsBadTerrain)
+        {
+            if (_originTile == null || !_originTile.IsBadTerrain)
+                score -= isTank ? 14.0 : 16.0;
+            else
+                score -= 6.0;
+        }
+        else if (_originTile != null && _originTile.IsBadTerrain)
+        {
+            // Strong incentive to step OUT of Swamp / bad terrain onto firm ground!
+            score += 10.0;
+        }
+        try {
+            local moveAP = _actor.getActionPointCosts()[_tile.Type];
+            if (moveAP >= 3)
+                score -= (moveAP - 2) * 2.5;
+        } catch (e) {}
+
+        // 3. Natural chokepoint / flank protection (impassable tiles or cliff edges |dLevel| > 1)
+        // plus forcing incoming enemies to attack from lower elevation or bad terrain.
+        local blockedSides = 0;
+        local openExits = 0;
+        local hostileBadApproaches = 0;
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!_tile.hasNextTile(d))
+            {
+                ++blockedSides;
+                continue;
+            }
+            local nt = _tile.getNextTile(d);
+            if ((!nt.IsEmpty && !nt.IsOccupiedByActor) || ::Math.abs(nt.Level - myLvl) > 1)
+            {
+                ++blockedSides;
+            }
+            else
+            {
+                if (nt.IsEmpty) ++openExits;
+                if (nt.Level < myLvl || nt.IsBadTerrain)
+                {
+                    if (nearestDist <= 5 && enemyCnt > 0)
+                        ++hostileBadApproaches;
+                }
+            }
+        }
+        if (isTank)
+            score += ::Math.min(3, blockedSides) * 5.5 + ::Math.min(3, hostileBadApproaches) * 4.5;
+        else if (!isRangedOrCaster)
+            score += ::Math.min(3, blockedSides) * 4.0 + ::Math.min(2, hostileBadApproaches) * 3.5;
+        else
+        {
+            score += ::Math.min(2, blockedSides) * 3.0;
+            if (openExits == 0)
+                score -= 12.0; // Never trap Mentor/ranged in a dead-end corner!
+        }
+
+        return score;
+    },
+
+    // Check whether an enemy Elite is already pinned by a friendly shieldbearer or undead tank
+    // while weaker non-elite enemies are still alive (so fragile 1-tile DPS shouldn't steal Elite aggro off the tank).
+    function isElitePinnedByTank( _actor, _foe, _info )
+    {
+        if (_foe == null || _foe.getMoraleState() == ::Const.MoraleState.Fleeing)
+            return false;
+        if (_foe.getSkills().hasSkill("effects.net") || _foe.getCurrentProperties().IsStunned)
+            return false;
+        if (_foe.getHitpointsPct() <= 0.45)
+            return false;
+        if (this.enemyEliteScore(_foe, _info) < 1.5)
+            return false;
+
+        // Check if other weaker non-elite active enemies still exist on the field.
+        local otherWeakAlive = false;
+        local chiefTile = null;
+        foreach (bro in _info.Brothers)
+            if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+        local ft = _foe.getTile();
+        if (chiefTile != null && ft.getDistanceTo(chiefTile) <= 2)
+            return false; // Always peel an elite threatening Mentor!
+        foreach (e in _info.Enemies)
+        {
+            if (e.getID() == _foe.getID() || e.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            if (this.enemyEliteScore(e, _info) < 1.5) { otherWeakAlive = true; break; }
+        }
+        if (!otherWeakAlive)
+            return false;
+
+        // Check if a friendly shieldbearer or undead tank is already pinning this Elite.
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!ft.hasNextTile(d)) continue;
+            local nt = ft.getNextTile(d);
+            if (!nt.IsOccupiedByActor || ::Math.abs(nt.Level - ft.Level) > 1) continue;
+            local occ = nt.getEntity();
+            if (occ.getID() == _actor.getID() || !occ.isAlive() || !occ.isAlliedWith(_actor)) continue;
+            if (::BGP.hasShield(occ) || occ.getFaction() == ::Const.Faction.PlayerAnimals)
+                return true;
+        }
+        return false;
+    },
+
+    // Check whether ANY enemy adjacent to _tile is a full-HP Elite already pinned by our shieldbearer/undead tank.
+    function hasAdjacentPinnedElite( _actor, _tile, _info )
+    {
+        if (_tile == null)
+            return false;
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!_tile.hasNextTile(d)) continue;
+            local nt = _tile.getNextTile(d);
+            if (!nt.IsOccupiedByActor || ::Math.abs(nt.Level - _tile.Level) > 1) continue;
+            local occ = nt.getEntity();
+            if (occ.isAlive() && !occ.isAlliedWith(_actor) && this.isElitePinnedByTank(_actor, occ, _info))
+                return true;
+        }
+        return false;
+    },
+
+    // Critically wounded unshielded melee bro (<= 28% HP) who is currently free (zoc == 0) retreats behind healthy allies!
+    function findWoundedRetreatTile( _behavior, _actor, _info )
+    {
+        if (::BGP.hasShield(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
+            return null;
+        if (_actor.getHitpointsPct() > 0.28 || _actor.getCurrentProperties().IsRooted)
+            return null;
+        local myTile = _actor.getTile();
+        if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return null;
+        local curDist = this.nearestDangerousMeleeDist(_actor, _info.Enemies);
+        if (curDist > 4)
+            return null;
+
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        if (ap < 2) return null;
+        local navigator = ::Tactical.getNavigator();
+        local settings = this.navSettings(_actor, navigator);
+        local candidates = this.tilesInRange(myTile, 1, ap >= 4 ? 2 : 1);
+        local bestTile = null;
+        local bestScore = 0.0;
+
+        local nearestThreatTile = null;
+        local ndBest = 99;
+        foreach (foe in _info.Enemies)
+        {
+            if (!this.isDangerousMeleeEnemy(foe)) continue;
+            local d = myTile.getDistanceTo(foe.getTile());
+            if (d < ndBest) { ndBest = d; nearestThreatTile = foe.getTile(); }
+        }
+
+        foreach (dest in candidates)
+        {
+            if (!dest.IsEmpty || dest.ID == myTile.ID) continue;
+            if (dest.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0) continue;
+            if (_behavior.hasNegativeTileEffect(dest, _actor)) continue;
+            if (!navigator.findPath(myTile, dest, settings, 0)) continue;
+            local cost = navigator.getCostForPath(_actor, settings, ap, availFat);
+            if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID) continue;
+
+            local minD = this.nearestDangerousMeleeDistAt(dest, _info.Enemies);
+            if (minD <= curDist && minD <= 2) continue;
+            local scr = nearestThreatTile != null ? this.countScreenBlockersBetween(dest, _actor, nearestThreatTile) : { Blockers = 0, Strong = 0 };
+            local score = (minD - curDist) * 10.0 + scr.Blockers * 14.0 + scr.Strong * 6.0
+                + this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, "ranged") * 0.4
+                - cost.ActionPointsRequired * 0.6;
+            if (score > bestScore) { bestScore = score; bestTile = dest; }
+        }
+        return bestTile;
+    },
+
+    function nearestDangerousMeleeDistAt( _tile, _enemies )
+    {
+        local best = 99;
+        foreach (foe in _enemies)
+        {
+            if (!this.isDangerousMeleeEnemy(foe)) continue;
+            local d = _tile.getDistanceTo(foe.getTile());
+            if (d < best) best = d;
+        }
+        return best;
+    },
+
+    // Proactive terrain repositioning when holding/waiting (climb high ground within 1-2 tiles, leave Swamp/bad terrain,
+    // or anchor beside chokepoints/shieldbearers instead of sitting idle on poor ground).
+    function findTacticalTerrainTile( _behavior, _actor, _info )
+    {
+        if (_actor.getCurrentProperties().IsRooted)
+            return null;
+        local myTile = _actor.getTile();
+        if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return null;
+        local isShield = ::BGP.hasShield(_actor);
+        local isCaster = this.isCasterRole(_actor);
+        local isRanged = this.isRangedRole(_actor);
+        local role = isShield ? "tank" : (isCaster ? "caster" : (isRanged ? "ranged" : "dps"));
+        local curDist = this.nearestDangerousMeleeDist(_actor, _info.Enemies);
+        if (curDist > 8 || curDist <= 1)
+            return null;
+        if (isCaster && curDist <= 3)
+            return null; // Backline kite handles close threats for Mentor.
+
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local reserveAP = 0;
+        if (isShield)
+        {
+            local sw = _actor.getSkills().getSkillByID("actives.shieldwall");
+            if (sw != null && !sw.isHidden() && sw.isUsable())
+                reserveAP = sw.getActionPointCost();
+        }
+        else if (isCaster)
+        {
+            reserveAP = 4; // Keep enough AP for Mentor summon/weaken/raise after stepping onto high ground.
+        }
+        local maxMoveAP = ::Math.min(ap - reserveAP, isCaster ? 3 : 6);
+        if (maxMoveAP < 2)
+            return null;
+
+        local curScore = this.scoreTerrainAdvantage(_actor, myTile, null, _info.Enemies, role);
+        local maxNearbyEnemyLvl = -99;
+        foreach (foe in _info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            local ft = foe.getTile();
+            if (myTile.getDistanceTo(ft) <= 6 && ft.Level > maxNearbyEnemyLvl)
+                maxNearbyEnemyLvl = ft.Level;
+        }
+        local navigator = ::Tactical.getNavigator();
+        local settings = this.navSettings(_actor, navigator);
+        local maxRange = (!isCaster && maxMoveAP >= 4) ? 2 : 1;
+        local candidates = this.tilesInRange(myTile, 1, maxRange);
+        local bestTile = null;
+        local bestGain = 10.0; // Require clear meaningful terrain improvement (e.g. +1 elevation or leaving bad terrain).
+        local bestHighPriority = false;
+
+        foreach (dest in candidates)
+        {
+            if (!dest.IsEmpty || dest.ID == myTile.ID || _behavior.hasNegativeTileEffect(dest, _actor)) continue;
+            if (dest.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0) continue;
+            local newDist = this.nearestDangerousMeleeDistAt(dest, _info.Enemies);
+            // Never step closer into enemy range while repositioning as a fragile, ranged, or caster bro.
+            if (isCaster && newDist < 4) continue;
+            if ((isRanged || !isShield) && newDist <= 2) continue;
+            if (!isShield && newDist < curDist && curDist <= 4) continue;
+            // Don't retreat farther away from the fight just to climb an even higher ridge once we already hold high ground above enemies.
+            if (!isCaster && !isRanged && maxNearbyEnemyLvl > -99 && myTile.Level >= maxNearbyEnemyLvl + 1 && newDist > curDist) continue;
+            if (!navigator.findPath(myTile, dest, settings, 0)) continue;
+            local cost = navigator.getCostForPath(_actor, settings, maxMoveAP, availFat);
+            if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.ActionPointsRequired > maxMoveAP) continue;
+
+            local exp = this.evaluateTileExposure(_actor, dest, _info);
+            if (exp.NearAllies2 == 0) continue; // Stay connected to the company line!
+            if (isCaster && exp.NearAllies2 < 2) continue;
+            local highPriority = (dest.Level > myTile.Level) || (myTile.IsBadTerrain && !dest.IsBadTerrain);
+            if (isCaster && !highPriority) continue;
+            local destScore = this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, role);
+            local gain = destScore - curScore + ::Math.min(2, exp.AdjAllies) * 2.5 - cost.ActionPointsRequired * 0.8;
+            if (gain > bestGain)
+            {
+                bestGain = gain;
+                bestTile = dest;
+                bestHighPriority = highPriority;
+            }
+        }
+        if (bestTile == null)
+            return null;
+        return { Tile = bestTile, HighPriority = bestHighPriority, Gain = bestGain };
+    },
+
     // Evaluate immediate and next-turn surround exposure at a candidate tile.
     function evaluateTileExposure( _actor, _tile, _info )
     {
@@ -1122,8 +1434,11 @@ local F = A.Frontline <- {
                     }
                 }
 
-                // Never dive solo into 3+ enemies with zero adjacent allies, or without Shieldwall AP into 2+ enemies.
+                // Never dive solo into 3+ enemies with zero adjacent allies, or jump 2 tiles into an isolated 2+ pocket,
+                // or step without Shieldwall AP into 2+ enemies.
                 if (adjEnemies >= 3 && adjAllies == 0)
+                    continue;
+                if (cost.Tiles >= 2 && adjAllies == 0 && adjEnemies >= 2 && !pinsChiefThreat)
                     continue;
                 if (!canSWAfter && adjEnemies >= 2)
                     continue;
@@ -1147,7 +1462,8 @@ local F = A.Frontline <- {
                         break;
                     }
                 }
-                score += (dest.Level - ft.Level) * 2.5 - cost.ActionPointsRequired * 0.6 - (dest.IsBadTerrain ? 2.0 : 0.0);
+                score += (dest.Level - ft.Level) * 6.0 + this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, "tank") * 0.65
+                    - cost.ActionPointsRequired * 0.6;
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -1203,7 +1519,8 @@ local F = A.Frontline <- {
                         if (nt.IsOccupiedByActor && nt.getEntity().isAlliedWith(_actor) && nt.getEntity().getID() != _actor.getID())
                             ++adjAllies;
                     }
-                    local ls = 10.0 + (curDist - step.getDistanceTo(lft)) * 6.0 + ::Math.min(2, adjAllies) * 4.0 + (step.Level - myTile.Level) * 2.0;
+                    local ls = 10.0 + (curDist - step.getDistanceTo(lft)) * 6.0 + ::Math.min(2, adjAllies) * 4.0
+                        + this.scoreTerrainAdvantage(_actor, step, myTile, _info.Enemies, "tank") * 0.7;
                     if (chiefTile != null && step.getDistanceTo(chiefTile) <= 4 && step.getDistanceTo(lft) < chiefTile.getDistanceTo(lft))
                         ls += 8.0;
                     if (ls > bestLaneScore) { bestLaneScore = ls; bestLaneTile = step; }
@@ -1300,12 +1617,31 @@ local F = A.Frontline <- {
                 local apLeft = ap - cost.ActionPointsRequired;
                 local fatLeft = availFat - cost.FatigueRequired;
                 local canStrike = (apLeft >= atkAP && fatLeft >= atkFat);
+                local isLethalStrike = false;
+                if (canStrike)
+                {
+                    try {
+                        local hit = atk.getHitchance(foe);
+                        local dmg = atk.getExpectedDamage(foe);
+                        if (hit >= 40 && dmg.HitpointDamage + dmg.DirectDamage >= foe.getHitpoints())
+                            isLethalStrike = true;
+                    } catch (e) {}
+                }
 
+                // Critically wounded unshielded bro (<= 28% HP) never re-enters melee unless securing a same-turn kill or fleeing cleanup.
+                if (_actor.getHitpointsPct() <= 0.28 && !fleeing && !isLethalStrike)
+                    continue;
                 // Hard anti-surround veto: never step into suicidal solo or 3+ surround pockets.
                 if (!fleeing && this.isSuicidalDiveV2(_actor, dest, _info, apLeft))
                     continue;
-                // Fragile bros should not burn their turn walking into melee with zero attack left unless peeling for Mentor with ally support.
-                if (isFragile && !canStrike && !fleeing && !foeNearChief)
+                // Fragile bros must not burn all AP walking into melee with zero attack left (except healthy 1-tile Mentor peel).
+                local urgentMentorPeel = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 1 && _actor.getHitpointsPct() >= 0.55);
+                if (isFragile && !canStrike && !fleeing && !urgentMentorPeel)
+                    continue;
+
+                // Never steal aggro of a full-HP Elite that our Shieldbearer/undead tank is already pinning while weaker foes live!
+                local pinnedElite = this.isElitePinnedByTank(_actor, foe, _info) || this.hasAdjacentPinnedElite(_actor, dest, _info);
+                if (pinnedElite && isFragile && _actor.getCurrentProperties().getMeleeDefense() < 18 && !isLethalStrike)
                     continue;
 
                 local exp = this.evaluateTileExposure(_actor, dest, _info);
@@ -1313,33 +1649,31 @@ local F = A.Frontline <- {
                 if (canStrike)
                 {
                     score += 22.0;
-                    try {
-                        local hit = atk.getHitchance(foe);
-                        local dmg = atk.getExpectedDamage(foe);
-                        if (hit >= 40 && dmg.HitpointDamage + dmg.DirectDamage >= foe.getHitpoints())
-                            score += 18.0;
-                    } catch (e) {}
+                    if (isLethalStrike)
+                        score += 18.0;
                 }
-                if (foeEngaged) score += 14.0;
+                if (foeEngaged && !pinnedElite) score += 14.0;
+                if (pinnedElite) score -= 28.0;
                 if (foe.getSkills().hasSkill("effects.net") || foe.getCurrentProperties().IsStunned) score += 12.0;
                 if (foeFragile) score += 11.0;
                 if (!fleeing && foe.getHitpointsPct() <= 0.60) score += (0.65 - foe.getHitpointsPct()) * 16.0;
                 if (foeNearChief) score += 18.0;
                 // Discourage fragile unshielded DPS from solo-engaging full-HP unengaged elites when our tank/undead can pin them.
                 if (isFragile && hasTeamTank && !foeEngaged && foeElite >= 1.5 && foe.getHitpointsPct() >= 0.70)
-                    score -= 16.0;
+                    score -= 18.0;
                 // Bonus if moving here also lets us throw our held net at an elite/high-threat target this turn.
                 if (canUseNet && apLeft >= netSkill.getActionPointCost() && !fleeing && foeElite >= 1.2
                     && !foe.getSkills().hasSkill("effects.net") && !foe.getCurrentProperties().IsRooted)
                     score += 10.0;
 
-                // Cohesion & anti-surround scoring.
+                // Cohesion, anti-surround, and terrain/elevation scoring.
                 score += ::Math.min(2, exp.AdjAllies) * 10.0 + ::Math.min(2, exp.AdjShieldAllies) * 8.0 + ::Math.min(2, exp.NearAllies2) * 3.0;
                 if (exp.PotentialSurround >= 3)
                     score -= (exp.PotentialSurround - 2) * 14.0;
                 if (isFragile && exp.AdjEnemies >= 2)
                     score -= 12.0;
-                score += (dest.Level - ft.Level) * 3.0 - cost.ActionPointsRequired * 0.8 - (dest.IsBadTerrain ? 2.0 : 0.0);
+                score += (dest.Level - ft.Level) * 7.5 + this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, "dps") * 0.65
+                    - cost.ActionPointsRequired * 0.8;
 
                 if (score > bestScore)
                 {
@@ -1995,8 +2329,9 @@ local F = A.Frontline <- {
             }
             if (sniperDanger)
                 score += ::Math.max(0, newArcherDist - curArcherDist) * 8.0 + (newArcherDist >= 8 ? 10.0 : 0.0) + (newCover ? 7.0 : 0.0);
-            score += ::Math.min(3, nearAllies) * 4.0 + ::Math.min(3, openExits) * 1.2 + (dest.Level - myTile.Level) * 2.0
-                - cost.ActionPointsRequired * 1.0 - (dest.IsBadTerrain ? 2.5 : 0.0);
+            score += ::Math.min(3, nearAllies) * 4.0 + ::Math.min(3, openExits) * 1.2
+                + this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, isCaster ? "caster" : "ranged") * 0.55
+                - cost.ActionPointsRequired * 1.0;
             if (score > bestScore)
             {
                 bestScore = score;
@@ -2102,6 +2437,8 @@ local F = A.Frontline <- {
         // against non-ranged/non-caster melee waves (handing enemies free double-swings in snow/rough terrain!).
         if (isFragile && _apAfter < minAtkAP)
         {
+            if (exp.AdjEnemies >= 2)
+                return true;
             if (exp.AdjAllies == 0 && (exp.AdjEnemies >= 1 || exp.ThreatDist2 >= 2))
                 return true;
             if (exp.PotentialSurround >= 3 && exp.AdjShieldAllies == 0)
@@ -2123,7 +2460,9 @@ local F = A.Frontline <- {
                     return true;
             }
         }
-        if (hpPct <= 0.30 && (exp.AdjEnemies >= 2 || (exp.AdjEnemies >= 1 && exp.AdjAllies == 0)))
+        if (hpPct <= 0.28 && exp.AdjEnemies >= 1)
+            return true;
+        if (hpPct <= 0.35 && (exp.AdjEnemies >= 2 || (exp.AdjEnemies >= 1 && exp.AdjAllies == 0)))
             return true;
         return false;
     },
@@ -2431,6 +2770,39 @@ local F = A.Frontline <- {
                 approxApAfter = ap - myTile.getDistanceTo(this.m.TargetTile) * stepCost;
             }
             local veto = F.isSuicidalDiveV2(_entity, this.m.TargetTile, info, approxApAfter);
+            // Keep critically wounded unshielded melee bros (<= 28% HP, free of ZoC) from undoing wounded_retreat via EngageMelee!
+            if (!veto && !::BGP.hasShield(_entity) && !F.isRangedRole(_entity) && !F.isCasterRole(_entity)
+                && _entity.getHitpointsPct() <= 0.28
+                && myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0
+                && this.m.TargetTile.ID != myTile.ID
+                && (this.m.TargetActor == null || ::MSU.isNull(this.m.TargetActor) || this.m.TargetActor.getMoraleState() != ::Const.MoraleState.Fleeing))
+            {
+                veto = true;
+            }
+            // Also block fragile 1-tile DPS from stepping adjacent to ANY Elite already pinned by our Shieldbearer/undead tank while weaker foes live.
+            if (!veto && !::BGP.hasShield(_entity) && !F.isRangedRole(_entity) && !F.isCasterRole(_entity)
+                && _entity.getCurrentProperties().getMeleeDefense() < 18
+                && ((this.m.TargetActor != null && !::MSU.isNull(this.m.TargetActor) && F.isElitePinnedByTank(_entity, this.m.TargetActor, info))
+                    || F.hasAdjacentPinnedElite(_entity, this.m.TargetTile, info)))
+            {
+                veto = true;
+            }
+            // Penalize walking off high ground into uphill/bad-terrain fights against melee-only enemies when not lethal.
+            if (!veto && !::BGP.hasShield(_entity) && info.EnemyProjectileRanged < 3.0 && info.EnemyUrgentCasters == 0
+                && this.m.TargetTile.ID != myTile.ID && this.m.TargetActor != null && !::MSU.isNull(this.m.TargetActor)
+                && this.m.TargetActor.getMoraleState() != ::Const.MoraleState.Fleeing)
+            {
+                local tgtLvl = this.m.TargetActor.getTile().Level;
+                local destLvl = this.m.TargetTile.Level;
+                local badJump = this.m.TargetTile.IsBadTerrain && !myTile.IsBadTerrain;
+                if ((destLvl < tgtLvl || destLvl < myTile.Level || badJump) && F.isFragileMelee(_entity))
+                {
+                    if (approxApAfter < 4)
+                        veto = true;
+                    else
+                        this.m.Score *= 0.45;
+                }
+            }
             // Also stop shieldbearers from being dragged by vanilla EngageMelee into 3+ enemy surrounds without Shieldwall AP.
             if (!veto && ::BGP.hasShield(_entity) && this.m.TargetTile.ID != myTile.ID)
             {
@@ -2449,6 +2821,19 @@ local F = A.Frontline <- {
             }
         }
         return done;
+    };
+});
+
+// Prevent unengaged brothers who just raised Spearwall from burning 20 extra fatigue stacking vanilla Shieldwall on the same turn.
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_defend_shieldwall", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")
+            && _entity.getSkills().hasSkill("effects.spearwall")
+            && _entity.getTile().getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0)
+        {
+            return ::Const.AI.Behavior.Score.Zero;
+        }
+        return __original(_entity);
     };
 });
 
