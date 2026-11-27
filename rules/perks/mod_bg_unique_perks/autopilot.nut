@@ -2316,6 +2316,24 @@ local F = A.Frontline <- {
                     return true;
             }
         }
+        else if (this.isRangedRole(_actor) && _targetTile.ID != myTile.ID)
+        {
+            // Prevent non-caster Bow/Crossbow/Throwing backliners from walking INTO dist <= 2 of a live melee threat
+            // (which otherwise causes Engage.Ranged -> backline_kite ping-pong burning AP without firing!).
+            local curMelee = 99;
+            local newMelee = 99;
+            foreach (foe in decision.Info.Enemies)
+            {
+                if (!this.isLiveBacklineThreat(foe)) continue;
+                local ft = foe.getTile();
+                local cd = myTile.getDistanceTo(ft);
+                local nd = _targetTile.getDistanceTo(ft);
+                if (cd < curMelee) curMelee = cd;
+                if (nd < newMelee) newMelee = nd;
+            }
+            if (newMelee <= 2 && (curMelee > 2 || newMelee < curMelee))
+                return true;
+        }
         if (!decision.Hold)
             return false;
         // Suppress forward advance while holding; allow retreating or holding tile.
