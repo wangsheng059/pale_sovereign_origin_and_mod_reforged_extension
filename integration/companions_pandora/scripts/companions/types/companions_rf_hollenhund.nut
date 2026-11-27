@@ -60,14 +60,24 @@ this.companions_rf_hollenhund <- this.inherit("scripts/entity/tactical/enemies/r
 	{
 		if (this.m.Item != null && !this.m.Item.isNull())
 		{
-			this.m.Item.setEntity(null);
+			local item = this.m.Item.get();
+			try { item.setEntity(null); } catch (e) {}
 
-			if (this.m.Item.getContainer() != null)
+			local c = null;
+			try { c = item.getContainer(); } catch (e) {}
+			if (c != null && !::MSU.isNull(c))
 			{
-				if (this.m.Item.getCurrentSlotType() == this.Const.ItemSlot.Bag)
-					this.m.Item.getContainer().removeFromBag(this.m.Item.get());
-				else
-					this.m.Item.getContainer().unequip(this.m.Item.get());
+				try
+				{
+					if (item.getCurrentSlotType() == this.Const.ItemSlot.Bag)
+						c.removeFromBag(item);
+					else
+						c.unequip(item);
+				}
+				catch (e)
+				{
+					try { c.remove(item); } catch (e2) {}
+				}
 			}
 
 			this.m.Item = null;

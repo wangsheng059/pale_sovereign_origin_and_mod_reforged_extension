@@ -377,3 +377,72 @@
 		return ret;
 	}
 });
+
+// Safely detach and remove a dead companion's accessory item before upstream onDeath runs:
+// when the owner dies first, item.getContainer() can become an expired WeakTableRef or a Stash
+// lacking unequip()/removeFromBag(), which otherwise throws before actor.onDeath() and soft-locks initNextTurn().
+::AC_PH_Compat.safeCleanupCompanionItem <- function( _actor )
+{
+	if (_actor == null || !("Item" in _actor.m) || _actor.m.Item == null || ::MSU.isNull(_actor.m.Item))
+		return;
+
+	local item = null;
+	try { item = _actor.m.Item.get(); } catch (e) { item = _actor.m.Item; }
+	if (item == null || ::MSU.isNull(item))
+	{
+		_actor.m.Item = null;
+		return;
+	}
+
+	try { item.setEntity(null); } catch (e) {}
+
+	local c = null;
+	try { c = item.getContainer(); } catch (e) {}
+	if (c != null && !::MSU.isNull(c))
+	{
+		try
+		{
+			if (item.getCurrentSlotType() == ::Const.ItemSlot.Bag)
+				c.removeFromBag(item);
+			else
+				c.unequip(item);
+		}
+		catch (e)
+		{
+			try { c.remove(item); } catch (e2) {}
+		}
+	}
+
+	_actor.m.Item = null;
+};
+
+local companionScripts = [
+	"scripts/companions/types/companions_alp",
+	"scripts/companions/types/companions_direwolf",
+	"scripts/companions/types/companions_hyena",
+	"scripts/companions/types/companions_nacho",
+	"scripts/companions/types/companions_noodle",
+	"scripts/companions/types/companions_schrat",
+	"scripts/companions/types/companions_snake",
+	"scripts/companions/types/companions_spider",
+	"scripts/companions/types/companions_unhold",
+	"scripts/companions/types/companions_wardog",
+	"scripts/companions/types/companions_warhound",
+	"scripts/companions/types/companions_warwolf",
+	"scripts/companions/types/companions_rf_hollenhund",
+	"scripts/entity/tactical/ph_dreadwolf"
+];
+if (::Hooks.hasMod("mod_north_expansion"))
+	companionScripts.push("scripts/entity/tactical/direwolf_pet");
+
+foreach (scriptPath in companionScripts)
+{
+	::AC_PH_Compat.HooksMod.hook(scriptPath, function(q)
+	{
+		q.onDeath = @(__original) function( _killer, _skill, _tile, _fatalityType )
+		{
+			::AC_PH_Compat.safeCleanupCompanionItem(this);
+			return __original(_killer, _skill, _tile, _fatalityType);
+		};
+	});
+}

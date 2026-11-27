@@ -623,13 +623,23 @@
 	{
 		if (_e.m.Item != null && !_e.m.Item.isNull())
 		{
-			_e.m.Item.setEntity(null);
-			if (_e.m.Item.getContainer() != null)
+			local item = _e.m.Item.get();
+			try { item.setEntity(null); } catch (e) {}
+			local c = null;
+			try { c = item.getContainer(); } catch (e) {}
+			if (c != null && !::MSU.isNull(c))
 			{
-				if (_e.m.Item.getCurrentSlotType() == ::Const.ItemSlot.Bag)
-					_e.m.Item.getContainer().removeFromBag(_e.m.Item.get());
-				else
-					_e.m.Item.getContainer().unequip(_e.m.Item.get());
+				try
+				{
+					if (item.getCurrentSlotType() == ::Const.ItemSlot.Bag)
+						c.removeFromBag(item);
+					else
+						c.unequip(item);
+				}
+				catch (e)
+				{
+					try { c.remove(item); } catch (e2) {}
+				}
 			}
 		}
 	}

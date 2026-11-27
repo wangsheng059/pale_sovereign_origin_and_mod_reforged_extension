@@ -540,7 +540,7 @@ local F = A.Frontline <- {
         return best;
     },
 
-    function cheapestMeleeSkill( _actor )
+    function cheapestMeleeSkill( _actor, _ignoreAffordable = false )
     {
         local best = null;
         foreach (s in _actor.getSkills().m.Skills)
@@ -549,13 +549,116 @@ local F = A.Frontline <- {
                 continue;
             if (!s.m.IsWeaponSkill && s.getID() != "actives.hand_to_hand")
                 continue;
-            if (s.isHidden() || !s.isUsable() || !s.isAffordable())
+            if (s.isHidden() || !s.isUsable() || (!_ignoreAffordable && !s.isAffordable()))
                 continue;
             if (best == null || s.getActionPointCost() < best.getActionPointCost()
                 || (s.getActionPointCost() == best.getActionPointCost() && s.getFatigueCost() < best.getFatigueCost()))
                 best = s;
         }
         return best;
+    },
+
+    // Compute exact post-movement AP and Fatigue costs of _skill after executing _moveCost across all installed mods:
+    // starts from live getActionPointCost()/getFatigueCost() (covering all static/current-state modifiers across all mods)
+    // and simulates Reforged's 4 movement-dependent perks (Spear Mastery expiry, Vigorous Assault, Opportunist, Vanquisher).
+    function previewSkillCostsAfterMove( _actor, _skill, _moveCost )
+    {
+        local effAP = _skill.getActionPointCost();
+        local effFat = _skill.getFatigueCost();
+        local bonus = false;
+        if (_moveCost == null || _moveCost.Tiles <= 0)
+            return { AP = effAP, Fat = effFat, Bonus = false };
+
+        local skills = _actor.getSkills();
+        local spearExpired = false;
+
+        // 1. Reforged Spear Mastery (reverse trap): 0 AP / 0.5x Fat expires if total tiles moved exceeds allowed limit
+        // (1 tile for 1H spears, 0 tiles for 2H spears); if it stays active after a 1-tile 1H move, flag Bonus = true.
+        local sp = skills.getSkillByID("perk.mastery.spear");
+        if (sp != null)
+        {
+            try {
+                if (!sp.m.IsSpent && sp.isSkillValid(_skill))
+                {
+                    if (sp.m.TilesMoved + _moveCost.Tiles > sp.getMaxTilesAllowed())
+                    {
+                        spearExpired = true;
+                        local baseAP = 4;
+                        try {
+                            baseAP = _skill.getBaseValue("ActionPointCost");
+                        } catch (e2) {
+                            local w = _skill.getItem();
+                            baseAP = (w != null && !::MSU.isNull(w) && w.isItemType(::Const.Items.ItemType.TwoHanded)) ? 6 : 4;
+                        }
+                        effAP = ::Math.max(0, baseAP + _actor.getCurrentProperties().AdditionalActionPointCost);
+                        effFat = ::Math.ceil(effFat / ::Math.maxf(0.1, sp.m.FatigueCostMultMult)).tointeger();
+                    }
+                    else
+                    {
+                        bonus = true;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // 2. Reforged Vigorous Assault: every BonusEveryXTiles (2) moved grants -1 AP (min 1) & -10% Fat on next attack.
+        // Note: Autopilot keeps IsControlledByPlayer == true, so Reforged does not pre-discount live ActionPointCost.
+        local va = skills.getSkillByID("perk.rf_vigorous_assault");
+        if (va != null)
+        {
+            try {
+                if (va.isSkillValid(_skill))
+                {
+                    local step = ::Math.max(1, va.m.BonusEveryXTiles);
+                    local curStacks = (va.m.NumTilesMoved / step).tointeger();
+                    local newStacks = ((va.m.NumTilesMoved + _moveCost.Tiles) / step).tointeger();
+                    local apDrop = spearExpired ? newStacks : (newStacks - curStacks);
+                    if (apDrop > 0)
+                    {
+                        if (effAP > 1)
+                            effAP = ::Math.max(1, effAP - apDrop);
+                        bonus = true;
+                    }
+                    if (newStacks > curStacks)
+                    {
+                        local curMult = ::Math.maxf(0.0, 1.0 - 0.1 * curStacks);
+                        local newMult = ::Math.maxf(0.0, 1.0 - 0.1 * newStacks);
+                        effFat = curMult > 0.01 ? ::Math.floor(effFat * newMult / curMult).tointeger() : 0;
+                        bonus = true;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // 3. Reforged Opportunist: stepping onto an unused enemy corpse primes 0 AP & reduced Fat for next Throwing attack.
+        local opp = skills.getSkillByID("perk.rf_opportunist");
+        if (opp != null && _moveCost.End != null)
+        {
+            try {
+                if (!opp.m.IsPrimed && opp.isSkillValid(_skill) && opp.canProcOntile(_moveCost.End))
+                {
+                    effAP = 0;
+                    effFat = ::Math.floor(effFat * opp.m.FatigueCostMult).tointeger();
+                    bonus = true;
+                }
+            } catch (e) {}
+        }
+
+        // 4. Reforged Vanquisher: stepping onto a tile where this actor killed an enemy this turn halves next skill AP (>1).
+        local vanq = skills.getSkillByID("perk.rf_vanquisher");
+        if (vanq != null && _moveCost.End != null)
+        {
+            try {
+                if (!vanq.m.IsSpent && !vanq.m.IsInEffect && vanq.isTileValid(_moveCost.End))
+                {
+                    if (effAP > 1)
+                        effAP = (effAP / 2).tointeger();
+                    bonus = true;
+                }
+            } catch (e) {}
+        }
+
+        return { AP = effAP, Fat = effFat, Bonus = bonus };
     },
 
     function hasAdjacentTarget( _actor, _skill, _enemies )
@@ -633,6 +736,39 @@ local F = A.Frontline <- {
         return best;
     },
 
+    // Check whether a shieldbearer is currently adjacent to a live enemy engaged in melee with Mentor (dist <= 1)
+    // and can immediately strike that enemy (so the shieldbearer attacks directly to save Mentor instead of raising Shieldwall).
+    function isPeelingMentorMelee( _actor, _info )
+    {
+        if (!::BGP.hasShield(_actor) || _actor.getHitpointsPct() < 0.40)
+            return false;
+        local chief = null;
+        foreach (bro in _info.Brothers)
+        {
+            if (this.isCasterRole(bro)) { chief = bro; break; }
+        }
+        if (chief == null)
+            return false;
+        local chiefTile = chief.getTile();
+        if (chiefTile.getZoneOfControlCountOtherThan(chief.getAlliedFactions()) <= 0)
+            return false;
+        local atk = this.cheapestMeleeSkill(_actor);
+        if (atk == null)
+            return false;
+        local myTile = _actor.getTile();
+        foreach (foe in _info.Enemies)
+        {
+            if (!this.isDangerousMeleeEnemy(foe)) continue;
+            local ft = foe.getTile();
+            if (chiefTile.getDistanceTo(ft) <= 1 && ::Math.abs(chiefTile.Level - ft.Level) <= 1
+                && myTile.getDistanceTo(ft) <= atk.getMaxRange() && atk.isUsableOn(ft, myTile))
+            {
+                return true;
+            }
+        }
+        return false;
+    },
+
     // Check whether an engaged shieldbearer should strike before raising Shieldwall.
     function shouldShieldbearerAttackFirst( _actor, _sw, _enemies, _zone )
     {
@@ -700,7 +836,7 @@ local F = A.Frontline <- {
 
     function findSameTurnStrikePlan( _actor, _enemies )
     {
-        local skill = this.cheapestMeleeSkill(_actor);
+        local skill = this.cheapestMeleeSkill(_actor, true);
         if (skill == null)
             return null;
         local myTile = _actor.getTile();
@@ -710,14 +846,21 @@ local F = A.Frontline <- {
         local atkFat = skill.getFatigueCost();
         local minRange = skill.getMinRange();
         local maxRange = skill.getMaxRange();
-        local moveAPBudget = ap - atkAP;
 
         // Already in strike range without moving.
-        foreach (foe in _enemies)
+        if (ap >= atkAP && availFat >= atkFat)
         {
-            if (skill.isUsableOn(foe.getTile(), myTile))
-                return { Tile = myTile, Enemy = foe, Skill = skill };
+            foreach (foe in _enemies)
+            {
+                if (skill.isUsableOn(foe.getTile(), myTile))
+                    return { Tile = myTile, Enemy = foe, Skill = skill, APAfter = ap, EffAP = atkAP };
+            }
         }
+        // Allow up to +2 AP optimistic move budget when movement-discount perks (Vigorous Assault / Vanquisher) exist.
+        local skills = _actor.getSkills();
+        local hasMoveDiscount = skills.hasSkill("perk.rf_vigorous_assault") || skills.hasSkill("perk.rf_vanquisher");
+        local optimisticMinAP = hasMoveDiscount ? ::Math.max(1, atkAP - 2) : atkAP;
+        local moveAPBudget = ap - optimisticMinAP;
         if (moveAPBudget < 2 || _actor.getCurrentProperties().IsRooted)
             return null;
 
@@ -747,14 +890,16 @@ local F = A.Frontline <- {
                 local cost = navigator.getCostForPath(_actor, settings, ap, availFat);
                 if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID)
                     continue;
-                if (ap - cost.ActionPointsRequired < atkAP || availFat - cost.FatigueRequired < atkFat)
+                local eff = this.previewSkillCostsAfterMove(_actor, skill, cost);
+                local apAfter = ap - cost.ActionPointsRequired;
+                if (apAfter < eff.AP || availFat - cost.FatigueRequired < eff.Fat)
                     continue;
-                local score = 10.0 + (dest.Level - ft.Level) * 2.0 - cost.ActionPointsRequired * 0.35
+                local score = 10.0 + (eff.Bonus ? 2.5 : 0.0) + (dest.Level - ft.Level) * 2.0 - cost.ActionPointsRequired * 0.35
                     - (dest.IsBadTerrain ? 1.5 : 0.0) - (dest.Properties.Effect != null && dest.Properties.Effect.IsPositive == false ? 6.0 : 0.0);
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    bestPlan = { Tile = dest, Enemy = foe, Skill = skill };
+                    bestPlan = { Tile = dest, Enemy = foe, Skill = skill, APAfter = apAfter, EffAP = eff.AP };
                 }
             }
         }
@@ -1125,12 +1270,35 @@ local F = A.Frontline <- {
         return false;
     },
 
+    // Unified gate for critically wounded unshielded retreat (<= 28% HP):
+    // protects fragile early/mid-game bros while never pulling armored Battle Forged tanks or stalling late-battle cleanup!
+    function shouldWoundedRetreat( _actor, _info )
+    {
+        if (::BGP.hasShield(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
+            return false;
+        if (_actor.getHitpointsPct() > 0.28 || _actor.getCurrentProperties().IsRooted)
+            return false;
+        if (_actor.getSkills().hasSkill("perk.battle_forged") && _actor.getArmor(::Const.BodyPart.Body) >= 100)
+            return false;
+        if (::Time.getRound() >= 14)
+            return false;
+        local activeEnemies = 0;
+        foreach (foe in _info.Enemies)
+            if (foe.getMoraleState() != ::Const.MoraleState.Fleeing) ++activeEnemies;
+        if (activeEnemies <= 2)
+            return false;
+        local otherFighters = 0;
+        foreach (bro in _info.Brothers)
+            if (bro.getID() != _actor.getID() && bro.getHitpointsPct() > 0.28 && !this.isCasterRole(bro)) ++otherFighters;
+        if (otherFighters < 2)
+            return false;
+        return true;
+    },
+
     // Critically wounded unshielded melee bro (<= 28% HP) who is currently free (zoc == 0) retreats behind healthy allies!
     function findWoundedRetreatTile( _behavior, _actor, _info )
     {
-        if (::BGP.hasShield(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
-            return null;
-        if (_actor.getHitpointsPct() > 0.28 || _actor.getCurrentProperties().IsRooted)
+        if (!this.shouldWoundedRetreat(_actor, _info))
             return null;
         local myTile = _actor.getTile();
         if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
@@ -1362,6 +1530,7 @@ local F = A.Frontline <- {
         local bestTile = null;
         local bestScore = 0.0;
         local bestUrgent = false;
+        local largeBattle = _info.Enemies.len() >= 12;
 
         foreach (foe in _info.Enemies)
         {
@@ -1369,10 +1538,14 @@ local F = A.Frontline <- {
                 continue;
             local ft = foe.getTile();
             local foeElite = this.enemyEliteScore(foe, _info);
-            local foeNearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 4);
-            local allowFullMove = (foeElite >= 1.5 || foeNearChief) && _actor.getHitpointsPct() >= 0.65;
-            local effAP = allowFullMove ? ::Math.max(moveAPBudget, ::Math.min(ap, 6)) : moveAPBudget;
-            local effSteps = ::Math.min(2, ::Math.max(maxSteps, (effAP / 2).tointeger()));
+            local foeNearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3);
+            local foeBreachChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 2 && this.isDangerousMeleeEnemy(foe));
+            // Always preserve Shieldwall AP/Fat in large battles except for emergency Mentor peels;
+            // allow early low-tier single-elite intercepts (<10 enemies) to pin Marauders in snow.
+            local allowFullMove = (foeNearChief || (!largeBattle && foeElite >= 1.5)) && _actor.getHitpointsPct() >= (foeBreachChief ? 0.45 : 0.65);
+            local effAP = allowFullMove ? ::Math.max(moveAPBudget, ::Math.min(ap, foeBreachChief ? 7 : 6)) : moveAPBudget;
+            local maxTileCap = foeBreachChief ? 3 : 2;
+            local effSteps = ::Math.min(maxTileCap, ::Math.max(maxSteps, (effAP / 2).tointeger()));
             if (myTile.getDistanceTo(ft) > effSteps + 1)
                 continue;
             for (local dir = 0; dir < 6; ++dir)
@@ -1390,7 +1563,7 @@ local F = A.Frontline <- {
                 if (!navigator.findPath(myTile, dest, settings, 0))
                     continue;
                 local cost = navigator.getCostForPath(_actor, settings, ap, availFat);
-                if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.Tiles > 2)
+                if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.Tiles > maxTileCap)
                     continue;
                 local canSWAfter = (ap - cost.ActionPointsRequired >= reserveAP)
                     && (reserveFat <= 0 || availFat - cost.FatigueRequired >= reserveFat);
@@ -1423,7 +1596,8 @@ local F = A.Frontline <- {
                             ++unengagedEnemies;
                             unengagedEliteSum += this.enemyEliteScore(occ, _info);
                         }
-                        if (chiefTile != null && adj.getDistanceTo(chiefTile) <= 4 && dest.getDistanceTo(chiefTile) < adj.getDistanceTo(chiefTile))
+                        if (chiefTile != null && adj.getDistanceTo(chiefTile) <= 3
+                            && (adj.getDistanceTo(chiefTile) <= 2 || dest.getDistanceTo(chiefTile) < adj.getDistanceTo(chiefTile)))
                             pinsChiefThreat = true;
                     }
                     else if (occ.isAlliedWith(_actor))
@@ -1434,18 +1608,34 @@ local F = A.Frontline <- {
                     }
                 }
 
-                // Never dive solo into 3+ enemies with zero adjacent allies, or jump 2 tiles into an isolated 2+ pocket,
-                // or step without Shieldwall AP into 2+ enemies.
+                // Never dive solo into 3+ enemies with zero adjacent allies, or jump 2 tiles into an isolated 2+ surround,
+                // or step without Shieldwall AP into 2+ enemies (or any non-Mentor intercept in large camps).
                 if (adjEnemies >= 3 && adjAllies == 0)
                     continue;
                 if (cost.Tiles >= 2 && adjAllies == 0 && adjEnemies >= 2 && !pinsChiefThreat)
                     continue;
-                if (!canSWAfter && adjEnemies >= 2)
+                if (!canSWAfter && (adjEnemies >= 2 || (largeBattle && !pinsChiefThreat)))
                     continue;
 
                 local score = 8.0 + ::Math.min(2, unengagedEnemies) * 5.0 + unengagedEliteSum * 8.5;
                 if (pinsChiefThreat)
-                    score += 14.0;
+                    score += foeBreachChief ? 28.0 : 18.0;
+                if (foeBreachChief && chiefTile != null)
+                {
+                    if (dest.getDistanceTo(chiefTile) < ft.getDistanceTo(chiefTile))
+                        score += 8.0;
+                    // When Mentor is engaged in melee (dist <= 1), reward arriving with enough AP to strike immediately instead of Shieldwalling!
+                    if (ft.getDistanceTo(chiefTile) <= 1)
+                    {
+                        local shAtk = this.cheapestMeleeSkill(_actor, true);
+                        if (shAtk != null)
+                        {
+                            local effSh = this.previewSkillCostsAfterMove(_actor, shAtk, cost);
+                            if (ap - cost.ActionPointsRequired >= effSh.AP && availFat - cost.FatigueRequired >= effSh.Fat)
+                                score += 14.0;
+                        }
+                    }
+                }
                 if (!canSWAfter)
                     score -= 4.0;
                 // Reward staying connected to the allied line and adjacent to fellow shieldbearers!
@@ -1468,16 +1658,17 @@ local F = A.Frontline <- {
                 {
                     bestScore = score;
                     bestTile = dest;
-                    bestUrgent = (unengagedEliteSum >= 1.5 || pinsChiefThreat);
+                    // Only true Mentor-breach peels override early Spearwall (870); regular intercepts stay at 850.
+                    bestUrgent = pinsChiefThreat || (!largeBattle && unengagedEliteSum >= 1.5);
                 }
             }
         }
         if (bestTile != null)
             return { Tile = bestTile, Urgent = bestUrgent, Score = bestScore };
 
-        // Secondary: if an unengaged Enemy Elite or Mentor-breacher is 3-4 tiles away (just outside direct contact, e.g. snow),
+        // Secondary: if an unengaged Enemy Elite or Mentor-breacher is 3-5 tiles away,
         // step 1 tile into a blocking lane directly between that threat and our Mentor/fragiles with AP left for Shieldwall/Spearwall!
-        if (moveAPBudget >= 2 && _info.EnemyProjectileRanged < 3.0)
+        if (moveAPBudget >= 2)
         {
             local laneThreat = null;
             local laneThreatScore = 0.0;
@@ -1489,9 +1680,13 @@ local F = A.Frontline <- {
                 local dMe = myTile.getDistanceTo(ft);
                 if (dMe < 3 || dMe > 5) continue;
                 local es = this.enemyEliteScore(foe, _info);
+                local breachCh = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3);
                 local nearCh = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 5);
+                // Always allow Mentor-breach lane-blocking even under enemy ranged fire; gate regular elite blocking as before.
+                if (!breachCh && _info.EnemyProjectileRanged >= 3.0) continue;
+                if (largeBattle && !nearCh) continue;
                 if (es < 1.4 && !nearCh) continue;
-                local sc = es * 10.0 + (nearCh ? 12.0 : 0.0) - dMe * 2.0;
+                local sc = es * 10.0 + (breachCh ? 24.0 : (nearCh ? 12.0 : 0.0)) - dMe * 2.0;
                 if (sc > laneThreatScore) { laneThreatScore = sc; laneThreat = foe; }
             }
             if (laneThreat != null)
@@ -1543,21 +1738,19 @@ local F = A.Frontline <- {
         local myTile = _actor.getTile();
         if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
             return null;
-        local atk = this.cheapestMeleeSkill(_actor);
+        local atk = this.cheapestMeleeSkill(_actor, true);
         if (atk == null)
             return null;
 
         local ap = _actor.getActionPoints();
         local availFat = _actor.getFatigueMax() - _actor.getFatigue();
-        local atkAP = atk.getActionPointCost();
-        local atkFat = atk.getFatigueCost();
         local minRange = atk.getMinRange();
         local maxRange = atk.getMaxRange();
         // Polearm / 2-tile weapons are already handled cleanly by autopilot_step_n_hit.
         if (maxRange >= 2)
             return null;
         // Already in melee attack range without moving.
-        if (this.hasAdjacentTarget(_actor, atk, _info.Enemies))
+        if (atk.isAffordable() && this.hasAdjacentTarget(_actor, atk, _info.Enemies))
             return null;
 
         local hasTeamTank = false;
@@ -1589,6 +1782,7 @@ local F = A.Frontline <- {
         local seen = {};
         local bestTile = null;
         local bestScore = 0.0;
+        local bestChiefPeel = false;
 
         foreach (foe in _info.Enemies)
         {
@@ -1600,6 +1794,7 @@ local F = A.Frontline <- {
             local foeFragile = this.isFragileHighThreat(foe, _info);
             local foeEngaged = ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) > 0;
             local foeNearChief = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 3 && !fleeing);
+            local foeBreachChief = (chiefTile != null && !fleeing && ft.getDistanceTo(chiefTile) <= 2 && this.isDangerousMeleeEnemy(foe));
 
             for (local dir = 0; dir < 6; ++dir)
             {
@@ -1616,7 +1811,8 @@ local F = A.Frontline <- {
 
                 local apLeft = ap - cost.ActionPointsRequired;
                 local fatLeft = availFat - cost.FatigueRequired;
-                local canStrike = (apLeft >= atkAP && fatLeft >= atkFat);
+                local eff = this.previewSkillCostsAfterMove(_actor, atk, cost);
+                local canStrike = (apLeft >= eff.AP && fatLeft >= eff.Fat);
                 local isLethalStrike = false;
                 if (canStrike)
                 {
@@ -1628,14 +1824,14 @@ local F = A.Frontline <- {
                     } catch (e) {}
                 }
 
-                // Critically wounded unshielded bro (<= 28% HP) never re-enters melee unless securing a same-turn kill or fleeing cleanup.
-                if (_actor.getHitpointsPct() <= 0.28 && !fleeing && !isLethalStrike)
+                // Critically wounded unshielded bro never re-enters melee unless securing a same-turn kill or fleeing cleanup.
+                if (this.shouldWoundedRetreat(_actor, _info) && !fleeing && !isLethalStrike)
                     continue;
                 // Hard anti-surround veto: never step into suicidal solo or 3+ surround pockets.
-                if (!fleeing && this.isSuicidalDiveV2(_actor, dest, _info, apLeft))
+                if (!fleeing && this.isSuicidalDiveV2(_actor, dest, _info, apLeft, eff.AP))
                     continue;
-                // Fragile bros must not burn all AP walking into melee with zero attack left (except healthy 1-tile Mentor peel).
-                local urgentMentorPeel = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 1 && _actor.getHitpointsPct() >= 0.55);
+                // Fragile bros must not burn all AP walking into melee with zero attack left (except healthy Mentor breach peel).
+                local urgentMentorPeel = (foeBreachChief && _actor.getHitpointsPct() >= 0.45);
                 if (isFragile && !canStrike && !fleeing && !urgentMentorPeel)
                     continue;
 
@@ -1645,10 +1841,22 @@ local F = A.Frontline <- {
                     continue;
 
                 local exp = this.evaluateTileExposure(_actor, dest, _info);
+                // For sturdy late-game heavy frontliners (!isFragile, e.g. BF 2H / high-MDef Duelists),
+                // only override vanilla EngageMelee for cohesive same-turn strikes beside allies, lethal finishes, or urgent Mentor peels,
+                // so Vigorous Assault never launches them solo ahead of tanks and undead screens on Round 1-2.
+                if (!isFragile && !fleeing)
+                {
+                    if (!canStrike && !urgentMentorPeel)
+                        continue;
+                    if (exp.AdjEnemies >= 3 || (exp.PotentialSurround >= 4 && exp.AdjShieldAllies == 0 && !urgentMentorPeel))
+                        continue;
+                    if (exp.AdjAllies == 0 && !isLethalStrike && !foeNearChief)
+                        continue;
+                }
                 local score = 12.0;
                 if (canStrike)
                 {
-                    score += 22.0;
+                    score += 22.0 + (eff.Bonus ? 4.0 : 0.0);
                     if (isLethalStrike)
                         score += 18.0;
                 }
@@ -1657,7 +1865,16 @@ local F = A.Frontline <- {
                 if (foe.getSkills().hasSkill("effects.net") || foe.getCurrentProperties().IsStunned) score += 12.0;
                 if (foeFragile) score += 11.0;
                 if (!fleeing && foe.getHitpointsPct() <= 0.60) score += (0.65 - foe.getHitpointsPct()) * 16.0;
-                if (foeNearChief) score += 18.0;
+                if (foeBreachChief)
+                {
+                    score += 34.0;
+                    if (dest.getDistanceTo(chiefTile) < ft.getDistanceTo(chiefTile))
+                        score += 10.0;
+                }
+                else if (foeNearChief)
+                {
+                    score += 18.0;
+                }
                 // Discourage fragile unshielded DPS from solo-engaging full-HP unengaged elites when our tank/undead can pin them.
                 if (isFragile && hasTeamTank && !foeEngaged && foeElite >= 1.5 && foe.getHitpointsPct() >= 0.70)
                     score -= 18.0;
@@ -1679,10 +1896,11 @@ local F = A.Frontline <- {
                 {
                     bestScore = score;
                     bestTile = dest;
+                    bestChiefPeel = urgentMentorPeel;
                 }
             }
         }
-        return bestTile;
+        return bestTile != null ? { Tile = bestTile, ChiefPeel = bestChiefPeel } : null;
     },
 
     // Smart target selection for equipped Throwing Nets (prioritizes enemy elites, Mentor-breachers, and high-MDef threats).
@@ -1806,8 +2024,8 @@ local F = A.Frontline <- {
                 if (scr.Blockers == 0)
                     return true;
             }
-            // Never walk Mentor onto an isolated tile with zero adjacent allies while live melee threats exist within 6 tiles.
-            if (newMelee <= 6)
+            // Never walk Mentor onto an isolated tile with zero adjacent allies while live melee threats exist within 4 tiles.
+            if (newMelee <= 4)
             {
                 local adjAllies = 0;
                 for (local d = 0; d < 6; ++d)
@@ -1941,7 +2159,7 @@ local F = A.Frontline <- {
                 {
                     mult *= 1.38;
                 }
-                else if (_skill.isRanged() && bodyArmor >= 90)
+                else if (_skill.isRanged() && bodyArmor >= 90 && _skill.getID() != "actives.throw_axe")
                 {
                     local weapon = _actor.getMainhandItem();
                     local isBow = weapon != null && weapon.isWeaponType(::Const.Items.WeaponType.Bow);
@@ -1952,21 +2170,23 @@ local F = A.Frontline <- {
                 }
             }
 
-            // 3b. Backline breach protection: prioritize any enemy within 2 tiles of our Mentor or archers!
+            // 3b. Backline breach protection: prioritize any enemy within 2 tiles of our Mentor (1.85x) or archers (1.45x)!
             local targetTile = _target.getTile();
             local brothers = ::Tactical.Entities.getInstancesOfFaction(::Const.Faction.Player);
+            local breachMult = 1.0;
             foreach (bro in brothers)
             {
                 if (::MSU.isNull(bro) || !bro.isAlive() || !bro.isPlacedOnMap()) continue;
-                if (this.isCasterRole(bro) || this.isRangedRole(bro))
+                local isCh = this.isCasterRole(bro);
+                if (isCh || this.isRangedRole(bro))
                 {
                     if (targetTile.getDistanceTo(bro.getTile()) <= 2)
                     {
-                        mult *= 1.45;
-                        break;
+                        breachMult = ::Math.maxf(breachMult, isCh ? 1.85 : 1.45);
                     }
                 }
             }
+            mult *= breachMult;
         }
 
         // 4. Ranged weapon specialization: reward clean open shots, bows shred light armor, delete squishy 1-2 shot killers, avoid heavy shieldwall tanks.
@@ -2124,6 +2344,194 @@ local F = A.Frontline <- {
         return best;
     },
 
+    // Smart weapon swapping for Crossbow/Bow + Throwing hybrids (especially Reforged perk.rf_hybridization / Quick Hands):
+    // 1. Crossbow/Bow -> Throwing (free 0-AP swap): after firing Crossbow (now unloaded) or when Crossbow is unloaded
+    //    and a live enemy is within 2-4 tiles with >= 4 AP left, swap free and throw Javelins/Axes (enabling Shoot + Free Swap + Throw
+    //    or Unloaded -> Free Swap -> Throw x2 in one turn). Also swaps Bow -> Throwing vs armored/skeleton close targets.
+    // 2. Throwing -> next Throwing bundle or back to Crossbow/Bow: immediately replace empty 0-ammo bundles; free-swap back
+    //    to Crossbow/Bow when no targets remain in 4-tile throwing range (or when 3 AP left + loaded Crossbow in bag).
+    function findHybridRangedSwap( _actor, _info )
+    {
+        if (!this.isRangedRole(_actor) || this.isCasterRole(_actor))
+            return null;
+        local myTile = _actor.getTile();
+        if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return null;
+        local items = _actor.getItems();
+        local curMain = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
+        local curOff = items.getItemAtSlot(::Const.ItemSlot.Offhand);
+        if (curMain == null || !curMain.isItemType(::Const.Items.ItemType.RangedWeapon))
+            return null;
+
+        local bag = items.getAllItemsAtSlot(::Const.ItemSlot.Bag);
+        if (bag.len() == 0)
+            return null;
+
+        local ap = _actor.getActionPoints();
+        local isHoldingThrow = false;
+        try { isHoldingThrow = curMain.isWeaponType(::Const.Items.WeaponType.Throwing); } catch (e) {}
+
+        // Scan enemies in throwing range (2..4 + elevation) and long ranged range (2..7).
+        local throwMaxRng = 4 + ::Math.max(0, myTile.Level);
+        local closeLive = 0;
+        local closeArmoredOrSkel = 0;
+        local closeSkel = 0;
+        local longLive = 0;
+        local anyLive = 0;
+        foreach (foe in _info.Enemies)
+        {
+            local d = myTile.getDistanceTo(foe.getTile());
+            if (d < 2) continue;
+            local active = foe.getMoraleState() != ::Const.MoraleState.Fleeing;
+            if (active) ++anyLive;
+            if (d <= throwMaxRng && (active || anyLive == 0))
+            {
+                ++closeLive;
+                if (foe.getFlags().has("skeleton"))
+                {
+                    ++closeSkel;
+                    ++closeArmoredOrSkel;
+                }
+                else if (foe.getArmor(::Const.BodyPart.Body) >= 120)
+                {
+                    ++closeArmoredOrSkel;
+                }
+            }
+            if (d >= 5 && d <= 7 + ::Math.max(0, myTile.Level) && active)
+                ++longLive;
+        }
+
+        // Locate best loaded Throwing bundle and best usable Crossbow/Bow in backpack.
+        local bestThrow = null;
+        local bestThrowScore = -1.0;
+        local bestLongRanged = null;
+        local bestLongLoaded = false;
+        local bestLongScore = -1.0;
+        foreach (it in bag)
+        {
+            if (it == null || !it.isItemType(::Const.Items.ItemType.Weapon))
+                continue;
+            local isThrow = false;
+            try { isThrow = it.isWeaponType(::Const.Items.WeaponType.Throwing); } catch (e) {}
+            if (isThrow)
+            {
+                local ammo = 0;
+                try { ammo = it.getAmmo(); } catch (e) {}
+                if (ammo <= 0) continue;
+                local sc = it.getValue().tofloat();
+                local isAxe = false;
+                try { isAxe = it.isWeaponType(::Const.Items.WeaponType.Axe); } catch (e) {}
+                if (closeSkel > 0 && isAxe) sc += 5000.0;
+                else if (closeSkel == 0 && !isAxe) sc += 1000.0;
+                if (sc > bestThrowScore) { bestThrowScore = sc; bestThrow = it; }
+            }
+            else if (it.isItemType(::Const.Items.ItemType.RangedWeapon) && this.hasUsableRangedAmmo(_actor, it))
+            {
+                local loaded = false;
+                try { loaded = it.isLoaded(); } catch (e) {}
+                local sc = it.getValue().tofloat() + (loaded ? 3000.0 : 0.0);
+                if (sc > bestLongScore) { bestLongScore = sc; bestLongRanged = it; bestLongLoaded = loaded; }
+            }
+        }
+
+        // Minimum AP needed for one throw (2 AP if Reforged Opportunist is primed/active on turns 1-2, otherwise 4 AP).
+        local minThrowAP = 4;
+        local opp = _actor.getSkills().getSkillByID("perk.rf_opportunist");
+        if (opp != null)
+        {
+            try {
+                if (opp.m.IsPrimed) minThrowAP = 0;
+                else if (opp.m.AttacksRemaining > 0 && opp.m.TurnsRemaining > 0) minThrowAP = 2;
+            } catch (e) {}
+        }
+
+        // Case 1: Currently holding Crossbow/Bow/Firearm -> consider free swap to loaded Throwing weapon.
+        if (!isHoldingThrow)
+        {
+            if (bestThrow == null || closeLive == 0)
+                return null;
+            local swapList = [curMain, bestThrow];
+            if (!items.isActionAffordable(swapList))
+                return null;
+            local swapAP = items.getActionCost(swapList);
+            local curHasAmmo = this.hasUsableRangedAmmo(_actor, curMain);
+            // Require 0-AP free swap (perk.rf_hybridization / perk.quick_hands) unless current ranged weapon is completely out of ammo.
+            if (swapAP > 0 && curHasAmmo)
+                return null;
+            if (ap - swapAP < minThrowAP)
+                return null;
+            if (curHasAmmo && (_actor.getFatigueMax() - _actor.getFatigue()) < 12)
+                return null;
+
+            local isCrossbowOrGun = false;
+            local isBow = false;
+            try {
+                isCrossbowOrGun = curMain.isWeaponType(::Const.Items.WeaponType.Crossbow) || curMain.isWeaponType(::Const.Items.WeaponType.Firearm);
+                isBow = curMain.isWeaponType(::Const.Items.WeaponType.Bow);
+            } catch (e) {}
+
+            local shouldSwap = !curHasAmmo;
+            if (!shouldSwap && isCrossbowOrGun)
+            {
+                // Shoot loaded Crossbow FIRST (3 AP -> becomes unloaded); then immediately free-swap & Throw with remaining >= 4 AP!
+                // If Crossbow starts the turn unloaded, free-swap immediately to Throw x2 instead of spending 4 AP reloading!
+                local loaded = false;
+                try { loaded = curMain.isLoaded(); } catch (e) {}
+                if (!loaded)
+                    shouldSwap = true;
+            }
+            else if (!shouldSwap && isBow)
+            {
+                // Swap Bow -> Throwing when close targets are armored or skeletons (or Throwing Mastery gives huge close-range burst).
+                if (closeArmoredOrSkel > 0 || _actor.getSkills().hasSkill("perk.mastery.throwing"))
+                    shouldSwap = true;
+            }
+            if (shouldSwap)
+                return { Weapon = bestThrow, Score = 685.0, EmptyBundle = false };
+            return null;
+        }
+
+        // Case 2: Currently holding a Throwing weapon.
+        local curAmmo = 0;
+        try { curAmmo = curMain.getAmmo(); } catch (e) {}
+
+        // 2a. Current Throwing bundle is empty (0 ammo): replace with another loaded bundle or switch back to Crossbow/Bow.
+        if (curAmmo <= 0)
+        {
+            local targetWep = (bestThrow != null && closeLive > 0) ? bestThrow : (bestLongRanged != null ? bestLongRanged : bestThrow);
+            if (targetWep == null)
+                return null;
+            if (curOff != null && targetWep.isItemType(::Const.Items.ItemType.TwoHanded) && items.getNumberOfEmptyBagSlots() <= 0)
+                return null;
+            local swapList = (curOff != null && targetWep.isItemType(::Const.Items.ItemType.TwoHanded)) ? [curMain, curOff, targetWep] : [curMain, targetWep];
+            if (!items.isActionAffordable(swapList))
+                return null;
+            return { Weapon = targetWep, Score = 720.0, EmptyBundle = true };
+        }
+
+        // 2b. Current Throwing bundle still has ammo: free-swap back to Crossbow/Bow if:
+        //   - No target in throwing range AND enemies exist at 5-7 tiles (long range), OR
+        //   - Cannot afford another throw (ap == 3 < minThrowAP) AND bag holds a LOADED Crossbow ready to fire for 3 AP!
+        if (bestLongRanged != null)
+        {
+            if (curOff != null && bestLongRanged.isItemType(::Const.Items.ItemType.TwoHanded) && items.getNumberOfEmptyBagSlots() <= 0)
+                return null;
+            local swapList = (curOff != null && bestLongRanged.isItemType(::Const.Items.ItemType.TwoHanded)) ? [curMain, curOff, bestLongRanged] : [curMain, bestLongRanged];
+            if (items.isActionAffordable(swapList))
+            {
+                local swapAP = items.getActionCost(swapList);
+                if (swapAP == 0)
+                {
+                    if (closeLive == 0 && longLive > 0 && ap >= 3)
+                        return { Weapon = bestLongRanged, Score = 680.0, EmptyBundle = false };
+                    if (ap < minThrowAP && ap >= 3 && bestLongLoaded && (closeLive > 0 || longLive > 0))
+                        return { Weapon = bestLongRanged, Score = 680.0, EmptyBundle = false };
+                }
+            }
+        }
+        return null;
+    },
+
     // Count unengaged dangerous melee enemies at distance 2 (about to step in and surround our Shieldbearer).
     function countUnengagedMeleeAtDist2( _actor, _enemies )
     {
@@ -2140,18 +2548,79 @@ local F = A.Frontline <- {
         return n;
     },
 
-    // Check if an enemy can genuinely reach/strike our backliner from <= 2 tiles (either UNENGAGED, or polearm/2-tile weapon, or Wolfrider/Footwork).
+    // Check if an enemy can genuinely reach/strike our backliner from <= 2 tiles (either UNENGAGED and not rooted/netted, or polearm/2-tile weapon, or Wolfrider/Footwork).
     function isLiveBacklineThreat( _foe )
     {
         if (!this.isDangerousMeleeEnemy(_foe))
             return false;
         local ft = _foe.getTile();
-        if (ft.getZoneOfControlCountOtherThan(_foe.getAlliedFactions()) == 0)
-            return true;
         if (_foe.getIdealRange() >= 2)
+            return true;
+        if (_foe.getCurrentProperties().IsRooted || _foe.getSkills().hasSkill("effects.net"))
+            return false;
+        if (ft.getZoneOfControlCountOtherThan(_foe.getAlliedFactions()) == 0)
             return true;
         local s = _foe.getSkills();
         return s.hasSkill("actives.footwork") || s.hasSkill("actives.werewolf_bite");
+    },
+
+    // Rate whether a live melee threat near Mentor is truly dangerous (high burst/elite/polearm/swarm/hurt-or-fragile Mentor)
+    // vs a lone low-threat fodder unit (Zombie, Ancient Auxiliary, Goblin Skirmisher) that a healthy armored/Nimble Mentor can tolerate briefly.
+    function isHighBacklineThreat( _actor, _foe, _info )
+    {
+        if (_actor.getHitpointsPct() <= 0.65)
+            return true;
+        local aSkills = _actor.getSkills();
+        if (!aSkills.hasSkill("perk.nimble") && !aSkills.hasSkill("perk.battle_forged")
+            && _actor.getArmor(::Const.BodyPart.Body) < 70)
+            return true;
+        if (this.isHeavyMeleeThreat(_foe) || this.enemyEliteScore(_foe, _info) >= 1.2)
+            return true;
+        if (_foe.getIdealRange() >= 2)
+            return true;
+        local cn = _foe.ClassName;
+        if (cn == "orc_berserker" || cn == "goblin_wolfrider" || cn == "ghost" || cn == "rf_banshee")
+            return true;
+        local fs = _foe.getSkills();
+        return fs.hasSkill("actives.ghastly_touch") || fs.hasSkill("actives.werewolf_bite") || fs.hasSkill("effects.berserker_rage");
+    },
+
+    function assessBacklineThreat( _actor, _info )
+    {
+        local myTile = _actor.getTile();
+        local nearestDist = 99;
+        local nearestTile = null;
+        local highNearestDist = 99;
+        local highNearestTile = null;
+        local closeCount2 = 0;
+        foreach (foe in _info.Enemies)
+        {
+            if (!this.isLiveBacklineThreat(foe))
+                continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (d < nearestDist) { nearestDist = d; nearestTile = ft; }
+            if (d <= 2) ++closeCount2;
+            if (this.isHighBacklineThreat(_actor, foe, _info) && d < highNearestDist)
+            {
+                highNearestDist = d;
+                highNearestTile = ft;
+            }
+        }
+        // Two or more live melee threats within 2 tiles always escalate to urgent high threat.
+        local urgentHigh = (highNearestDist <= 2) || (closeCount2 >= 2);
+        local unscreenedHigh3 = (!urgentHigh && highNearestDist == 3 && highNearestTile != null
+            && this.countScreenBlockersBetween(myTile, _actor, highNearestTile).Blockers == 0);
+        return {
+            NearestDist = nearestDist,
+            NearestTile = nearestTile,
+            HighDist = highNearestDist,
+            HighTile = highNearestTile,
+            CloseCount2 = closeCount2,
+            UrgentHigh = urgentHigh,
+            UnscreenedHigh3 = unscreenedHigh3,
+            LowThreatClose = (!urgentHigh && nearestDist <= 2)
+        };
     },
 
     function nearestLiveBacklineThreatDist( _actor, _enemies )
@@ -2221,20 +2690,15 @@ local F = A.Frontline <- {
         if (_actor.getCurrentProperties().IsRooted)
             return null;
 
-        local curMeleeDist = 99;
-        local nearestThreatTile = null;
-        foreach (foe in _info.Enemies)
-        {
-            if (!this.isLiveBacklineThreat(foe)) continue;
-            local ft = foe.getTile();
-            local d = myTile.getDistanceTo(ft);
-            if (d < curMeleeDist) { curMeleeDist = d; nearestThreatTile = ft; }
-        }
+        local threat = this.assessBacklineThreat(_actor, _info);
+        local curMeleeDist = threat.NearestDist;
+        local nearestThreatTile = threat.HighTile != null ? threat.HighTile : threat.NearestTile;
         local curScreen = (isCaster && nearestThreatTile != null)
             ? this.countScreenBlockersBetween(myTile, _actor, nearestThreatTile)
             : { Blockers = 1, Strong = 0 };
-        local meleeDanger = curMeleeDist <= 2
-            || (isCaster && curMeleeDist == 3 && curScreen.Blockers == 0);
+        local meleeDanger = isCaster
+            ? (threat.UrgentHigh || threat.UnscreenedHigh3 || threat.LowThreatClose)
+            : (curMeleeDist <= 2);
         local curArcherDist = isCaster ? this.nearestEnemyArcherDist(myTile, _info.Enemies) : 99;
         local hasCoverNow = isCaster ? this.hasRangedCoverAt(myTile, _actor, _info.Enemies) : true;
         local hurtMentor = isCaster && _actor.getHitpointsPct() <= 0.75;
@@ -2244,9 +2708,26 @@ local F = A.Frontline <- {
         if (!meleeDanger && !sniperDanger)
             return null;
 
-        // Allow up to 6 AP in acute melee danger so Mentor can move 1-2 tiles even on 3-AP snow/swamp terrain.
-        local maxMoveAP = isCaster ? (meleeDanger ? ::Math.min(ap, 6) : (ap >= 7 ? 4 : (ap <= 2 ? ap : ::Math.min(ap - 3, 2))))
-                                   : (ap >= 6 ? 2 : 0);
+        // Threat-tiered AP budget for Mentor:
+        // - Urgent high threat (dist <= 2 or swarm or fragile/hurt): up to 6 AP (escapes snow/swamp).
+        // - Unscreened high threat at dist 3: up to 4 AP (leaves AP for spells).
+        // - Single low-threat fodder at dist 2 (healthy armored/Nimble Mentor): cheap 2-AP sidestep only (never burns a spell turn!).
+        local maxMoveAP = 0;
+        if (isCaster)
+        {
+            if (threat.UrgentHigh)
+                maxMoveAP = ::Math.min(ap, 6);
+            else if (threat.UnscreenedHigh3)
+                maxMoveAP = ::Math.min(ap, 4);
+            else if (threat.LowThreatClose && !sniperDanger)
+                maxMoveAP = ::Math.min(ap, 2);
+            else
+                maxMoveAP = ap >= 7 ? 4 : (ap <= 2 ? ap : ::Math.min(ap - 3, 2));
+        }
+        else
+        {
+            maxMoveAP = ap >= 6 ? 2 : 0;
+        }
         if (maxMoveAP < 2)
             return null;
 
@@ -2407,7 +2888,7 @@ local F = A.Frontline <- {
 
     // Strict anti-surround check: catches immediate 3+ surrounds, next-turn 2-tile convergence traps,
     // zero-attack solo snow-dives by fragile unshielded bros, and critically wounded suicides.
-    function isSuicidalDiveV2( _actor, _destTile, _info, _apAfter = 9 )
+    function isSuicidalDiveV2( _actor, _destTile, _info, _apAfter = 9, _effMinAtkAP = null )
     {
         if (_destTile == null || ::BGP.hasShield(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
             return false;
@@ -2419,8 +2900,8 @@ local F = A.Frontline <- {
         local hasUnderdog = skills.hasSkill("perk.underdog");
         local mdef = _actor.getCurrentProperties().getMeleeDefense();
         local isFragile = this.isFragileMelee(_actor);
-        local atk = this.cheapestMeleeSkill(_actor);
-        local minAtkAP = atk != null ? atk.getActionPointCost() : 4;
+        local atk = _effMinAtkAP == null ? this.cheapestMeleeSkill(_actor, true) : null;
+        local minAtkAP = _effMinAtkAP != null ? _effMinAtkAP : (atk != null ? atk.getActionPointCost() : 4);
         local hpPct = _actor.getHitpointsPct();
 
         if (exp.AdjEnemies >= 4)
@@ -2433,9 +2914,9 @@ local F = A.Frontline <- {
             return true;
         if (isFragile && exp.AdjAllies == 0 && exp.AdjEnemies >= 1 && exp.ThreatDist2 >= 2)
             return true;
-        // Prevent fragile unshielded bros from burning AP walking into melee contact with zero AP left to strike
-        // against non-ranged/non-caster melee waves (handing enemies free double-swings in snow/rough terrain!).
-        if (isFragile && _apAfter < minAtkAP)
+        // Prevent fragile low-MDef 1H unshielded bros from burning AP walking into melee contact with zero AP left to strike
+        // against non-ranged/non-caster melee waves (do NOT paralyze 2H 6-AP heavy frontliners who normally move 2 tiles!).
+        if (isFragile && mdef < 18 && minAtkAP <= 4 && _apAfter < minAtkAP)
         {
             if (exp.AdjEnemies >= 2)
                 return true;
@@ -2443,7 +2924,7 @@ local F = A.Frontline <- {
                 return true;
             if (exp.PotentialSurround >= 3 && exp.AdjShieldAllies == 0)
                 return true;
-            local urgentAdvance = _info.EnemyProjectileRanged >= 3.0 || _info.EnemyUrgentCasters > 0;
+            local urgentAdvance = _info.EnemyProjectileRanged >= 3.0 || _info.EnemyUrgentCasters > 0 || _info.EnemyChargers >= 3;
             if (!urgentAdvance && exp.AdjEnemies >= 1 && exp.AdjShieldAllies == 0)
             {
                 // Still allow peeling an enemy standing within 2 tiles of our Mentor.
@@ -2460,9 +2941,9 @@ local F = A.Frontline <- {
                     return true;
             }
         }
-        if (hpPct <= 0.28 && exp.AdjEnemies >= 1)
+        if (this.shouldWoundedRetreat(_actor, _info) && exp.AdjEnemies >= 1)
             return true;
-        if (hpPct <= 0.35 && (exp.AdjEnemies >= 2 || (exp.AdjEnemies >= 1 && exp.AdjAllies == 0)))
+        if (hpPct <= 0.35 && mdef < 18 && (exp.AdjEnemies >= 2 || (exp.AdjEnemies >= 1 && exp.AdjAllies == 0)))
             return true;
         return false;
     },
@@ -2750,6 +3231,7 @@ local F = A.Frontline <- {
             local myTile = _entity.getTile();
             local ap = _entity.getActionPoints();
             local approxApAfter = ap;
+            local effAtkAP = null;
             try {
                 local nav = ::Tactical.getNavigator();
                 local st = F.navSettings(_entity, nav);
@@ -2757,7 +3239,12 @@ local F = A.Frontline <- {
                 {
                     local cost = nav.getCostForPath(_entity, st, ap, _entity.getFatigueMax() - _entity.getFatigue());
                     if (cost.Tiles > 0)
+                    {
                         approxApAfter = ap - cost.ActionPointsRequired;
+                        local atk = F.cheapestMeleeSkill(_entity, true);
+                        if (atk != null)
+                            effAtkAP = F.previewSkillCostsAfterMove(_entity, atk, cost).AP;
+                    }
                 }
                 else
                 {
@@ -2769,10 +3256,9 @@ local F = A.Frontline <- {
                 local stepCost = this.m.TargetTile.IsBadTerrain ? 3 : 2;
                 approxApAfter = ap - myTile.getDistanceTo(this.m.TargetTile) * stepCost;
             }
-            local veto = F.isSuicidalDiveV2(_entity, this.m.TargetTile, info, approxApAfter);
-            // Keep critically wounded unshielded melee bros (<= 28% HP, free of ZoC) from undoing wounded_retreat via EngageMelee!
-            if (!veto && !::BGP.hasShield(_entity) && !F.isRangedRole(_entity) && !F.isCasterRole(_entity)
-                && _entity.getHitpointsPct() <= 0.28
+            local veto = F.isSuicidalDiveV2(_entity, this.m.TargetTile, info, approxApAfter, effAtkAP);
+            // Keep critically wounded unshielded melee bros (free of ZoC) from undoing wounded_retreat via EngageMelee!
+            if (!veto && F.shouldWoundedRetreat(_entity, info)
                 && myTile.getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0
                 && this.m.TargetTile.ID != myTile.ID
                 && (this.m.TargetActor == null || ::MSU.isNull(this.m.TargetActor) || this.m.TargetActor.getMoraleState() != ::Const.MoraleState.Fleeing))
@@ -2797,7 +3283,8 @@ local F = A.Frontline <- {
                 local badJump = this.m.TargetTile.IsBadTerrain && !myTile.IsBadTerrain;
                 if ((destLvl < tgtLvl || destLvl < myTile.Level || badJump) && F.isFragileMelee(_entity))
                 {
-                    if (approxApAfter < 4)
+                    local reqAP = effAtkAP != null ? effAtkAP : 4;
+                    if (approxApAfter < reqAP)
                         veto = true;
                     else
                         this.m.Score *= 0.45;
@@ -2824,14 +3311,21 @@ local F = A.Frontline <- {
     };
 });
 
-// Prevent unengaged brothers who just raised Spearwall from burning 20 extra fatigue stacking vanilla Shieldwall on the same turn.
+// Prevent unengaged brothers who just raised Spearwall from burning 20 extra fatigue stacking vanilla Shieldwall on the same turn,
+// and prevent shieldbearers peeling a melee enemy off Mentor from wasting attack AP on Shieldwall instead of striking!
 ::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_defend_shieldwall", function(q) {
     q.onEvaluate = @(__original) function( _entity ) {
-        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")
-            && _entity.getSkills().hasSkill("effects.spearwall")
-            && _entity.getTile().getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0)
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline"))
         {
-            return ::Const.AI.Behavior.Score.Zero;
+            if (_entity.getSkills().hasSkill("effects.spearwall")
+                && _entity.getTile().getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0)
+            {
+                return ::Const.AI.Behavior.Score.Zero;
+            }
+            if (::BGP.hasShield(_entity) && F.isPeelingMentorMelee(_entity, F.assessBattle(_entity, this.getAgent())))
+            {
+                return ::Const.AI.Behavior.Score.Zero;
+            }
         }
         return __original(_entity);
     };

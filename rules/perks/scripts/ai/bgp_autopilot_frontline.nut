@@ -9,7 +9,9 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         MovedTileID = -1,
         BlockedRound = -1,
         BashedRound = -1,
-        TerrainMovedRound = -1
+        TerrainMovedRound = -1,
+        HybridSwapRound = -1,
+        HybridSwapCount = 0
     },
 
     function create()
@@ -161,11 +163,15 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.TargetTile = safeTile;
                 if (isCaster)
                 {
-                    local threatDist = F.nearestLiveBacklineThreatDist(_entity, info.Enemies);
-                    if (threatDist <= 2)
-                        return 3600.0;
-                    if (threatDist == 3)
+                    local threat = F.assessBacklineThreat(_entity, info);
+                    // Threat-tiered Mentor kiting priority:
+                    // - Urgent high threat (dist <= 2, swarm, or fragile/hurt Mentor): 2600 (only Lich King unleash ~2870 runs ahead).
+                    // - Unscreened high threat at dist 3 OR heavy sniper danger: 1400 (summon Skeleton/Zombie/Possess FIRST, then kite).
+                    // - Lone low-threat fodder at dist 2 (healthy armored/Nimble Mentor): 950 (cast impactful spells first, sidestep with leftover AP).
+                    if (threat.UrgentHigh)
                         return 2600.0;
+                    if (threat.LowThreatClose && !threat.UnscreenedHigh3)
+                        return 950.0;
                     return 1400.0;
                 }
                 return 650.0;
@@ -173,8 +179,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         }
 
         // 2c-2. Critically wounded unshielded melee bro (<= 28% HP, free of ZoC) retreats behind healthy allies to survive!
-        if (!isShield && !isRanged && !isCaster && !inZoC && !_entity.getCurrentProperties().IsRooted
-            && _entity.getHitpointsPct() <= 0.28 && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
+        if (!inZoC && F.shouldWoundedRetreat(_entity, info)
+            && this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
         {
             local retreatTile = F.findWoundedRetreatTile(this, _entity, info);
             if (retreatTile != null && retreatTile.ID != myTile.ID)
@@ -199,6 +205,26 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     this.m.Mode = "switch_melee";
                     this.m.WeaponToEquip = backup;
                     return 780.0;
+                }
+            }
+        }
+
+        // 2d-2. Smart Crossbow/Bow <-> Throwing weapon swap for hybrid ranged brothers (perk.rf_hybridization / Quick Hands).
+        if (isRanged && !inZoC)
+        {
+            if (this.m.HybridSwapRound != ::Time.getRound())
+            {
+                this.m.HybridSwapRound = ::Time.getRound();
+                this.m.HybridSwapCount = 0;
+            }
+            if (this.m.HybridSwapCount < 2)
+            {
+                local hSwap = F.findHybridRangedSwap(_entity, info);
+                if (hSwap != null && (hSwap.EmptyBundle || this.m.HybridSwapCount == 0))
+                {
+                    this.m.Mode = "hybrid_ranged_swap";
+                    this.m.WeaponToEquip = hSwap.Weapon;
+                    return hSwap.Score;
                 }
             }
         }
@@ -340,8 +366,9 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 4. Shieldbearer Shieldwall under melee pressure or rooted ranged fire.
-        if (isShield && !_entity.getSkills().hasSkill("effects.shieldwall"))
+        // 4. Shieldbearer Shieldwall under melee pressure or rooted ranged fire
+        // (skipped when peeling an enemy currently engaged in melee with Mentor so the shieldbearer attacks immediately!).
+        if (isShield && !_entity.getSkills().hasSkill("effects.shieldwall") && !F.isPeelingMentorMelee(_entity, info))
         {
             local sw = _entity.getSkills().getSkillByID("actives.shieldwall");
             if (sw != null && !sw.isHidden() && sw.isUsable() && sw.isAffordable())
@@ -433,8 +460,10 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         }
 
         // 4c. High-priority terrain positioning (climb high ground or leave Swamp/bad terrain) BEFORE waiting/holding (at most once per round).
+        // Disabled against urgent enemy casters (Ancient Priests / Necromancers) and in late-battle cleanup so assaults never stall.
         local terrainPlan = null;
         if (!inZoC && !_entity.getCurrentProperties().IsRooted
+            && info.EnemyUrgentCasters == 0 && ::Time.getRound() < 10
             && !_entity.getSkills().hasSkill("effects.shieldwall")
             && !_entity.getSkills().hasSkill("effects.spearwall")
             && this.m.BlockedRound != ::Time.getRound()
@@ -457,25 +486,28 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             local chkAtk = F.cheapestMeleeSkill(_entity);
             if (this.m.BlockedRound != ::Time.getRound() && this.m.MovedTileID == -1)
             {
-                local smartTile = F.findSmartDpsMeleeTile(this, _entity, info);
-                if (smartTile != null && smartTile.ID != myTile.ID)
+                local smartPlan = F.findSmartDpsMeleeTile(this, _entity, info);
+                if (smartPlan != null && smartPlan.Tile != null && smartPlan.Tile.ID != myTile.ID)
                 {
                     this.m.Mode = "dynamic_melee_move";
-                    this.m.TargetTile = smartTile;
-                    return 520.0;
+                    this.m.TargetTile = smartPlan.Tile;
+                    return smartPlan.ChiefPeel ? 780.0 : 520.0;
                 }
                 if (info.HoldLine && decision.StrikePlan != null
                     && decision.StrikePlan.Tile != null && decision.StrikePlan.Tile.ID != myTile.ID
-                    && !F.isSuicidalDiveV2(_entity, decision.StrikePlan.Tile, info, 4))
+                    && !F.isSuicidalDiveV2(_entity, decision.StrikePlan.Tile, info, decision.StrikePlan.APAfter, decision.StrikePlan.EffAP))
                 {
                     this.m.Mode = "step_attack";
                     this.m.TargetTile = decision.StrikePlan.Tile;
                     return 320.0;
                 }
             }
-            // If fragile DPS has no safe same-turn strike tile and enemies are closing, Wait instead of solo diving!
-            if (canWait && F.isFragileMelee(_entity) && _entity.getActionPoints() >= 4 && info.EnemyProjectileRanged < 3.0
-                && (chkAtk == null || !F.hasAdjacentTarget(_entity, chkAtk, info.Enemies))
+            // Only true low-MDef 1H fragile DPS wait when facing non-caster, non-charger, non-ranged melee waves
+            // (never freeze 2H heavy frontliners, polearms, or assaults vs Ancient Priests / Necromancers / charging Orcs!).
+            if (canWait && F.isFragileMelee(_entity) && _entity.getCurrentProperties().getMeleeDefense() < 18
+                && _entity.getActionPoints() >= 4 && ::Time.getRound() < 12
+                && info.EnemyProjectileRanged < 3.0 && info.EnemyUrgentCasters == 0 && info.EnemyChargers < 3
+                && (chkAtk == null || (chkAtk.getMaxRange() <= 1 && chkAtk.getActionPointCost() <= 4 && !F.hasAdjacentTarget(_entity, chkAtk, info.Enemies)))
                 && F.nearestDangerousMeleeDist(_entity, info.Enemies) <= 5)
             {
                 this.m.Mode = "wait";
@@ -483,12 +515,12 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
-        // 6. Lower-priority terrain anchor (chokepoint / flank anchoring when otherwise idle).
-        if (terrainPlan != null && terrainPlan.Tile.ID != myTile.ID)
+        // 6. Lower-priority terrain anchor (chokepoint / flank anchoring ONLY when otherwise idle; score 90 never overrides EngageMelee assaults).
+        if (terrainPlan != null && terrainPlan.Tile.ID != myTile.ID && info.EnemyChargers < 3 && ::Time.getRound() <= 4)
         {
             this.m.Mode = "terrain_anchor";
             this.m.TargetTile = terrainPlan.Tile;
-            return 380.0;
+            return 90.0;
         }
 
         return ::Const.AI.Behavior.Score.Zero;
@@ -585,8 +617,9 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "switch_melee")
+        if (this.m.Mode == "switch_melee" || this.m.Mode == "hybrid_ranged_swap")
         {
+            local isHybrid = (this.m.Mode == "hybrid_ranged_swap");
             local w = this.m.WeaponToEquip;
             this.m.Mode = null;
             this.m.WeaponToEquip = null;
@@ -594,8 +627,13 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             {
                 local items = _entity.getItems();
                 local curMain = items.getItemAtSlot(::Const.ItemSlot.Mainhand);
-                local swapList = curMain != null ? [curMain, w] : [w];
-                if (items.isActionAffordable(swapList))
+                local curOff = items.getItemAtSlot(::Const.ItemSlot.Offhand);
+                local needDropOff = (curOff != null && w.isItemType(::Const.Items.ItemType.TwoHanded));
+                local swapList = [];
+                if (curMain != null) swapList.push(curMain);
+                if (needDropOff) swapList.push(curOff);
+                swapList.push(w);
+                if (items.isActionAffordable(swapList) && (!needDropOff || items.getNumberOfEmptyBagSlots() > 0))
                 {
                     items.removeFromBag(w);
                     if (curMain != null)
@@ -603,9 +641,23 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                         items.unequip(curMain);
                         items.addToBag(curMain);
                     }
+                    if (needDropOff)
+                    {
+                        items.unequip(curOff);
+                        items.addToBag(curOff);
+                    }
                     items.equip(w);
                     items.payForAction(swapList);
                     this.getAgent().getIntentions().IsChangingWeapons = true;
+                    if (isHybrid)
+                    {
+                        if (this.m.HybridSwapRound != ::Time.getRound())
+                        {
+                            this.m.HybridSwapRound = ::Time.getRound();
+                            this.m.HybridSwapCount = 0;
+                        }
+                        ++this.m.HybridSwapCount;
+                    }
                 }
             }
             return true;
