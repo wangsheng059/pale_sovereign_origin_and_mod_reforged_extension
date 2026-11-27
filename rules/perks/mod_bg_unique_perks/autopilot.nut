@@ -2469,6 +2469,23 @@ local F = A.Frontline <- {
         // 4. Ranged weapon specialization: reward clean open shots, bows shred light armor, delete squishy 1-2 shot killers, avoid heavy shieldwall tanks.
         if (_skill.isRanged() && !isLethal)
         {
+            // When a live melee threat is already within 2 tiles, discourage burning 7 AP on Aimed Shot if Quick Shot (4 AP) is available,
+            // so the archer shoots FIRST at close range AND keeps enough AP left to kite safely afterwards!
+            if (_skill.getID() == "actives.aimed_shot" && !this.isCasterRole(_actor))
+            {
+                local qs = _actor.getSkills().getSkillByID("actives.quick_shot");
+                if (qs != null && !qs.isHidden() && qs.isUsable() && qs.isAffordable())
+                {
+                    local enemies = this.collectEnemies(_actor, null);
+                    if (this.nearestLiveBacklineThreatDist(_actor, enemies) <= 2)
+                    {
+                        local stepAP = 2;
+                        try { stepAP = ::Math.max(2, _actor.getActionPointCosts()[_actor.getTile().Type]); } catch (e) {}
+                        if (_actor.getActionPoints() - _skill.getActionPointCost() < stepAP * 2)
+                            mult *= 0.25;
+                    }
+                }
+            }
             if (_target.getTile().getZoneOfControlCountOtherThan(_target.getAlliedFactions()) == 0)
                 mult *= 1.24;
             local weapon = _actor.getMainhandItem();
@@ -3002,6 +3019,38 @@ local F = A.Frontline <- {
         return uncoveredClose == 0 && covered * 4 >= shooters.len() * 3;
     },
 
+    // Find the lowest AP cost among currently usable & affordable ranged weapon attacks with at least one valid target in sight/range.
+    function findCheapestUsableRangedAP( _actor, _info )
+    {
+        local myTile = _actor.getTile();
+        local bestAP = null;
+        foreach (s in _actor.getSkills().m.Skills)
+        {
+            if (s == null || !s.m.IsActive || !s.m.IsAttack || !s.m.IsTargeted || !s.m.IsRanged || !s.m.IsWeaponSkill)
+                continue;
+            if (s.isHidden() || !s.isUsable() || !s.isAffordable())
+                continue;
+            local cost = s.getActionPointCost();
+            if (bestAP != null && cost >= bestAP)
+                continue;
+            local maxR = s.getMaxRange();
+            local minR = s.getMinRange();
+            local hasTarget = false;
+            foreach (foe in _info.Enemies)
+            {
+                local ft = foe.getTile();
+                local d = myTile.getDistanceTo(ft);
+                if (d < minR || d > maxR) continue;
+                local ok = false;
+                try { ok = s.isUsableOn(ft, myTile); } catch (e) { ok = false; }
+                if (ok) { hasTarget = true; break; }
+            }
+            if (hasTarget)
+                bestAP = cost;
+        }
+        return bestAP;
+    },
+
     // Find a safe kiting/ally-screened tile for backline casters and ranged units under melee or sniper pressure.
     function findBacklineSafeTile( _behavior, _actor, _info )
     {
@@ -3036,8 +3085,9 @@ local F = A.Frontline <- {
             return null;
 
         // Threat-tiered AP budget:
-        // - Mentor: urgent high threat -> 6 AP; unscreened dist 3 -> 4 AP; healthy sniper/coverSaturated/fodder -> 2 AP (preserves spell turn); wounded/poisoned sniper -> up to 4 AP.
-        // - Non-caster Ranged (Bow/Crossbow): step 2 tiles (4 AP) vs urgent heavy/charger/multi threats when starting with >= 8 AP (leaves >= 5 AP to shoot), else 1 tile (2 AP).
+        // - Mentor (caster): safety first (urgent high -> 6 AP; unscreened dist 3 -> 4 AP; healthy sniper/coverSaturated/fodder -> 2 AP).
+        // - Non-caster Ranged (Bow/Crossbow/Throwing): SHOOT FIRST at closer distance for higher hit chance (+ Throwing Mastery dist-2 dmg
+        //   & kill/Berserk chance!) whenever remaining AP after shooting still covers terrain escape cost, THEN kite immediately afterwards!
         local maxMoveAP = 0;
         if (isCaster)
         {
@@ -3054,12 +3104,21 @@ local F = A.Frontline <- {
         }
         else
         {
-            if (threat.UrgentHigh && ap >= 8)
-                maxMoveAP = 4;
-            else if (ap >= 6 || (threat.UrgentHigh && _actor.getHitpointsPct() <= 0.55 && ap >= 4))
-                maxMoveAP = 2;
-            else
-                maxMoveAP = 0;
+            local stepAP = 2;
+            try { stepAP = ::Math.max(2, _actor.getActionPointCosts()[myTile.Type]); } catch (e) {}
+            local needEscapeAP = threat.UrgentHigh ? (stepAP * 2) : stepAP;
+            local cheapRangedAP = this.findCheapestUsableRangedAP(_actor, _info);
+            // Shoot FIRST at dist <= 2 if we have a usable ranged attack AND enough AP left afterwards to retreat safely!
+            if (cheapRangedAP != null && ap - cheapRangedAP >= needEscapeAP)
+                return null;
+            // Also allow free-swap Crossbow -> Throwing at dist 2 when non-urgent and remaining AP still leaves a 1-tile step (e.g. 6 AP -> 4 AP Throw -> 2 AP kite).
+            if (cheapRangedAP == null && !threat.UrgentHigh && ap >= 4 + needEscapeAP)
+            {
+                local hSwap = this.findHybridRangedSwap(_actor, _info);
+                if (hSwap != null && !hSwap.EmptyBundle)
+                    return null;
+            }
+            maxMoveAP = threat.UrgentHigh ? ::Math.min(ap, stepAP * 2) : ::Math.min(ap, stepAP);
         }
         if (maxMoveAP < 2)
             return null;
