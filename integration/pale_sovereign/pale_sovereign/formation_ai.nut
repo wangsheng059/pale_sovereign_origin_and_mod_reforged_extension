@@ -232,3 +232,14 @@ S.Mod.hook("scripts/ai/tactical/behaviors/ai_defend_rotation", function(q) {
         return __original(_entity);
     };
 });
+
+// Suppress Reforged RF_CoverAlly on Lich King and summoned/raised undead: costs 4 AP + 20 Fatigue and nerfs caster's own MSk/MDef
+// while Lich King already uses PaleChampionRotation to rescue Mentor cleanly!
+S.Mod.hook("scripts/ai/tactical/behaviors/ai_rf_cover_ally", function(q) {
+    q.onEvaluate = @(__original) function(_entity) {
+        if (::Autopilot.conf("bgpSmartFrontline") && _entity.getFaction() == ::Const.Faction.PlayerAnimals
+            && (S.isChampionAI(_entity) || S.isRaisedFighter(_entity) || S.isFormationUndead(_entity)))
+            return ::Const.AI.Behavior.Score.Zero;
+        return __original(_entity);
+    };
+});

@@ -68,9 +68,10 @@ S.undeadTargetPriority <- function( _actor, _target, _champion )
             }
         }
         // High-value casters, Banshees/Geists, Orc Berserkers, bannermen/drummers/warlords/officers, ranged shooters, Ancient polearms, and unshielded 2H killers.
-        if (tSkills.hasSkill("actives.raise_undead") || tSkills.hasSkill("actives.root")
-            || tSkills.hasSkill("actives.insect_swarm") || tSkills.hasSkill("actives.hex")
-            || tSkills.hasSkill("actives.horror") || tSkills.hasSkill("actives.miasma") || tSkills.hasSkill("actives.sleep")
+        if (tSkills.hasSkill("actives.raise_undead") || tSkills.hasSkill("actives.horror") || tSkills.hasSkill("actives.miasma"))
+            priority = ::Math.maxf(priority, 1.85);
+        else if (tSkills.hasSkill("actives.root") || tSkills.hasSkill("actives.insect_swarm")
+            || tSkills.hasSkill("actives.hex") || tSkills.hasSkill("actives.sleep")
             || _target.ClassName == "rf_banshee" || _target.ClassName == "ghost" || tSkills.hasSkill("actives.ghastly_touch"))
             priority = ::Math.maxf(priority, 1.45);
         else if (tSkills.hasSkill("effects.berserker_rage") || _target.ClassName == "orc_berserker"

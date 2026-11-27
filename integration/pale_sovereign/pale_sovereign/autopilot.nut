@@ -253,8 +253,19 @@ A.add("pale_weaken", "Enemies", function(c, s, t) {
         // unless executing a guaranteed lethal snipe on a Geist/Banshee/Priest/Necromancer/Champion or Mentor-breacher!
         if (!s.m.Scourge) {
             local nearMentor = c.Origin.getDistanceTo(t) <= 2;
+            local liveEnemies = 0;
+            foreach (et in c.Enemies) {
+                if (et.getEntity().getMoraleState() != ::Const.MoraleState.Fleeing) ++liveEnemies;
+            }
+            local aliveUndead = 0;
+            foreach (at in c.Allies) {
+                local u = at.getEntity();
+                if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead")) ++aliveUndead;
+            }
+            local endgameMelt = (liveEnemies <= 2 && aliveUndead >= 4);
             local allowHigh = (lethal >= 9.0 && (isPrioritySnipe || nearMentor || enemy.getSkills().hasSkill("racial.champion")));
-            local cap = allowHigh ? 13.35 : (lethal >= 9.0 ? 12.1 : 10.6);
+            local cap = allowHigh ? 13.35 : (endgameMelt ? 12.8 : (lethal >= 9.0 ? 12.1 : 10.6));
+            if (endgameMelt) total += 3.5;
             total = ::Math.minf(cap, total);
         } else {
             total = ::Math.minf(13.4, total);

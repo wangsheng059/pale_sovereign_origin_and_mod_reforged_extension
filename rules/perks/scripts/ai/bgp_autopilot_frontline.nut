@@ -192,7 +192,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     local lowHpSniper = (_entity.getHitpointsPct() < 0.55 || (isGoblinPoisoned && _entity.getHitpointsPct() < 0.78))
                         && info.EnemyProjectileRanged >= 2.0
                         && curArch <= (info.EnemyProjectileRanged >= 5.0 ? 9 : 7);
-                    local deepVolleyZone = info.EnemyProjectileRanged >= 10.0 && curArch <= 6;
+                    local deepVolleyZone = (info.EnemyProjectileRanged >= 10.0 && curArch <= 6)
+                        || (info.EnemyProjectileRanged >= 5.0 && curArch <= 7 && !F.hasRangedCoverAt(myTile, _entity, info.Enemies, 8));
                     // Threat-tiered Mentor kiting priority:
                     // - Urgent high melee threat (dist <= 2, swarm, or fragile/hurt) OR Mentor HP < 55% (or goblin-poisoned < 78%) inside sniper range:
                     //   2550-2600 (below Lich King & emergency reserve summon, ABOVE routine Curse/CE/Raise so wounded Mentor actually retreats!).

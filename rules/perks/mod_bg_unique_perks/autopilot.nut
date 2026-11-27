@@ -74,7 +74,14 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
         if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead"))
             ++aliveUndead;
     }
-    // Prioritize Raise Dead while building/rebuilding the undead frontline, and aggressively deny corpses vs enemy Necromancers!
+    local enemyHasNecro = false;
+    local liveEnemies = 0;
+    foreach (et in c.Enemies) {
+        local foe = et.getEntity();
+        if (foe.getMoraleState() != ::Const.MoraleState.Fleeing) ++liveEnemies;
+        if (foe.getSkills().hasSkill("actives.raise_undead")) enemyHasNecro = true;
+    }
+    // Prioritize Raise Dead while building/rebuilding the undead frontline, and aggressively deny high-value corpses vs enemy Necromancers!
     local urgencyBonus = 0.0;
     if (::Autopilot.conf("bgpSmartFrontline")) {
         if (aliveUndead < 4)
@@ -84,16 +91,20 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
         // Champion-route casters rely on Raise Dead to maintain meatshields alongside Lich King (no Curse/CE).
         if (aliveUndead < 5 && !c.Actor.getSkills().hasSkill("actives.bgp_corpse_explosion"))
             urgencyBonus += 1.0;
-        foreach (et in c.Enemies) {
-            if (et.getEntity().getSkills().hasSkill("actives.raise_undead")) {
-                urgencyBonus += 2.2;
-                break;
-            }
+        if (enemyHasNecro) {
+            urgencyBonus += 2.2;
+            // Steal Fallen Hero / heavy-armor corpses FIRST before the enemy Necromancer raises them!
+            if (A.corpseValue(t) >= 1.1)
+                urgencyBonus += 1.5;
         }
     }
     local score = (distance <= 2 ? 7.0 : distance <= 5 ? 5.9 : 3.2) + A.corpseValue(t) * 1.6 + shutdownBonus + backlineScreenBonus + urgencyBonus
         + (c.Engaged && c.Origin.getDistanceTo(t) <= 2 ? 0.9 : 0)
         - (pressure > 2 ? 0.65 : 0) - (c.Behavior.hasNegativeTileEffect(t, c.Actor) ? 1.1 : 0);
+    // Endgame cleanup discipline: when <= 2 active enemies remain, no enemy Necromancer is alive, and 5+ undead already swarm them,
+    // throttle redundant Raise Dead so Mentor steps in to finish holdouts with armor-ignoring pale_weaken / buffs!
+    if (::Autopilot.conf("bgpSmartFrontline") && liveEnemies <= 2 && !enemyHasNecro && aliveUndead >= 5 && backlineScreenBonus == 0.0)
+        score *= 0.65;
     // On Champion route, if Lich King / Eternal Guard is freshly revived or low-HP (<= 55%) and missing Possess or Infusion,
     // yield slightly below Possess (13.2) & emergency Infusion (13.1) so Mentor stabilizes Lich King first, then raises with remaining AP!
     if (::Autopilot.conf("bgpSmartFrontline") && backlineScreenBonus == 0.0
@@ -2769,18 +2780,18 @@ local F = A.Frontline <- {
         // Never allow Mentor (caster) to undo a same-turn kite, walk forward without enough AP to cast, or step closer into melee/sniper danger for pale_weaken!
         if (this.isCasterRole(_actor))
         {
+            local liveCnt = 0;
+            foreach (e in decision.Info.Enemies)
+                if (e.getMoraleState() != ::Const.MoraleState.Fleeing) ++liveCnt;
             if (_targetTile.ID != myTile.ID)
             {
                 local fl = _agent.getBehavior(::Const.AI.Behavior.ID.BGP_Frontline);
                 if (fl != null && fl.m.KitedRound == ::Time.getRound())
                     return true;
-                if (_skill != null)
+                if (_skill != null && liveCnt > 2)
                 {
                     local minStepAP = myTile.getDistanceTo(_targetTile) * 2;
-                    local liveCnt = 0;
-                    foreach (e in decision.Info.Enemies)
-                        if (e.getMoraleState() != ::Const.MoraleState.Fleeing) ++liveCnt;
-                    if (liveCnt > 2 && _actor.getActionPoints() - minStepAP < _skill.getActionPointCost())
+                    if (_actor.getActionPoints() - minStepAP < _skill.getActionPointCost())
                         return true;
                 }
             }
@@ -2806,16 +2817,18 @@ local F = A.Frontline <- {
             }
             if (newMelee <= 2)
                 return true;
-            if (_skill != null && _skill.getID() == "actives.pale_weaken" && _targetTile.ID != myTile.ID && newMelee <= 4 && newMelee < curMelee)
+            // In endgame cleanup (<= 2 active enemies, >= 3 tiles away), allow Mentor to walk into pale_weaken range (3-4 tiles) to finish holdouts!
+            local endgameCleanup = (liveCnt <= 2 && newMelee >= 3);
+            if (!endgameCleanup && _skill != null && _skill.getID() == "actives.pale_weaken" && _targetTile.ID != myTile.ID && newMelee <= 4 && newMelee < curMelee)
                 return true;
-            if (newMelee <= 4 && newMelee < curMelee && nearestThreatTile != null)
+            if (!endgameCleanup && newMelee <= 4 && newMelee < curMelee && nearestThreatTile != null)
             {
                 local scr = this.countScreenBlockersBetween(_targetTile, _actor, nearestThreatTile);
                 if (scr.Blockers == 0)
                     return true;
             }
-            // Never walk Mentor onto an isolated tile with zero adjacent allies while live melee threats exist within 4 tiles.
-            if (newMelee <= 4)
+            // Never walk Mentor onto an isolated tile with zero adjacent allies while live melee threats exist within 4 tiles (except safe >= 3 endgame cleanup).
+            if (!endgameCleanup && newMelee <= 4)
             {
                 local adjAllies = 0;
                 for (local d = 0; d < 6; ++d)
@@ -2953,6 +2966,8 @@ local F = A.Frontline <- {
             local isGhostOrBanshee = _target.ClassName == "ghost" || _target.ClassName == "rf_banshee" || tSkills.hasSkill("actives.ghastly_touch");
             if (isSquireWithLiveKnight)
                 mult *= 0.42;
+            else if (tSkills.hasSkill("actives.raise_undead"))
+                mult *= _skill.isRanged() ? 2.75 : 2.15;
             else if (isPriestOrNecro)
                 mult *= _skill.isRanged() ? 2.30 : 1.75;
             else if (isGhostOrBanshee)
@@ -4633,6 +4648,28 @@ local F = A.Frontline <- {
         if (ret && _user != null && !::MSU.isNull(_user) && _user.getFaction() == ::Const.Faction.Player)
             F.battleState().LastCurseRound = ::Time.getRound();
         return ret;
+    };
+});
+
+// Gate Reforged RF_CoverAlly (costs 4 AP, 20 Fatigue, and debuffs caster's own MSk/MDef!):
+// never let player brothers burn 4 AP & self-debuff to "cover" disposable undead summons or healthy melee tanks;
+// restrict strictly to rescuing Mentor, a ranged backliner, or a critically wounded unshielded brother (<= 40% HP)!
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_rf_cover_ally", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        local score = __original(_entity);
+        if (score <= 0)
+            return score;
+        if (::Autopilot.conf("bgpSmartFrontline") && ::Autopilot.isUnderAIControl(_entity))
+        {
+            local ally = this.m.TargetAlly;
+            if (ally == null || ::MSU.isNull(ally) || ally.getFaction() != ::Const.Faction.Player)
+                return ::Const.AI.Behavior.Score.Zero;
+            local isEmergencyAlly = F.isCasterRole(ally) || F.isRangedRole(ally)
+                || (!::BGP.hasShield(ally) && ally.getHitpointsPct() <= 0.40);
+            if (!isEmergencyAlly || _entity.getHitpointsPct() < 0.50)
+                return ::Const.AI.Behavior.Score.Zero;
+        }
+        return score;
     };
 });
 
