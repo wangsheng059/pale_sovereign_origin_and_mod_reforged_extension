@@ -120,8 +120,8 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
         local totalCorpses = c.Behavior.targets(c, "Corpses").len();
         if (lethalCount == 0 && aliveUndead < 5 && totalCorpses <= 2)
             return 0;
-        if (goblinHits == hits && lethalCount < 2 && (hits < 4 || aliveUndead < 7))
-            value *= 0.55;
+        if (goblinHits == hits && (aliveUndead < 6 || (lethalCount < 2 && (hits < 4 || aliveUndead < 7))))
+            value *= 0.50;
         if (moraleVulnerableHits == 0 && lethalCount == 0) {
             if (hits >= 4 && aliveUndead >= 6) {
                 value += 1.6;
@@ -132,9 +132,13 @@ A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
                     value *= 0.45;
             }
         }
-        // Protect our undead frontline: when fewer than 5 undead are alive, prioritize Raise Dead over blowing up corpses (unless multi-kill).
-        if (aliveUndead < 5 && lethalCount < 2) {
-            value = ::Math.minf(9.5, value * 0.55);
+        // Protect our undead frontline: when fewer than 4 undead are alive (or < 5 without a multi-kill, or heavy-armored corpse with thin screen),
+        // strictly prioritize Raise Dead over blowing up corpses (prevents Goblin24 t3 / Orc18 t1 frontline collapse)!
+        local heavyCorpse = blast.Cutting >= 40;
+        if (aliveUndead < 4 || (goblinHits == hits && aliveUndead < 6)
+            || (aliveUndead < 5 && lethalCount < 2)
+            || (heavyCorpse && aliveUndead < 6 && totalCorpses <= 3 && lethalCount < 2)) {
+            value = ::Math.minf(9.0, value * 0.50);
         } else if (hits >= 3 && (aliveUndead >= 6 || totalCorpses >= 5) && (moraleVulnerableHits >= 2 || lethalCount >= 1)
             && (armoredHits >= 2 || cursedHits >= 2 || lethalCount >= 1)) {
             value += (hits >= 4 ? 3.5 : 2.1) + (armoredHits >= 2 ? 0.9 : 0.0) + (moraleVulnerableHits >= 3 ? 0.8 : 0.0) + (cursedHits >= 2 ? 1.2 : 0.0);
@@ -192,8 +196,10 @@ A.add("bgp_necro_curse_of_ages", "Centers", function(c, s, t) {
         if (hits >= 4) {
             value += 4.2 + ::Math.minf(2.0, (hits - 4) * 0.9) + (engagedHits >= 2 ? 0.5 : 0.0);
             cap = 16.5;
-            // Still protect Raise Dead if our undead frontline is critically thin (< 4) and corpses are waiting after an initial Curse.
-            if (alreadyCursed >= 3 && corpseCount > 0 && aliveUndead < 4)
+            // After our first Curse of the battle, if corpses are waiting and our undead frontline is thin (< 5),
+            // raise meatshields first so we never wipe with 0-6 Raises while spamming 2nd/3rd Curses!
+            local castBefore = A.Frontline.battleState().LastCurseRound > 0;
+            if (corpseCount > 0 && ((castBefore && aliveUndead < 5) || (alreadyCursed >= 3 && aliveUndead < 5)))
                 cap = 10.5;
         } else {
             value *= (alreadyCursed >= 3 ? 0.55 : 0.78);
@@ -983,10 +989,17 @@ local F = A.Frontline <- {
 
     function hasUnactedShieldAlly( _actor, _info )
     {
-        // Yield Round 1 Phase 1 (zero turns lost: actor still acts in Round 1 Phase 2 with full AP!)
-        // to nearby unacted shieldbearers or our unacted summoner Mentor so tanks & undead summons take the frontline first
-        // — especially critical against Noble Halberdiers/Arbalesters, Orc Chargers, and Goblin skirmishers!
-        if (::Time.getRound() > 1 || _info.EngagedBrothers > 0)
+        // Yield Round 1 Phase 1 (and Round 2 Phase 1 while frontline hasn't engaged yet or actor is fragile)
+        // to nearby unacted shieldbearers or our unacted summoner Mentor so heavy BF tanks & undead summons take the frontline first!
+        // Note: do NOT filter by ally.getInitiative() >= 40 — heavy Battle Forged shield tanks have Initiative ~15-30 and STILL act
+        // in Phase 1 before any Waiting brother resumes in Phase 2!
+        local rnd = ::Time.getRound();
+        if (rnd > 2)
+            return false;
+        local isFragile = this.isFragileMelee(_actor);
+        if (rnd == 1 && _info.EngagedBrothers > 0)
+            return false;
+        if (rnd == 2 && (_info.EngagedBrothers > 0 || !isFragile))
             return false;
         local myTile = _actor.getTile();
         foreach (foe in _info.Enemies)
@@ -994,7 +1007,6 @@ local F = A.Frontline <- {
             if (myTile.getDistanceTo(foe.getTile()) <= 2)
                 return false;
         }
-        local isFragile = this.isFragileMelee(_actor);
         foreach (ally in _info.Brothers)
         {
             if (ally.getID() == _actor.getID())
@@ -1005,11 +1017,11 @@ local F = A.Frontline <- {
                 || ally.getCurrentProperties().IsRooted)
                 continue;
             local dist = ally.getTile().getDistanceTo(myTile);
-            if (::BGP.hasShield(ally) && ally.getInitiative() >= 40 && dist <= 5
+            if (::BGP.hasShield(ally) && dist <= 6
                 && ally.getTile().getZoneOfControlCountOtherThan(ally.getAlliedFactions()) == 0)
                 return true;
             // All non-shield melee bros yield Round 1 Phase 1 to our unacted summoner Mentor so Lich King + Skeleton deploy first.
-            if (this.isCasterRole(ally) && ally.getInitiative() >= 40 && dist <= 5)
+            if (rnd == 1 && this.isCasterRole(ally) && dist <= 6)
             {
                 local sk = ally.getSkills();
                 local hasOpener = false;
