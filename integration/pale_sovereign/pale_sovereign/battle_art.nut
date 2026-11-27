@@ -176,7 +176,7 @@ S.Mod.hook("scripts/skills/effects/bgp_fly_swarm_effect", function(q) {
 
 // These shared skills keep their original timing, targeting and return values in every origin.
 local casts = {
-    bgp_necro_raise_skill = "raise", bgp_necro_eternal_command_skill = "command",
+    bgp_necro_raise_skill = "raise",
     bgp_necro_possess_skill = "possess", bgp_necro_infusion_skill = "infuse",
     bgp_necro_flesh_reforge_skill = "stitch", bgp_corpse_explosion_skill = "burst",
     bgp_necro_bind_skill = "coffin"

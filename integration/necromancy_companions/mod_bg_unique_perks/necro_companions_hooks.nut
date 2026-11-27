@@ -69,7 +69,7 @@ if (::BGP.HasAC)
 			return;
 		p.m.BGP_GearApplied <- true;
 		p.m.BGP_Gear <- null;
-		// 1.6.0 永恒禁卫宠物倒下、等待“不灭号令”时为 true（只在战斗中有意义，不存档）
+		// 1.6.0 永恒禁卫宠物倒下、等待下一回合自动复活时为 true（只在战斗中有意义，不存档）
 		p.m.BGP_GuardDown <- false;
 
 		if ("onCombatFinished" in p)

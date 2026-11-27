@@ -98,7 +98,7 @@
 	q.generateCorpse = @(__original) function( _tile, _fatalityType, _killer )
 	{
 		local ret = __original(_tile, _fatalityType, _killer);
-		try { ::BGP.Necro.onGenerateCorpse(this, ret, _fatalityType); } catch (e) {}
+		try { ::BGP.Necro.onGenerateCorpse(this, ret, _fatalityType, _tile); } catch (e) {}
 		return ret;
 	}
 });

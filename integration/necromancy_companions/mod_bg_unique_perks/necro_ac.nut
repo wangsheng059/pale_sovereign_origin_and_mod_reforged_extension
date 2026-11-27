@@ -606,7 +606,7 @@
 
 ::BGP.NecroPet.releaseItem <- function( _e )
 {
-	// 1.6.0 永恒禁卫：主人活着时阵亡不收回配件，配件仍指向它（等“不灭号令”唤回）
+	// 1.6.0 永恒禁卫：主人活着时阵亡不收回配件，配件仍指向它（下回合由“不灭勇士”自动复活）
 	try
 	{
 		if (::BGP.Champion.shouldKeepPet(_e))

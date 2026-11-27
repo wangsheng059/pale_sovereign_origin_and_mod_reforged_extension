@@ -21,13 +21,18 @@ this.bgp_necro_possess_skill <- ::inherit("scripts/skills/actives/possess_undead
 
 	function getTooltip()
 	{
-		local ret = this.possess_undead_skill.getTooltip();
+		local ret = this.skill.getDefaultUtilityTooltip();
 		local actor = this.getContainer().getActor();
 		local w = ::BGP.Necro.getWill(actor);
-		ret.push({ id = 12, type = "text", icon = "ui/icons/bravery.png", text = "被支配者 近战技能 " + ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + "、受到的伤害 " + ::MSU.Text.colorPositive("-" + ::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + ::BGP.Necro.willText(w) + "，代替原来的 +15 和 -25%" });
 		local extra = ::BGP.Necro.spellDurationBonus(actor);
-		if (extra > 0)
-			ret.push({ id = 13, type = "text", icon = "ui/icons/special.png", text = "亡灵法术大师：支配持续至目标第 " + ::MSU.Text.colorPositive(1 + extra) + " 个回合结束（施放者受重伤或目标阵亡仍会提前中断）" });
+		ret.extend([
+			{ id = 10, type = "text", icon = "ui/icons/vision.png", text = "施法距离 " + ::MSU.Text.colorPositive(this.getMaxRange()) + " 格，不需要视野；目标为一名友方亡灵" },
+			{ id = 11, type = "text", icon = "ui/icons/action_points.png", text = "被支配者行动点上限变为 " + ::MSU.Text.colorPositive("12") + "（并立刻补满当回合行动点）、主动值 " + ::MSU.Text.colorPositive("+50") },
+			{ id = 12, type = "text", icon = "ui/icons/melee_skill.png", text = "近战技能 " + ::MSU.Text.colorPositive("+" + ::BGP.Necro.WillScale.PossessMeleeSkill(w)) + "、近战 / 远程防御 " + ::MSU.Text.colorPositive("+10") + "、受到的伤害 " + ::MSU.Text.colorPositive("-" + ::Math.round(::BGP.Necro.WillScale.PossessReduction(w)) + "%") + ::BGP.Necro.willText(w) },
+			{ id = 13, type = "text", icon = "ui/icons/special.png", text = extra > 0
+				? "持续至目标第 " + ::MSU.Text.colorPositive(1 + extra) + " 个回合结束（同一时间只能支配 1 名亡灵；施法者受重伤或目标阵亡时提前中断）"
+				: "持续至目标回合结束（同一时间只能支配 1 名亡灵；施法者受重伤或目标阵亡时提前中断）" }
+		]);
 		return ret;
 	}
 

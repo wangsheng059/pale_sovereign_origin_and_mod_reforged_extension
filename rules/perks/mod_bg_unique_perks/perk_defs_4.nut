@@ -21,8 +21,9 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Active,
 		Description = [
-			"解锁“支配亡灵”技能：消耗 " + ::MSU.Text.colorNegative("3") + " 行动点数、" + ::MSU.Text.colorNegative("10") + " 疲劳，目标为一名友方亡灵（原版的僵尸、骷髅等，以及你复活的所有单位和亡灵宠物），其余效果和原版 / 重铸的支配亡灵相同。",
-			"被支配的亡灵直到它的回合结束：行动点上限变为 12、近战技能 " + ::MSU.Text.colorPositive("+W/5") + "、近战 / 远程防御 +10、主动值 +50、受到的伤害 " + ::MSU.Text.colorPositive("-(W/4 - 5)%") + "（0~30%）。",
+			"解锁“支配亡灵”技能：消耗 " + ::MSU.Text.colorNegative("3") + " 行动点数、" + ::MSU.Text.colorNegative("10") + " 疲劳，施法距离 " + ::MSU.Text.colorPositive("99") + " 格（不需要视野），目标为一名友方亡灵（僵尸、骷髅、你复活的所有单位、常驻亡灵及亡灵宠物）。",
+			"被支配的亡灵直到它的回合结束：行动点上限变为 " + ::MSU.Text.colorPositive("12") + "（并立刻补满当回合行动点）、近战技能 " + ::MSU.Text.colorPositive("+W/5") + "、近战 / 远程防御 " + ::MSU.Text.colorPositive("+10") + "、主动值 " + ::MSU.Text.colorPositive("+50") + "、受到的伤害 " + ::MSU.Text.colorPositive("-(W/4 - 5)%") + "（0~30%）。",
+			"同一时间只能支配 1 名亡灵；施法者受到重伤或被支配者阵亡时支配提前结束。",
 			"（W = 亡灵法师当前决心 − 20，含装备和光环，施放时计算）"
 		]
 	}]
@@ -44,7 +45,7 @@
 		Type = ::UPD.EffectType.Passive,
 		Description = [
 			"亡灵勇士、亡灵天灾两组共用（不参与两组互斥）。",
-			"亡灵法师的主动技能（复活死者、支配亡灵、冥府活力、尸爆、血肉重铸、不灭号令、岁月诅咒）行动点消耗 " + ::MSU.Text.colorPositive("-1") + "、疲劳消耗 " + ::MSU.Text.colorPositive("-25%") + "。"
+			"亡灵法师的主动技能（复活死者、支配亡灵、冥府活力、尸爆、血肉重铸、岁月诅咒）行动点消耗 " + ::MSU.Text.colorPositive("-1") + "、疲劳消耗 " + ::MSU.Text.colorPositive("-25%") + "。"
 		]
 	}]
 });
@@ -76,7 +77,7 @@
 		Type = ::UPD.EffectType.Active,
 		Description = [
 			"解锁“冥府活力”技能：消耗 " + ::MSU.Text.colorNegative("4") + " 行动点数、" + ::MSU.Text.colorNegative("12") + " 疲劳，目标为 8 格内的一名友方亡灵。",
-			"目标立刻回复 " + ::MSU.Text.colorPositive("10 + W/4") + " 点生命、减少 " + ::MSU.Text.colorPositive("10 + W/6") + " 点疲劳；在接下来的 2 个回合里，行动点数 " + ::MSU.Text.colorPositive("+4") + "、主动值 " + ::MSU.Text.colorPositive("+75") + "、移动时行动点消耗 " + ::MSU.Text.colorPositive("-1") + "（最少 1）。",
+			"目标立刻回复 " + ::MSU.Text.colorPositive("10 + W/4") + " 点生命、减少 " + ::MSU.Text.colorPositive("10 + W/6") + " 点疲劳；在接下来的 2 个回合里，行动点数 " + ::MSU.Text.colorPositive("+4") + "（未行动的目标当回合立刻获得 +4 行动点）、主动值 " + ::MSU.Text.colorPositive("+75") + "、移动时行动点消耗 " + ::MSU.Text.colorPositive("-1") + "（最少 1）。",
 			"（W = 亡灵法师当前决心 − 20，含装备和光环，施放时计算）"
 		]
 	}]
@@ -127,13 +128,8 @@
 		Type = ::UPD.EffectType.Passive,
 		Description = [
 			"永恒禁卫：战斗开始时饰品栏没有亡灵宠物，就在身旁召唤一尊持双手巨斧的“墓穴王禁卫”（古代仪仗兵面板）；饰品栏有亡灵宠物，它放出时直接成为永恒禁卫，全属性 " + ::MSU.Text.colorPositive("+10%") + "。",
-			"不死恐怖：只要你还活着，永恒禁卫倒下后残骸不会被复活死者或敌方吞食消耗；你仍可对其施放尸爆或血肉重铸（残骸摧毁后本场无法再以不灭号令唤回）。"
-		]
-	},
-	{
-		Type = ::UPD.EffectType.Active,
-		Description = [
-			"解锁“不灭号令”：消耗 " + ::MSU.Text.colorNegative("6") + " 行动点数、" + ::MSU.Text.colorNegative("20") + " 疲劳，99 格、不需要视野、没有冷却，让倒下的永恒禁卫原地复活，生命和头甲、身甲耐久各恢复到 " + ::MSU.Text.colorPositive("15% + W/3 %") + "（最多 80%；W = 施放时你的当前决心 − 20）。",
+			"不灭复生：只要你在场上存活，永恒禁卫阵亡后会在下一回合自动原地复活（若残骸格被敌人踩住会将其挤开，无法挤开或被友军占据则在相邻空格复活），生命和头甲、身甲耐久各恢复到 " + ::MSU.Text.colorPositive("15% + W/5 %") + "（最多 " + ::MSU.Text.colorPositive("50%") + "；W = 复活时你的当前决心 − 20）。",
+			"不死恐怖：只要你还活着，永恒禁卫倒下后残骸不会被复活死者或敌方吞食消耗；你仍可对其施放尸爆或血肉重铸（残骸摧毁后本场无法再自动复活）。",
 			"你在战斗中死亡时，倒下的宠物禁卫随之失去；你活到战斗结束时它保留，伤势记为 50%。"
 		]
 	}]

@@ -82,7 +82,6 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
         + (c.Engaged && c.Origin.getDistanceTo(t) <= 2 ? 0.9 : 0)
         - (pressure > 2 ? 0.65 : 0) - (c.Behavior.hasNegativeTileEffect(t, c.Actor) ? 1.1 : 0);
 });
-A.add("bgp_necro_eternal_command", "Corpses", @(c, s, t) 8.0);
 A.add("bgp_corpse_explosion", "Corpses", function(c, s, t) {
     local blast = s.getBlast(::BGP.Necro.getCorpse(t), c.Actor);
     if (blast == null) return 0;

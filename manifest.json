@@ -1119,7 +1119,6 @@
         "scripts/mods/mod_bg_unique_perks/perk_groups/pg_bgp_necro_champion.nut",
         "scripts/mods/mod_bg_unique_perks/perk_groups/pg_bgp_necro_scourge.nut",
         "scripts/skills/actives/bgp_necro_curse_of_ages_skill.nut",
-        "scripts/skills/actives/bgp_necro_eternal_command_skill.nut",
         "scripts/skills/actives/bgp_necro_flesh_reforge_skill.nut",
         "scripts/skills/effects/bgp_curse_of_ages_effect.nut",
         "scripts/skills/effects/bgp_graft_bone_effect.nut",
@@ -1602,6 +1601,13 @@
         "scripts/skills/actives/xxitem_shurikenaa_skill.nut",
         "scripts/skills/actives/xxzzfantasy_skill.nut",
         "scripts/skills/actives/xxzzvoice_skill.nut"
+      ]
+    },
+    {
+      "source": "mod_背景专属特技_1.6.1.zip",
+      "note": "Removed active skill bgp_necro_eternal_command_skill after integrating Eternal Guard next-round auto-revive as a passive on perk_bgp_necro_undying_champion.",
+      "members": [
+        "scripts/skills/actives/bgp_necro_eternal_command_skill.nut"
       ]
     }
   ]

@@ -43,7 +43,6 @@
 		"actives.bgp_necro_infusion",
 		"actives.bgp_corpse_explosion",
 		"actives.bgp_necro_flesh_reforge",
-		"actives.bgp_necro_eternal_command",
 		"actives.bgp_necro_curse_of_ages"
 	],
 	// 1.6.0 两个互斥的特技组：学了一组的独有特技后，另一组的独有特技锁定（死灵精通两组共用，不参与互斥）
@@ -165,10 +164,11 @@
 	catch (e)
 	{
 	}
+	try { ::BGP.Champion.onGuardAfterKill(_actor, _tile); } catch (e) { ::logError("mod_bg_unique_perks: 永恒禁卫阵亡后登记失败: " + e); }
 }
 
 // generateCorpse：优先用 kill 之前记下的数据
-::BGP.Necro.onGenerateCorpse <- function( _actor, _corpse, _fatalityType = null )
+::BGP.Necro.onGenerateCorpse <- function( _actor, _corpse, _fatalityType = null, _tile = null )
 {
 	if (_corpse == null)
 		return;
@@ -190,7 +190,7 @@
 		info = ::BGP.Necro.makeDeathInfo(_actor);
 	::BGP.Necro.annotate(_corpse, info);
 	// 1.6.0 永恒禁卫倒下时在残骸上记下主人和复活需要的东西（necro_champion.nut）
-	try { ::BGP.Champion.tagGuardCorpse(_actor, _corpse); } catch (e) { ::logError("mod_bg_unique_perks: 永恒禁卫残骸记录失败: " + e); }
+	try { ::BGP.Champion.tagGuardCorpse(_actor, _corpse, _tile); } catch (e) { ::logError("mod_bg_unique_perks: 永恒禁卫残骸记录失败: " + e); }
 }
 
 ::BGP.Necro.getInfo <- function( _corpse )
@@ -282,7 +282,7 @@
 	if (_corpse == null || ::BGP.Necro.isUnconsciousCorpse(_corpse))
 		return null;
 	// 1.6.5 即将自行爬起的尸体（僵尸等）也能复活：复活时取消它原本排好的自行复活（见 raise 和 necro_hooks.nut）
-	// 1.6.0 永恒禁卫的残骸只能用“不灭号令”唤回
+	// 1.6.0 永恒禁卫的残骸由“不灭勇士”在下一回合自动复活，不能被复活死者消耗
 	if (::BGP.Necro.isGuardCorpse(_corpse))
 		return null;
 
@@ -870,8 +870,8 @@
 	// 死灵灌注：回 10 + W/4 生命、减 10 + W/6 疲劳
 	InfusionHeal = function( _w ) { return 10 + ::Math.floor(_w / 4.0); },
 	InfusionFatigue = function( _w ) { return 10 + ::Math.floor(_w / 6.0); },
-	// 不灭号令：复活后生命、头甲、身甲 15% + W/3 %，最多 80%（返回比例；1.6.4 前为 20% + W/2 %）
-	RevivePct = function( _w ) { return ::Math.minf(0.8, 0.15 + _w / 300.0); },
+	// Undying Champion passive auto-revive: 15% + W/5 % HP and Head/Body armor, capped at 50%.
+	RevivePct = function( _w ) { return ::Math.minf(0.5, 0.15 + _w / 500.0); },
 	// 不死再生：每回合 5 + W/5 生命
 	Regen = function( _w ) { return 5 + ::Math.floor(_w / 5.0); },
 	// 钢铁之躯：复活时头甲、身甲各恢复上限的 10% + W/4 %（返回比例；恢复量本身不超过上限）
@@ -943,7 +943,6 @@
 	["actives.bgp_necro_infusion"] = true,
 	["actives.bgp_corpse_explosion"] = true,
 	["actives.bgp_necro_flesh_reforge"] = true,
-	["actives.bgp_necro_eternal_command"] = true,
 	["actives.bgp_necro_curse_of_ages"] = true,
 	["actives.bgp_necro_bind"] = true,
 	["actives.pale_weaken"] = true,

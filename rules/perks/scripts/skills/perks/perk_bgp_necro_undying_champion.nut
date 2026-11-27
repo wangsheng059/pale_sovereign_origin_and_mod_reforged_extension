@@ -1,6 +1,7 @@
-// 1.6.0 亡灵冠军 7 层：不灭冠军
+// 1.6.0 亡灵勇士 6 层：不灭勇士
 //   战斗开始时饰品栏没有死灵宠物：在身旁召唤“墓穴王禁卫”；有死灵宠物：放出时晋升为永恒禁卫（全属性 +10%）。
-//   解锁“不灭号令”：主人活着时让倒下的永恒禁卫原地以 50% 生命、50% 护甲复活。逻辑在 necro_champion.nut。
+//   被动自动复活：主人在场上存活时，倒下的永恒禁卫在下一回合自动复活（被敌人踩住时挤开敌人），
+//   生命和头甲、身甲恢复到 15% + W/5 %（最多 50%）。逻辑在 necro_champion.nut。
 this.perk_bgp_necro_undying_champion <- ::inherit("scripts/skills/skill", {
 	m = {
 		IsSummonPending = false
@@ -17,8 +18,8 @@ this.perk_bgp_necro_undying_champion <- ::inherit("scripts/skills/skill", {
 
 	function onAdded()
 	{
-		if (!this.getContainer().hasSkill("actives.bgp_necro_eternal_command"))
-			this.getContainer().add(::new("scripts/skills/actives/bgp_necro_eternal_command_skill"));
+		// Clean up legacy active skill on existing characters.
+		this.getContainer().removeByID("actives.bgp_necro_eternal_command");
 	}
 
 	function onRemoved()
@@ -28,6 +29,8 @@ this.perk_bgp_necro_undying_champion <- ::inherit("scripts/skills/skill", {
 
 	function onCombatStarted()
 	{
+		this.getContainer().removeByID("actives.bgp_necro_eternal_command");
+		try { ::BGP.Champion.clearPending(this.getContainer().getActor().getID()); } catch (e) {}
 		this.m.IsSummonPending = true;
 		this.trySummon();
 	}
@@ -35,12 +38,14 @@ this.perk_bgp_necro_undying_champion <- ::inherit("scripts/skills/skill", {
 	function onTurnStart()
 	{
 		this.trySummon();
+		try { ::BGP.Champion.tryAutoRevive(this.getContainer().getActor()); } catch (e) { ::logError("mod_bg_unique_perks: 永恒禁卫回合自动复活异常: " + e); }
 	}
 
 	function onCombatFinished()
 	{
 		this.skill.onCombatFinished();
 		this.m.IsSummonPending = false;
+		try { ::BGP.Champion.clearPending(this.getContainer().getActor().getID()); } catch (e) {}
 	}
 
 	function trySummon()
