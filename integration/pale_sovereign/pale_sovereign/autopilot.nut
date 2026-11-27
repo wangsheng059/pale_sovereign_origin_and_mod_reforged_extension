@@ -119,27 +119,36 @@ local function summon(c, s, t) {
                 return 0;
             }
             // Round 2 pacing:
-            // - Scourge: after Mentor's first 4-AP summon leaves 5 AP, yield to 5-AP Curse of Ages (up to 16.5).
-            // - Champion (4-AP base / 3-AP Mastery 2-3 turn Possess + 3-AP Infusion): on R2 when Lich King is deployed
-            //   and missing BOTH Possess & Infusion, yield so R2 plays Possess (3 AP) + Infusion (3 AP) = 16-AP Lich King
-            //   immediately for R2-R4, freeing full R3 AP for 2nd Skeleton + Flesh Reforge!
+            // - Scourge: after Mentor's first 4-AP summon leaves 5 AP, yield to 5-AP Curse of Ages (up to 16.5) or 3-AP Possess (13.2).
+            // - Champion (4-AP base / 3-AP Mastery 2-3 turn Possess + 3-AP Infusion): on R2 when Lich King is deployed,
+            //   yield whenever casting this summon would starve remaining AP needed for Possess + Infusion (cap 11.5 < 13.0),
+            //   reliably chaining Possess (3 AP) -> Infusion (3 AP) for an immediate R2-R4 16-AP Lich King!
             local bonus = s.getID() == "actives.pale_summon_skeleton" ? 18.0 : 17.0;
             if (freeLeft && rnd == 2 && !crisis.AnyCrisis) {
-                if (c.Actor.getActionPoints() <= 5)
-                    return value + 5.0;
+                local curAP = c.Actor.getActionPoints();
+                if (curAP <= 5)
+                    return ::Math.minf(value + 5.0, 11.5);
                 local pet = S.mainPet();
                 if (pet != null && !c.Actor.getSkills().hasSkill("actives.bgp_corpse_explosion")) {
                     local pSk = c.Actor.getSkills().getSkillByID("actives.possess_undead");
                     local iSk = c.Actor.getSkills().getSkillByID("actives.bgp_necro_infusion");
-                    if (pSk != null && !pSk.isHidden() && pSk.isUsable() && iSk != null && !iSk.isHidden() && iSk.isUsable()
-                        && !c.Actor.getSkills().hasSkill("effects.possessing_undead")
-                        && c.Actor.getActionPoints() >= pSk.getActionPointCost() + iSk.getActionPointCost()) {
+                    local sumAP = s.getActionPointCost();
+                    local canP = pSk != null && !pSk.isHidden() && pSk.isUsable() && pSk.isAffordable()
+                        && !c.Actor.getSkills().hasSkill("effects.possessing_undead");
+                    local canI = iSk != null && !iSk.isHidden() && iSk.isUsable() && iSk.isAffordable();
+                    if (canP || canI) {
                         foreach (at in c.Allies) {
                             local u = at.getEntity();
-                            if (S.isDeployed(pet, u) && !u.getSkills().hasSkill("effects.possessed_undead")
-                                && !u.getSkills().hasSkill("effects.bgp_necro_infusion")
-                                && c.Origin.getDistanceTo(at) <= iSk.getMaxRange())
-                                return value + 5.0;
+                            if (!S.isDeployed(pet, u)) continue;
+                            local needP = canP && !u.getSkills().hasSkill("effects.possessed_undead");
+                            local infUsed = canI && ("BGPAutoInfuseRound" in iSk.m) && iSk.m.BGPAutoInfuseRound == rnd
+                                && iSk.m.BGPAutoInfuseTargets != null && (u.getID() in iSk.m.BGPAutoInfuseTargets);
+                            local needI = canI && !u.getSkills().hasSkill("effects.bgp_necro_infusion")
+                                && !infUsed && c.Origin.getDistanceTo(at) <= iSk.getMaxRange();
+                            local needAP = (needP ? pSk.getActionPointCost() : 0) + (needI ? iSk.getActionPointCost() : 0);
+                            if (needAP > 0 && curAP >= needAP && (curAP - sumAP) < needAP)
+                                return ::Math.minf(value + 5.0, 11.5);
+                            break;
                         }
                     }
                 }
@@ -283,7 +292,7 @@ A.add("pale_weaken", "Enemies", function(c, s, t) {
                 local u = at.getEntity();
                 if (u != null && u.getFaction() == ::Const.Faction.PlayerAnimals && u.getFlags().has("undead")) ++aliveUndead;
             }
-            local endgameMelt = (liveEnemies <= 2 && aliveUndead >= 4);
+            local endgameMelt = ((liveEnemies <= 2 || (liveEnemies <= 3 && ::Time.getRound() >= 14)) && aliveUndead >= 4);
             local allowHigh = (lethal >= 9.0 && (isPrioritySnipe || nearMentor || enemy.getSkills().hasSkill("racial.champion")));
             local cap = allowHigh ? 13.35 : (endgameMelt ? 12.8 : (lethal >= 9.0 ? 12.1 : 10.6));
             if (endgameMelt) total += 3.5;

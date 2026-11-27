@@ -101,9 +101,10 @@ A.add("bgp_necro_raise", "Corpses", function(c, s, t) {
     local score = (distance <= 2 ? 7.0 : distance <= 5 ? 5.9 : 3.2) + A.corpseValue(t) * 1.6 + shutdownBonus + backlineScreenBonus + urgencyBonus
         + (c.Engaged && c.Origin.getDistanceTo(t) <= 2 ? 0.9 : 0)
         - (pressure > 2 ? 0.65 : 0) - (c.Behavior.hasNegativeTileEffect(t, c.Actor) ? 1.1 : 0);
-    // Endgame cleanup discipline: when <= 2 active enemies remain, no enemy Necromancer is alive, and 5+ undead already swarm them,
-    // throttle redundant Raise Dead so Mentor steps in to finish holdouts with armor-ignoring pale_weaken / buffs!
-    if (::Autopilot.conf("bgpSmartFrontline") && liveEnemies <= 2 && !enemyHasNecro && aliveUndead >= 5 && backlineScreenBonus == 0.0)
+    // Endgame cleanup discipline: when <= 2 active enemies remain (or <= 3 from round 14+), no enemy Necromancer is alive,
+    // and 5+ undead already swarm them, throttle redundant Raise Dead so Mentor finishes holdouts with armor-ignoring pale_weaken / buffs!
+    if (::Autopilot.conf("bgpSmartFrontline") && (liveEnemies <= 2 || (liveEnemies <= 3 && ::Time.getRound() >= 14))
+        && !enemyHasNecro && aliveUndead >= 5 && backlineScreenBonus == 0.0)
         score *= 0.65;
     // On Champion route, if Lich King / Eternal Guard is freshly revived or low-HP (<= 55%) and missing Possess or Infusion,
     // yield slightly below Possess (13.2) & emergency Infusion (13.1) so Mentor stabilizes Lich King first, then raises with remaining AP!
@@ -2783,12 +2784,13 @@ local F = A.Frontline <- {
             local liveCnt = 0;
             foreach (e in decision.Info.Enemies)
                 if (e.getMoraleState() != ::Const.MoraleState.Fleeing) ++liveCnt;
+            local isEndgame = (liveCnt <= 2) || (liveCnt <= 3 && ::Time.getRound() >= 14);
             if (_targetTile.ID != myTile.ID)
             {
                 local fl = _agent.getBehavior(::Const.AI.Behavior.ID.BGP_Frontline);
                 if (fl != null && fl.m.KitedRound == ::Time.getRound())
                     return true;
-                if (_skill != null && liveCnt > 2)
+                if (_skill != null && !isEndgame)
                 {
                     local minStepAP = myTile.getDistanceTo(_targetTile) * 2;
                     if (_actor.getActionPoints() - minStepAP < _skill.getActionPointCost())
@@ -2817,8 +2819,9 @@ local F = A.Frontline <- {
             }
             if (newMelee <= 2)
                 return true;
-            // In endgame cleanup (<= 2 active enemies, >= 3 tiles away), allow Mentor to walk into pale_weaken range (3-4 tiles) to finish holdouts!
-            local endgameCleanup = (liveCnt <= 2 && newMelee >= 3);
+            // In endgame cleanup (<= 2 active enemies, or <= 3 from round 14+, healthy Mentor staying >= 3 tiles away),
+            // allow Mentor to walk into pale_weaken range (3-4 tiles) to finish armored/shielded holdouts!
+            local endgameCleanup = (isEndgame && !lowHpMentor && newMelee >= 3);
             if (!endgameCleanup && _skill != null && _skill.getID() == "actives.pale_weaken" && _targetTile.ID != myTile.ID && newMelee <= 4 && newMelee < curMelee)
                 return true;
             if (!endgameCleanup && newMelee <= 4 && newMelee < curMelee && nearestThreatTile != null)
