@@ -10,6 +10,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         BlockedRound = -1,
         BashedRound = -1,
         TerrainMovedRound = -1,
+        CohesiveMovedRound = -1,
         KitedRound = -1,
         HybridSwapRound = -1,
         HybridSwapCount = 0
@@ -864,6 +865,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.MovedTileID = _entity.getTile().ID;
                 if (this.m.Mode == "terrain_anchor")
                     this.m.TerrainMovedRound = ::Time.getRound();
+                else if (this.m.Mode == "cohesive_advance")
+                    this.m.CohesiveMovedRound = ::Time.getRound();
                 else if (this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
                     this.m.KitedRound = ::Time.getRound();
                 this.m.IsMoving = true;

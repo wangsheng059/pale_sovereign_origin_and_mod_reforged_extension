@@ -2987,6 +2987,10 @@ local F = A.Frontline <- {
         // Never walk away and cancel an active Shieldwall or Spearwall raised this turn.
         if (_actor.getSkills().hasSkill("effects.shieldwall") || _actor.getSkills().hasSkill("effects.spearwall"))
             return true;
+        // After executing a cohesive R1-R2 formation step, do not let vanilla EngageMelee spend leftover AP scattering ahead or backwards!
+        local fl = _agent != null ? _agent.getBehavior(::Const.AI.Behavior.ID.BGP_Frontline) : null;
+        if (fl != null && ("CohesiveMovedRound" in fl.m) && fl.m.CohesiveMovedRound == ::Time.getRound())
+            return true;
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Hold)
             return true;
