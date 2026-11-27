@@ -983,11 +983,10 @@ local F = A.Frontline <- {
 
     function hasUnactedShieldAlly( _actor, _info )
     {
-        // Yield Round 1 to nearby unacted shieldbearers fast enough to act before the enemy,
-        // or to an unacted Pale Sovereign Mentor about to deploy frontline undead summons.
+        // Yield Round 1 Phase 1 (zero turns lost: actor still acts in Round 1 Phase 2 with full AP!)
+        // to nearby unacted shieldbearers or our unacted summoner Mentor so tanks & undead summons take the frontline first
+        // — especially critical against Noble Halberdiers/Arbalesters, Orc Chargers, and Goblin skirmishers!
         if (::Time.getRound() > 1 || _info.EngagedBrothers > 0)
-            return false;
-        if (_info.EnemyProjectileRanged >= 3.0 || _info.EnemyChargers >= 3)
             return false;
         local myTile = _actor.getTile();
         foreach (foe in _info.Enemies)
@@ -1006,11 +1005,11 @@ local F = A.Frontline <- {
                 || ally.getCurrentProperties().IsRooted)
                 continue;
             local dist = ally.getTile().getDistanceTo(myTile);
-            if (::BGP.hasShield(ally) && ally.getInitiative() >= 45 && dist <= 5
+            if (::BGP.hasShield(ally) && ally.getInitiative() >= 40 && dist <= 5
                 && ally.getTile().getZoneOfControlCountOtherThan(ally.getAlliedFactions()) == 0)
                 return true;
-            // Fragile unshielded bros also wait for our unacted summoner Mentor to drop the opening undead screen.
-            if (isFragile && this.isCasterRole(ally) && ally.getInitiative() >= 45 && dist <= 5)
+            // All non-shield melee bros yield Round 1 Phase 1 to our unacted summoner Mentor so Lich King + Skeleton deploy first.
+            if (this.isCasterRole(ally) && ally.getInitiative() >= 40 && dist <= 5)
             {
                 local sk = ally.getSkills();
                 local hasOpener = false;
@@ -1472,12 +1471,13 @@ local F = A.Frontline <- {
         return { Tile = bestTile, HighPriority = bestHighPriority, Gain = bestGain };
     },
 
-    // Evaluate immediate and next-turn surround exposure at a candidate tile.
+    // Evaluate immediate and next-turn surround exposure at a candidate tile (including 2-tile polearms like Noble Halberdiers / Ancient Polearms).
     function evaluateTileExposure( _actor, _tile, _info )
     {
         local adjEnemies = 0;
         local adjElites = 0;
         local threatDist2 = 0;
+        local polearms2 = 0;
         local adjAllies = 0;
         local adjShieldAllies = 0;
         local nearAllies2 = 0;
@@ -1505,8 +1505,13 @@ local F = A.Frontline <- {
         {
             if (!this.isDangerousMeleeEnemy(foe)) continue;
             local ft = foe.getTile();
-            if (_tile.getDistanceTo(ft) == 2 && ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0)
-                ++threatDist2;
+            if (_tile.getDistanceTo(ft) == 2)
+            {
+                if (foe.getIdealRange() >= 2 && ::Math.abs(ft.Level - _tile.Level) <= 1)
+                    ++polearms2;
+                else if (ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0)
+                    ++threatDist2;
+            }
         }
         foreach (bro in _info.Brothers)
         {
@@ -1519,7 +1524,8 @@ local F = A.Frontline <- {
             AdjEnemies = adjEnemies,
             AdjElites = adjElites,
             ThreatDist2 = threatDist2,
-            PotentialSurround = adjEnemies + ::Math.min(3, threatDist2),
+            Polearms2 = polearms2,
+            PotentialSurround = adjEnemies + ::Math.min(3, threatDist2 + polearms2),
             AdjAllies = adjAllies,
             AdjShieldAllies = adjShieldAllies,
             NearAllies2 = nearAllies2
@@ -2908,12 +2914,11 @@ local F = A.Frontline <- {
         return best;
     },
 
-    // Check if frontline allies block enemy shooters' line of fire to _tile (adjacent BB soft ranged cover or ally directly on the frontal sightline).
+    // Check if adjacent allies (exact Battle Brothers dist == 1 soft ranged cover: +50% obstruction) block enemy shooters' line of fire to _tile.
+    // Note: an ally at dist == 2 does NOT grant BB ranged cover! Require zero unobstructed shooters within 7 tiles and >= 75% covered overall.
     function hasRangedCoverAt( _tile, _actor, _enemies, _maxDist = 9 )
     {
         local shooters = [];
-        local nearestDist = 99;
-        local nearestTile = null;
         foreach (foe in _enemies)
         {
             if (foe.getMoraleState() == ::Const.MoraleState.Fleeing || !foe.isArmedWithRangedWeapon())
@@ -2924,55 +2929,44 @@ local F = A.Frontline <- {
             local ft = foe.getTile();
             local d = _tile.getDistanceTo(ft);
             if (d <= _maxDist)
-            {
                 shooters.push({ Tile = ft, Dist = d });
-                if (d < nearestDist) { nearestDist = d; nearestTile = ft; }
-            }
         }
         if (shooters.len() == 0)
             return true;
 
-        local blockers = [];
-        foreach (fac in [::Const.Faction.Player, ::Const.Faction.PlayerAnimals])
+        local adjBlockers = [];
+        for (local dir = 0; dir < 6; ++dir)
         {
-            foreach (ally in ::Tactical.Entities.getInstancesOfFaction(fac))
-            {
-                if (ally == null || ::MSU.isNull(ally) || !ally.isAlive() || ally.isDying() || !ally.isPlacedOnMap())
-                    continue;
-                if (ally.getID() == _actor.getID() || !ally.isAlliedWith(_actor))
-                    continue;
-                local at = ally.getTile();
-                local da = _tile.getDistanceTo(at);
-                if (da >= 1 && da <= 2)
-                    blockers.push({ Tile = at, Dist = da });
-            }
+            if (!_tile.hasNextTile(dir)) continue;
+            local nt = _tile.getNextTile(dir);
+            if (!nt.IsOccupiedByActor) continue;
+            local occ = nt.getEntity();
+            if (occ == null || ::MSU.isNull(occ) || !occ.isAlive() || occ.isDying()) continue;
+            if (occ.getID() != _actor.getID() && occ.isAlliedWith(_actor))
+                adjBlockers.push(nt);
         }
-        if (blockers.len() == 0)
+        if (adjBlockers.len() == 0)
             return false;
 
         local covered = 0;
-        local nearestCovered = false;
+        local uncoveredClose = 0;
         foreach (sh in shooters)
         {
             local isBlocked = false;
-            foreach (bl in blockers)
+            foreach (bt in adjBlockers)
             {
-                local df = bl.Tile.getDistanceTo(sh.Tile);
-                // Adjacent ally closer to shooter (exact BB +50% soft cover) or ally 2 tiles ahead directly on the hex line of fire.
-                if ((bl.Dist == 1 && df < sh.Dist) || (bl.Dist == 2 && bl.Dist + df == sh.Dist))
+                if (bt.getDistanceTo(sh.Tile) < sh.Dist)
                 {
                     isBlocked = true;
                     break;
                 }
             }
             if (isBlocked)
-            {
                 ++covered;
-                if (sh.Tile.ID == nearestTile.ID)
-                    nearestCovered = true;
-            }
+            else if (sh.Dist <= 7)
+                ++uncoveredClose;
         }
-        return nearestCovered && covered * 2 >= shooters.len();
+        return uncoveredClose == 0 && covered * 4 >= shooters.len() * 3;
     },
 
     // Find a safe kiting/ally-screened tile for backline casters and ranged units under melee or sniper pressure.
@@ -3206,6 +3200,11 @@ local F = A.Frontline <- {
         if (exp.AdjEnemies >= 4)
             return true;
         if (exp.AdjEnemies >= 3 && (exp.AdjAllies == 0 || (exp.AdjShieldAllies == 0 && (mdef < 35 || isFragile))))
+            return true;
+        // Never walk into a Halberdier/Polearm kill-box (2+ adjacent + 2+ reach-2 polearms) with zero shield support and zero attack AP left!
+        if (exp.AdjEnemies >= 2 && exp.Polearms2 >= 2 && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP && mdef < 35)
+            return true;
+        if (exp.AdjEnemies >= 2 && exp.AdjAllies == 0 && _apAfter < minAtkAP && (exp.Polearms2 >= 1 || exp.ThreatDist2 >= 2) && mdef < 30)
             return true;
         if (!hasDefPerk && !hasUnderdog && exp.AdjEnemies >= 3 && exp.AdjShieldAllies == 0)
             return true;

@@ -186,12 +186,17 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 if (isCaster)
                 {
                     local threat = F.assessBacklineThreat(_entity, info);
+                    local lowHpSniper = _entity.getHitpointsPct() < 0.55 && info.EnemyProjectileRanged >= 2.0
+                        && F.nearestEnemyArcherDist(myTile, info.Enemies) <= (info.EnemyProjectileRanged >= 5.0 ? 9 : 7);
                     // Threat-tiered Mentor kiting priority:
-                    // - Urgent high threat (dist <= 2, swarm, or fragile/hurt Mentor): 2600 (only Lich King unleash ~2870 runs ahead).
-                    // - Unscreened high threat at dist 3 OR heavy sniper danger: 1400 (summon Skeleton/Zombie/Possess FIRST, then kite).
+                    // - Urgent high melee threat (dist <= 2, swarm, or fragile/hurt) OR Mentor HP < 55% inside sniper range:
+                    //   2550-2600 (below Lich King & emergency reserve summon, ABOVE routine Curse/CE/Raise so wounded Mentor actually retreats!).
+                    // - Unscreened high melee threat at dist 3 OR healthy Mentor exposed without adjacent ranged cover: 1400 (emergency summon / cast first, then step behind cover).
                     // - Lone low-threat fodder at dist 2 (healthy armored/Nimble Mentor): 950 (cast impactful spells first, sidestep with leftover AP).
                     if (threat.UrgentHigh)
                         return 2600.0;
+                    if (lowHpSniper)
+                        return 2550.0;
                     if (threat.LowThreatClose && !threat.UnscreenedHigh3)
                         return 950.0;
                     return 1400.0;
