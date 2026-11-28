@@ -28,6 +28,8 @@
 
 	function apply( _xp, _scale )
 	{
+		if (!::BGP.getSetting("BGP_LargeCompanyXP", true))
+			return _xp;
 		if (_scale && _xp > 0 && this.Deployed > 12
 			&& this.State != null && !::MSU.isNull(this.State)
 			&& ::Tactical.isActive() && ::MSU.isEqual(this.State, ::Tactical.State))

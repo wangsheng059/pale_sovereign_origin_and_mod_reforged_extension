@@ -755,6 +755,8 @@ this.hsc_event_10_champion_duel <- this.inherit("scripts/events/event", {
 		this.m.Score = 0;
 
 		if (::HumanSlaveCapture == null) return;
+		if (("HSC_ChampionRules" in ::getroottable()) && !::HSC_ChampionRules.getSetting("ChampionDuelLimit", true))
+			return;
 		this.m.Title = ::HumanSlaveCapture.L("双冠死斗", "Duel of Champions");
 
 		if (::HumanSlaveCapture.Trial != null && ::HumanSlaveCapture.Trial.Active == true) return;

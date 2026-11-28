@@ -1,0 +1,8 @@
+{
+  "source": "mod_汉化修改器_shift+e呼出_传奇_重铸_原版兼容_v8.9.zip",
+  "member": "scripts/!mods_preload/mod_bbforge.nut",
+  "before": "0b0adc9309c7d98a0cf0c290809373a81e7c7ea1d2ed70d196a233235ee915f6",
+  "after": "84737955dd8e1514806236b4898c00090974f5c3b50e3a18e05749b26db470fb",
+  "old": "\t\t\treturn true;\n\t\t}\n\n\t\tif (_state.m.CharacterScreen.isVisible())",
+  "new": "\t\t\treturn true;\n\t\t}\n\n\t\tif ((\"LocalInterface\" in ::getroottable()) && !::LocalInterface.get(\"UI_BBForgeHotkey\", true))\n\t\t\treturn false;\n\n\t\tif (_state.m.CharacterScreen.isVisible())"
+}

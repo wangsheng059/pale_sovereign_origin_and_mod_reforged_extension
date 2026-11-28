@@ -60,7 +60,10 @@ this.legacy_top_trait <- ::inherit("scripts/skills/skill", {
 		this.setRank(1);
 	}
 
-	function isHidden() { return false; }
+	function isHidden()
+	{
+		return ("Legacy" in ::getroottable()) && !::Legacy.getSetting("Legacy_TopRankBadge", true);
+	}
 
 	function getName()
 	{
@@ -117,6 +120,8 @@ this.legacy_top_trait <- ::inherit("scripts/skills/skill", {
 	function onUpdate( _properties )
 	{
 		this.syncLook();
+		if (("Legacy" in ::getroottable()) && !::Legacy.getSetting("Legacy_TopRankBadge", true))
+			return;
 		_properties.Bravery += this.RankResolve[this._rank() - 1];
 	}
 

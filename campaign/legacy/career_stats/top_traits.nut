@@ -289,6 +289,7 @@
 
 		local top = ::CareerStats.computeTop3();
 		local hold = ::CareerStats.TOP_TRAIT_HOLD_BATTLES;
+		local badgeEnabled = !("Legacy" in ::getroottable()) || ::Legacy.getSetting("Legacy_TopRankBadge", true);
 
 		local livingById = {};
 		foreach (bro in ::World.getPlayerRoster().getAll())
@@ -316,7 +317,7 @@
 			}
 			flags.set(::CareerStats.TOP_TRAIT_HELD_FLAG, state.held);
 
-			local desired = (topRank > 0 && state.held >= hold) ? topRank : 0;
+			local desired = (badgeEnabled && topRank > 0 && state.held >= hold) ? topRank : 0;
 			if (desired > 0)
 			{
 				::CareerStats.topTraitApply(bro, desired);

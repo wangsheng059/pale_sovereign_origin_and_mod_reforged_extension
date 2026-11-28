@@ -434,6 +434,7 @@ mod.require("mod_msu", "mod_legacy");
 		if (!(broName in item.m.WK_Owners)) item.m.WK_Owners[broName] <- 0;
 		item.m.WK_Owners[broName]++;
 
+		if (!::Legacy.getSetting("Legacy_TrustedWeaponBonus", true)) return;
 		if (this.isNamed(item)) return;
 		if (item.m.WK_Owners[broName] < 100) return;
 
@@ -736,7 +737,7 @@ mod.queue(">mod_legacy", function()
 					: (isShield ? "ui/icons/shield_hp.png" : "ui/icons/armor_body.png");
 				ret.push({ id = 100, type = "text", icon = statIcon, text = statLabel + this.m.WK_TotalStat });
 
-				if (isWeapon)
+				if (isWeapon && ::Legacy.getSetting("Legacy_TrustedWeaponBonus", true))
 				{
 					local trusted = ::WeaponKills.getTrustedOwners(this);
 					if (trusted.len() > 0)
@@ -799,6 +800,7 @@ mod.queue(">mod_legacy", function()
 		{
 			__original(_properties);
 
+			if (!::Legacy.getSetting("Legacy_TrustedWeaponBonus", true)) return;
 			local legHire = -1.0;
 			try { legHire = this.m.WK_LegendaryHireTime; } catch (e) { return; }
 			if (legHire == null || legHire < 0.0) return;

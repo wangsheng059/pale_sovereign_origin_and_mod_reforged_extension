@@ -1476,6 +1476,69 @@
       "source": "捕奴modv5.zip",
       "members": [],
       "output": "zz_local_campaign.zip"
+    },
+    {
+      "directory": "rules/sight_range",
+      "source": "视野调整(平时x1.2,山丘上x2).zip",
+      "members": [
+        "scripts/!mods_preload/!config/mod_sight_range_x3.nut"
+      ]
+    },
+    {
+      "directory": "rules/banner",
+      "source": "zbigmap028-战旗增强1.0(自己用文本编辑器打开battle_standard.nut修改去).zip",
+      "members": [
+        "scripts/!mods_preload/battle_standard.nut"
+      ]
+    },
+    {
+      "directory": "rules/eagle_eyes",
+      "source": "mod_eagle_eyes_buff_鹰眼特性强化.zip",
+      "members": [
+        "scripts/!mods_preload/mod_eagle_eyes_buff.nut"
+      ]
+    },
+    {
+      "directory": "interface/settings",
+      "source": "namedItemStats_著名武器属性范围.zip",
+      "members": [],
+      "output": "zz_local_interface.zip"
+    },
+    {
+      "directory": "interface/lair_info",
+      "source": "显示营地红装信息中文.zip",
+      "members": [
+        "scripts/!mods_preload/Lair_Info_Compilation.nut"
+      ]
+    },
+    {
+      "directory": "interface/all_recipes",
+      "source": "原版揭示所有配方 （新）.zip",
+      "members": [
+        "scripts/!mods_preload/tnf_allRecipes.nut"
+      ]
+    },
+    {
+      "directory": "interface/settlement_tooltips",
+      "source": "在城镇贸易价格+事件BUFF具体说明.zip",
+      "members": [
+        "scripts/!mods_preload/mod_settlementSituationTootips.nut",
+        "scripts/!mods_preload/mod_settlement_prices_tooltip.nut"
+      ]
+    },
+    {
+      "directory": "campaign/davkul_pace",
+      "source": "最新达库尔崛起重铸修复汉化版20260521.zip",
+      "members": [
+        "scripts/!mods_preload/mod_davkul_origin_pace.nut"
+      ]
+    },
+    {
+      "directory": "campaign/more_perk_trees",
+      "source": "More Perk Trees_更多特技树.zip",
+      "members": [
+        "scripts/!mods_preload/mod_more_perk_trees.nut"
+      ]
     }
   ],
   "patches": [
@@ -1548,7 +1611,8 @@
     "patches/swordmaster/sb_blessing_effect_b.json",
     "patches/swordmaster/sb_snow_effect.json",
     "patches/north_expansion/chosen_background_cn_meta.json",
-    "patches/north_expansion/chosen_background_cn_desc.json"
+    "patches/north_expansion/chosen_background_cn_desc.json",
+    "patches/bbforge/hotkey_toggle_gate.json"
   ],
   "omissions": [
     {

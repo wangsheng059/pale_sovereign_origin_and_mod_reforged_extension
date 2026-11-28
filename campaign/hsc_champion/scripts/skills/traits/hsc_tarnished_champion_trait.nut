@@ -45,7 +45,7 @@ this.hsc_tarnished_champion_trait <- this.inherit("scripts/skills/traits/charact
 		local pos = this.Const.UI.Color.PositiveValue;
 		local neg = this.Const.UI.Color.NegativeValue;
 
-		return [
+		local ret = [
 			{
 				id = 1,
 				type = "title",
@@ -127,16 +127,20 @@ this.hsc_tarnished_champion_trait <- this.inherit("scripts/skills/traits/charact
 				text = en
 					? ("[color=" + neg + "]-50%[/color] Resolve")
 					: ("[color=" + neg + "]-50%[/color] 决心")
-			},
-			{
+			}
+		];
+		if (!("HSC_ChampionRules" in ::getroottable()) || ::HSC_ChampionRules.getSetting("ChampionDuelLimit", true))
+		{
+			ret.push({
 				id = 19,
 				type = "hint",
 				icon = "ui/icons/warning.png",
 				text = en
 					? "Having two or more Champions in the company will lead to unexpected negative consequences."
 					: "队伍冠军人数大于等于两人时，会有意想不到的负面结果。"
-			}
-		];
+			});
+		}
+		return ret;
 	},
 
 	function onUpdate( _properties )

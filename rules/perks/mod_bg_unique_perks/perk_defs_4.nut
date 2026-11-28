@@ -148,7 +148,8 @@
 	Effects = [{
 		Type = ::UPD.EffectType.Passive,
 		Description = [
-			"非亡灵敌人每与 1 只你的亡灵（复活的单位、亡灵宠物、永恒禁卫）相邻，近战技能、近战防御、决心各 " + ::MSU.Text.colorNegative("-3") + "。",
+			"你的召唤亡灵（你复活的单位、你的亡灵宠物、永恒禁卫）身上涌出腐毒蝇群。",
+			"非亡灵敌人每与 1 只召唤亡灵相邻，近战技能、近战防御、决心各 " + ::MSU.Text.colorNegative("-3") + "。",
 			"与其相邻时，每次攻击或发起移动（含步伐、换位等位移技能）额外消耗 " + ::MSU.Text.colorNegative("4") + " 点疲劳。"
 		]
 	}]

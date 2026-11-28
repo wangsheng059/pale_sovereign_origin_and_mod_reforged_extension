@@ -2,7 +2,7 @@
 
 [中文说明](README.zh-CN.md)
 
-Current source snapshot: early development release V1.3.0 (2026-11-26), Pale Sovereign 1.7.12 and Background Perks 1.6.16.
+Current source snapshot: early development release V1.3.0 (2026-11-27), Pale Sovereign 1.7.12 and Background Perks 1.6.17.
 
 A Battle Brothers mod collection built around the Pale Sovereign origin and extensions for Reforged. The origin follows a necromancer rebuilding a company with permanent undead, branching progression, original events, skills, artwork, and campaign mechanics.
 

@@ -29,9 +29,10 @@
 
 ::BGP <- {
 	ID = "mod_local_rules",
-	Version = "1.6.16",
+	Version = "1.6.17",
 	Name = "本地玩法规则",
-	HasAC = false
+	HasAC = false,
+	Mod = null
 };
 
 ::BGP.HooksMod <- ::Hooks.register(::BGP.ID, ::BGP.Version, ::BGP.Name);
@@ -39,6 +40,7 @@
 
 ::BGP.HooksMod.queue([">mod_reforged", ">mod_dynamic_perks", ">mod_msu", ">mod_AC", ">mod_north_expansion", ">mod_upd", ">mod_modular_vanilla"], function()
 {
+	::include("mod_local_rules/settings");
 	::include("mod_bg_unique_perks/utils");
 	::include("mod_bg_unique_perks/necro");
 	::include("mod_bg_unique_perks/necro_art");

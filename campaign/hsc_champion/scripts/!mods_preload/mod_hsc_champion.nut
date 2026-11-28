@@ -8,12 +8,87 @@
 
 ::HSC_ChampionRules <- {
 	ID = "mod_hsc_champion",
-	Version = "1.0.1",
-	Name = "捕奴冠军规则扩展"
+	Version = "1.1.0",
+	Name = "捕奴冠军规则扩展",
+	SettingsRegistered = false,
+	Defaults = {
+		TarnishedChampionRecruit = true,
+		ChampionDuelLimit = true
+	}
 };
 
 ::HSC_ChampionRules.Mod <- ::Hooks.register(::HSC_ChampionRules.ID, ::HSC_ChampionRules.Version, ::HSC_ChampionRules.Name);
 ::HSC_ChampionRules.Mod.require("hsc_human_slave_capture");
+
+::HSC_ChampionRules.getSetting <- function( _id, _fallback = true )
+{
+	try
+	{
+		if (("HumanSlaveCapture" in ::getroottable()) && ::HumanSlaveCapture != null && ::HumanSlaveCapture.MSUMod != null)
+		{
+			local s = ::HumanSlaveCapture.MSUMod.ModSettings.getSetting(_id);
+			if (s != null)
+				return s.getValue();
+		}
+	}
+	catch (e) {}
+	if (_id in ::HSC_ChampionRules.Defaults)
+		return ::HSC_ChampionRules.Defaults[_id];
+	return _fallback;
+};
+
+::HSC_ChampionRules.attachSettings <- function( _H )
+{
+	if (::HSC_ChampionRules.SettingsRegistered || _H == null || _H.MSUSettingPage == null)
+		return;
+	try
+	{
+		local page = _H.MSUSettingPage;
+		local sTarnished = page.addBooleanSetting(
+			"TarnishedChampionRecruit",
+			true,
+			_H.L("俘虏冠军转为蒙尘冠军", "Convert Recruited Champions to Tarnished Champion"),
+			_H.L(
+				"开启时，通过捕奴招募的敌方冠军改为获得专属「蒙尘冠军」特质（不影响敌方冠军与八重试炼奖励）；关闭后保留原版「冠军」特质。",
+				"When enabled, captured champions recruited via Slave Capture receive the Tarnished Champion trait instead of the full Champion trait."
+			)
+		);
+		local sDuel = page.addBooleanSetting(
+			"ChampionDuelLimit",
+			true,
+			_H.L("启用双冠死斗事件", "Enable Duel of Champions Soft Cap"),
+			_H.L(
+				"开启时，战团内活人冠军达到 2 人及以上会高频触发「双冠死斗」事件（仅留 1 人）；关闭后取消人数软上限，不再触发该事件。",
+				"When enabled, having 2 or more living champions in the company triggers Duel of Champions so only one remains; disable to allow multiple champions."
+			)
+		);
+		::HSC_ChampionRules.SettingsRegistered = true;
+
+		local origRefresh = _H.refreshMSUSettings;
+		_H.refreshMSUSettings = function()
+		{
+			origRefresh.call(this);
+			try
+			{
+				sTarnished.setName(this.L("俘虏冠军转为蒙尘冠军", "Convert Recruited Champions to Tarnished Champion"));
+				sTarnished.setDescription(this.L(
+					"开启时，通过捕奴招募的敌方冠军改为获得专属「蒙尘冠军」特质（不影响敌方冠军与八重试炼奖励）；关闭后保留原版「冠军」特质。",
+					"When enabled, captured champions recruited via Slave Capture receive the Tarnished Champion trait instead of the full Champion trait."
+				));
+				sDuel.setName(this.L("启用双冠死斗事件", "Enable Duel of Champions Soft Cap"));
+				sDuel.setDescription(this.L(
+					"开启时，战团内活人冠军达到 2 人及以上会高频触发「双冠死斗」事件（仅留 1 人）；关闭后取消人数软上限，不再触发该事件。",
+					"When enabled, having 2 or more living champions in the company triggers Duel of Champions so only one remains; disable to allow multiple champions."
+				));
+			}
+			catch (e) {}
+		};
+	}
+	catch (e)
+	{
+		::logError("[HSC] Failed to attach champion rule settings: " + e);
+	}
+};
 
 ::HSC_ChampionRules.replaceText <- function( _str, _old, _new )
 {
@@ -23,10 +98,21 @@
 	return _str.slice(0, idx) + _new + _str.slice(idx + _old.len());
 };
 
-::HSC_ChampionRules.Mod.queue([">hsc_human_slave_capture", ">mod_hsc_bg_ext"], function()
+::HSC_ChampionRules.Mod.queue([">mod_msu", ">hsc_human_slave_capture", ">mod_hsc_bg_ext"], function()
 {
 	local H = ::HumanSlaveCapture;
 	local mod = ::HSC_ChampionRules.Mod;
+
+	if ("registerMSU" in H)
+	{
+		local origRegisterMSU = H.registerMSU;
+		H.registerMSU = function()
+		{
+			origRegisterMSU.call(this);
+			::HSC_ChampionRules.attachSettings(this);
+		};
+	}
+	::HSC_ChampionRules.attachSettings(H);
 
 	H.TarnishedChampionID <- "trait.hsc_tarnished_champion";
 
@@ -93,7 +179,7 @@
 		{
 		}
 
-		if (!isChampion)
+		if (!isChampion || !::HSC_ChampionRules.getSetting("TarnishedChampionRecruit", true))
 			return origCreateBrother.call(this, _entry, _level, _extraPerkPoints);
 
 		local entry = clone _entry;
@@ -228,23 +314,31 @@
 		q.HSC_buildDescription = @(__original) function()
 		{
 			local desc = __original();
-			desc = ::HSC_ChampionRules.replaceText(
-				desc,
-				"冠军：是（保留冠军特质）",
-				"冠军：是（招募后获得「蒙尘冠军」特质；队伍冠军人数大于等于两人时，会有意想不到的负面结果。）"
-			);
-			desc = ::HSC_ChampionRules.replaceText(
-				desc,
-				"Champion: yes (keeps the Champion trait)",
-				"Champion: yes (gains the Tarnished Champion trait; having two or more Champions in the company will lead to unexpected negative consequences.)"
-			);
+			local tarnishedOn = ::HSC_ChampionRules.getSetting("TarnishedChampionRecruit", true);
+			local duelOn = ::HSC_ChampionRules.getSetting("ChampionDuelLimit", true);
+			if (!tarnishedOn && !duelOn)
+				return desc;
+
+			local zhNew = tarnishedOn
+				? (duelOn
+					? "冠军：是（招募后获得「蒙尘冠军」特质；队伍冠军人数大于等于两人时，会有意想不到的负面结果。）"
+					: "冠军：是（招募后获得「蒙尘冠军」特质）")
+				: "冠军：是（保留冠军特质；队伍冠军人数大于等于两人时，会有意想不到的负面结果。）";
+			local enNew = tarnishedOn
+				? (duelOn
+					? "Champion: yes (gains the Tarnished Champion trait; having two or more Champions in the company will lead to unexpected negative consequences.)"
+					: "Champion: yes (gains the Tarnished Champion trait)")
+				: "Champion: yes (keeps the Champion trait; having two or more Champions in the company will lead to unexpected negative consequences.)";
+
+			desc = ::HSC_ChampionRules.replaceText(desc, "冠军：是（保留冠军特质）", zhNew);
+			desc = ::HSC_ChampionRules.replaceText(desc, "Champion: yes (keeps the Champion trait)", enNew);
 			return desc;
 		};
 
 		q.getTooltip = @(__original) function()
 		{
 			local ret = __original();
-			if (this.m.HSC_Champion)
+			if (this.m.HSC_Champion && ::HSC_ChampionRules.getSetting("ChampionDuelLimit", true))
 			{
 				ret.push({
 					id = 68,
