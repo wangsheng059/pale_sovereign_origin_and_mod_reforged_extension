@@ -489,6 +489,8 @@ local F = A.Frontline <- {
             Round = -1,
             LastMinDist = 99,
             StallRounds = 0,
+            HillBaitRounds = 0,
+            HillCampStall = false,
             LastOffenseRound = 0,
             LastCurseRound = -99,
             StallBroken = false,
@@ -827,6 +829,30 @@ local F = A.Frontline <- {
         }
 
         // Stall-breaker: if enemies refuse to close distance for 2 consecutive rounds while no brother is engaged (e.g. lone backline Necromancer), break hold.
+        // Also track whether melee enemies stubbornly camp on high ground above our frontline for 2 rounds so uphill bait escalates to flanking/climbing.
+        local enemyCampingHighGround = false;
+        if (engagedBrothers == 0 && activeEnemies > 0 && brothers.len() > 0)
+        {
+            foreach (foe in enemies)
+            {
+                if (!this.isDangerousMeleeEnemy(foe)) continue;
+                local ft = foe.getTile();
+                local nearBroDist = 99;
+                local nearBroLvl = ft.Level;
+                foreach (bro in brothers)
+                {
+                    if (this.isCasterRole(bro) || this.isRangedRole(bro)) continue;
+                    local bt = bro.getTile();
+                    local d = ft.getDistanceTo(bt);
+                    if (d < nearBroDist) { nearBroDist = d; nearBroLvl = bt.Level; }
+                }
+                if (nearBroDist <= 5 && ft.Level > nearBroLvl)
+                {
+                    enemyCampingHighGround = true;
+                    break;
+                }
+            }
+        }
         if (round > state.Round)
         {
             if (state.Round >= 1 && activeEnemies > 0 && engagedBrothers == 0 && frontlineMinDist > 2)
@@ -841,6 +867,16 @@ local F = A.Frontline <- {
             else if (engagedBrothers > 0 || frontlineMinDist <= 2)
             {
                 state.StallRounds = 0;
+            }
+            if (state.Round >= 1 && engagedBrothers == 0 && enemyCampingHighGround && frontlineMinDist >= state.LastMinDist)
+            {
+                ++state.HillBaitRounds;
+                if (state.HillBaitRounds >= 2)
+                    state.HillCampStall = true;
+            }
+            else if (engagedBrothers > 0 || !enemyCampingHighGround || frontlineMinDist < state.LastMinDist)
+            {
+                state.HillBaitRounds = 0;
             }
             state.LastMinDist = frontlineMinDist;
             state.Round = round;
@@ -861,6 +897,7 @@ local F = A.Frontline <- {
         return {
             Enemies = enemies,
             Brothers = brothers,
+            ActiveEnemies = activeEnemies,
             PlayerRanged = playerRanged,
             EnemyRanged = enemyRanged,
             EnemyProjectileRanged = enemyProjectileRanged,
@@ -875,7 +912,8 @@ local F = A.Frontline <- {
             RangedAdvantage = rangedAdvantage,
             HoldLine = holdLine,
             NoEnemyRanged = noEnemyRanged,
-            StallBroken = state.StallBroken
+            StallBroken = state.StallBroken,
+            HillCampStall = state.HillCampStall
         };
     },
 
@@ -1620,6 +1658,694 @@ local F = A.Frontline <- {
         return { Count = count, MaxHit = maxHit, UrgentThisRound = urgentThisRound };
     },
 
+    // Identify brothers whose equipped weapon excels at stripping heavy armor (Hammers, 2H Maces, Heavy Crossbows, Throwing Axes).
+    function isArmorShredder( _actor )
+    {
+        if (_actor == null || ::MSU.isNull(_actor))
+            return false;
+        local w = _actor.getMainhandItem();
+        if (w == null)
+            return false;
+        try {
+            if (w.isWeaponType(::Const.Items.WeaponType.Hammer))
+                return true;
+            if (w.isWeaponType(::Const.Items.WeaponType.Mace) && w.isItemType(::Const.Items.ItemType.TwoHanded))
+                return true;
+            if (w.isWeaponType(::Const.Items.WeaponType.Axe) && (w.isItemType(::Const.Items.ItemType.TwoHanded) || w.isWeaponType(::Const.Items.WeaponType.Throwing)))
+                return true;
+            if (w.isWeaponType(::Const.Items.WeaponType.Crossbow) || w.isWeaponType(::Const.Items.WeaponType.Firearm))
+                return true;
+        } catch (e) {}
+        local sk = _actor.getSkills();
+        return sk.hasSkill("actives.smite") || sk.hasSkill("actives.shatter") || sk.hasSkill("actives.destroy_armor") || sk.hasSkill("actives.crush_armor");
+    },
+
+    // Identify melee brothers whose damage scales massively AFTER armor is stripped (Cleavers, Swords, Spears, Daggers, Polearms).
+    function isFleshBurstWeapon( _actor )
+    {
+        if (_actor == null || ::MSU.isNull(_actor) || this.isRangedRole(_actor) || this.isCasterRole(_actor))
+            return false;
+        if (this.isArmorShredder(_actor))
+            return false;
+        local w = _actor.getMainhandItem();
+        if (w == null)
+            return false;
+        try {
+            return w.isWeaponType(::Const.Items.WeaponType.Cleaver)
+                || w.isWeaponType(::Const.Items.WeaponType.Sword)
+                || w.isWeaponType(::Const.Items.WeaponType.Spear)
+                || w.isWeaponType(::Const.Items.WeaponType.Dagger)
+                || w.isWeaponType(::Const.Items.WeaponType.Polearm);
+        } catch (e) {}
+        return false;
+    },
+
+    // Detect whether stepping onto _destTile puts a melee brother at elevation disadvantage below an uphill melee/polearm enemy
+    // (or inside an unengaged uphill 2-tile polearm's reach), which locks enemies ON their high ground instead of luring them down.
+    function isUphillMeleeTrap( _destTile, _actor, _info )
+    {
+        local emptyRes = { IsTrap = false, PolearmTrap = false, UphillCount = 0 };
+        if (_destTile == null || _actor == null || _info == null)
+            return emptyRes;
+        if (this.isRangedRole(_actor) || this.isCasterRole(_actor))
+            return emptyRes;
+        // Anti-stall & endgame overrides: push hills if enemies camped for >=2 rounds, stall broke, or cleaning up <=3 holdouts.
+        if (_info.HillCampStall || _info.StallBroken || ::Time.getRound() >= 10
+            || _info.ActiveEnemies <= 3 || ::Tactical.Entities.isEnemyRetreating())
+            return emptyRes;
+
+        local chiefTile = null;
+        foreach (bro in _info.Brothers)
+            if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+
+        local uphillCount = 0;
+        local polearmTrap = false;
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!_destTile.hasNextTile(d)) continue;
+            local adj = _destTile.getNextTile(d);
+            if (!adj.IsOccupiedByActor || adj.Level <= _destTile.Level || ::Math.abs(adj.Level - _destTile.Level) > 1)
+                continue;
+            local occ = adj.getEntity();
+            if (occ == null || ::MSU.isNull(occ) || !occ.isAlive() || occ.isDying() || occ.isAlliedWith(_actor))
+                continue;
+            if (occ.getMoraleState() == ::Const.MoraleState.Fleeing || occ.getCurrentProperties().IsStunned)
+                continue;
+            // Pinning pure ranged units or hostile casters on high ground is desirable; only avoid locking MELEE/POLEARM enemies onto high ground!
+            if (occ.isArmedWithRangedWeapon()) continue;
+            local os = occ.getSkills();
+            if (os.hasSkill("actives.raise_undead") || os.hasSkill("actives.horror") || os.hasSkill("actives.miasma")
+                || os.hasSkill("actives.hex") || os.hasSkill("actives.root") || os.hasSkill("actives.sleep"))
+                continue;
+            if (!this.isDangerousMeleeEnemy(occ)) continue;
+            // Always allow peeling an uphill enemy breaching our Mentor, or finishing a critically dying foe.
+            if (chiefTile != null && adj.getDistanceTo(chiefTile) <= 2)
+                continue;
+            if (occ.getHitpoints() <= 24)
+                continue;
+            ++uphillCount;
+        }
+
+        // Also detect stepping within 2 tiles below an unengaged uphill polearm/reach-2 enemy (should stay 3 tiles away!).
+        foreach (foe in _info.Enemies)
+        {
+            if (!this.isDangerousMeleeEnemy(foe) || foe.isArmedWithRangedWeapon() || foe.getIdealRange() < 2)
+                continue;
+            local ft = foe.getTile();
+            if (ft.Level <= _destTile.Level || ::Math.abs(ft.Level - _destTile.Level) > 1)
+                continue;
+            if (ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) > 0)
+                continue;
+            if (_destTile.getDistanceTo(ft) <= 2)
+            {
+                polearmTrap = true;
+                break;
+            }
+        }
+
+        return {
+            IsTrap = uphillCount > 0,
+            PolearmTrap = polearmTrap,
+            UphillCount = uphillCount
+        };
+    },
+
+    // Inspect live TurnSequenceBar.m.CurrentEntities (with safe fallback) to see which enemies and allies still act in Phase 1
+    // BEFORE any Waiting unit resumes in Phase 2.
+    function inspectTurnBar( _actor, _info )
+    {
+        local myTile = _actor.getTile();
+        local myID = _actor.getID();
+        local phase1Enemies = [];
+        local phase1Allies = [];
+        local phase1Set = {};
+        local usedBar = false;
+
+        try {
+            local bar = ::Tactical.TurnSequenceBar;
+            if (bar != null && ("m" in bar) && ("CurrentEntities" in bar.m) && bar.m.CurrentEntities != null)
+            {
+                local list = bar.m.CurrentEntities;
+                local foundMe = false;
+                foreach (e in list)
+                {
+                    if (e == null || ::MSU.isNull(e) || !e.isAlive() || e.isDying() || !e.isPlacedOnMap())
+                        continue;
+                    if (e.getID() == myID)
+                    {
+                        foundMe = true;
+                        continue;
+                    }
+                    if (!foundMe) continue;
+                    // Phase-1 units are those that have NOT spent their Wait action and are not done.
+                    if (e.isTurnDone() || e.isWaitActionSpent())
+                        continue;
+                    if (e.getMoraleState() == ::Const.MoraleState.Fleeing || e.getCurrentProperties().IsStunned)
+                        continue;
+                    if (e.isAlliedWith(_actor))
+                        phase1Allies.push(e);
+                    else if (!e.isHiddenToPlayer() && e.getTile().IsVisibleForPlayer)
+                        phase1Enemies.push(e);
+                    phase1Set[e.getID()] <- true;
+                }
+                usedBar = foundMe;
+            }
+        } catch (e) { usedBar = false; }
+
+        if (!usedBar)
+        {
+            foreach (foe in _info.Enemies)
+            {
+                if (foe.isTurnDone() || foe.isWaitActionSpent()) continue;
+                if (foe.getMoraleState() == ::Const.MoraleState.Fleeing || foe.getCurrentProperties().IsStunned) continue;
+                phase1Enemies.push(foe);
+                phase1Set[foe.getID()] <- true;
+            }
+            foreach (bro in _info.Brothers)
+            {
+                if (bro.getID() == myID || bro.isTurnDone() || bro.isWaitActionSpent()) continue;
+                if (bro.getMoraleState() == ::Const.MoraleState.Fleeing || bro.getCurrentProperties().IsStunned) continue;
+                phase1Allies.push(bro);
+                phase1Set[bro.getID()] <- true;
+            }
+        }
+
+        local phase1Shooters = 0;
+        local phase1MeleeNear = 0;
+        local phase1MeleeUphill = 0;
+        local phase1MeleeAdj = 0;
+        foreach (foe in phase1Enemies)
+        {
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (foe.isArmedWithRangedWeapon())
+            {
+                local w = foe.getMainhandItem();
+                if (w != null && this.hasUsableRangedAmmo(foe, w))
+                    ++phase1Shooters;
+            }
+            if (this.isDangerousMeleeEnemy(foe))
+            {
+                if (d == 1 && ::Math.abs(myTile.Level - ft.Level) <= 1)
+                    ++phase1MeleeAdj;
+                else if (d == 2 && foe.getIdealRange() >= 2 && ::Math.abs(myTile.Level - ft.Level) <= 1)
+                    ++phase1MeleeAdj;
+                if (d >= 2 && d <= 4 && ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0)
+                    ++phase1MeleeNear;
+                if (d >= 2 && d <= 5 && ft.Level > myTile.Level && ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0)
+                    ++phase1MeleeUphill;
+            }
+        }
+
+        local phase1ShieldAllies = 0;
+        local rnd = ::Time.getRound();
+        foreach (ally in phase1Allies)
+        {
+            if (ally.getActionPoints() < 4 || ally.getCurrentProperties().IsRooted) continue;
+            local dist = ally.getTile().getDistanceTo(myTile);
+            if (dist > 6) continue;
+            if (::BGP.hasShield(ally) && ally.getTile().getZoneOfControlCountOtherThan(ally.getAlliedFactions()) == 0)
+            {
+                ++phase1ShieldAllies;
+            }
+            else if (rnd == 1 && this.isCasterRole(ally))
+            {
+                local sk = ally.getSkills();
+                foreach (sid in ["actives.unleash_companion", "actives.pale_summon_skeleton", "actives.pale_summon_zombie"])
+                {
+                    local s = sk.getSkillByID(sid);
+                    if (s != null && !s.isHidden() && s.isUsable() && s.isAffordable())
+                    {
+                        ++phase1ShieldAllies;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return {
+            Phase1Enemies = phase1Enemies,
+            Phase1Allies = phase1Allies,
+            Phase1Set = phase1Set,
+            Phase1Shooters = phase1Shooters,
+            Phase1MeleeNear = phase1MeleeNear,
+            Phase1MeleeUphill = phase1MeleeUphill,
+            Phase1MeleeAdj = phase1MeleeAdj,
+            Phase1ShieldAllies = phase1ShieldAllies,
+            HasAnyoneLeftInPhase1 = (phase1Enemies.len() + phase1Allies.len()) > 0
+        };
+    },
+
+    // Check whether _actor can execute a likely lethal kill right now (never delay an immediate kill!).
+    function canKillActiveTargetNow( _actor, _info )
+    {
+        local myTile = _actor.getTile();
+        if (this.isRangedRole(_actor))
+        {
+            local bestRng = null;
+            foreach (s in _actor.getSkills().m.Skills)
+            {
+                if (!s.isAttack() || !s.isRanged() || s.isHidden() || !s.isUsable() || !s.isAffordable()) continue;
+                foreach (foe in _info.Enemies)
+                {
+                    if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                    local ft = foe.getTile();
+                    local d = myTile.getDistanceTo(ft);
+                    if (d < s.getMinRange() || d > s.getMaxRange() || !s.isUsableOn(ft, myTile)) continue;
+                    try {
+                        local hit = s.getHitchance(foe);
+                        local dmg = s.getExpectedDamage(foe);
+                        if (hit >= 45 && dmg.HitpointDamage + dmg.DirectDamage >= foe.getHitpoints())
+                            return true;
+                    } catch (e) {}
+                }
+            }
+            return false;
+        }
+        local atk = this.cheapestMeleeSkill(_actor);
+        if (atk == null) return false;
+        local minR = atk.getMinRange();
+        local maxR = atk.getMaxRange();
+        foreach (foe in _info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (d < minR || d > maxR || !atk.isUsableOn(ft, myTile)) continue;
+            try {
+                local hit = atk.getHitchance(foe);
+                local dmg = atk.getExpectedDamage(foe);
+                if (hit >= 45 && dmg.HitpointDamage + dmg.DirectDamage >= foe.getHitpoints())
+                    return true;
+            } catch (e) {}
+        }
+        return false;
+    },
+
+    // Find a safe uphill-bait stand-off tile: stay dist >= 2 from uphill 1-tile melee enemies and dist >= 3 from uphill 2-tile polearms,
+    // retaining Shieldwall AP/Fatigue on Shieldbearers so uphill enemies descend off high ground instead of getting pinned with +10% elevation bonus!
+    function findUphillBaitTile( _behavior, _actor, _info )
+    {
+        if (_info == null || _info.HillCampStall || _info.StallBroken || ::Time.getRound() >= 10
+            || _info.ActiveEnemies <= 3 || ::Tactical.Entities.isEnemyRetreating())
+            return null;
+        if (this.isRangedRole(_actor) || this.isCasterRole(_actor) || _actor.getCurrentProperties().IsRooted)
+            return null;
+        local myTile = _actor.getTile();
+        if (myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0)
+            return null;
+        if (this.hasBacklineBreach(_info))
+            return null;
+
+        local isShield = ::BGP.hasShield(_actor);
+        // Gather nearby unengaged uphill melee/polearm enemies (within 6 tiles and higher than our elevation).
+        local uphillFoes = [];
+        local hasFlatReachableTarget = false;
+        foreach (foe in _info.Enemies)
+        {
+            if (!this.isDangerousMeleeEnemy(foe) || foe.isArmedWithRangedWeapon()) continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (ft.Level <= myTile.Level && d <= 3)
+            {
+                hasFlatReachableTarget = true;
+            }
+            if (ft.Level > myTile.Level && d <= 6 && ft.getZoneOfControlCountOtherThan(foe.getAlliedFactions()) == 0)
+            {
+                uphillFoes.push(foe);
+            }
+        }
+        // If there is already a reachable equal/lower-elevation melee target, engage that target normally instead of baiting!
+        if (uphillFoes.len() == 0 || hasFlatReachableTarget)
+            return null;
+
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local reserveAP = 0;
+        local reserveFat = 0;
+        if (isShield)
+        {
+            local sw = _actor.getSkills().getSkillByID("actives.shieldwall");
+            if (sw != null && !sw.isHidden() && sw.isUsable())
+            {
+                reserveAP = sw.getActionPointCost();
+                reserveFat = sw.getFatigueCost();
+            }
+        }
+        local moveAPBudget = isShield ? (ap - reserveAP) : ::Math.min(ap, 4);
+
+        // Helper check: is tile _t safely on or outside the uphill stand-off perimeter (dist >= 2 vs 1-tile, dist >= 3 vs polearm)?
+        local function checkPerimeter( _t ) {
+            local onExactRing = false;
+            local nearestUphill = 99;
+            foreach (foe in uphillFoes)
+            {
+                local ft = foe.getTile();
+                if (ft.Level <= _t.Level) continue; // Matched or exceeded enemy's hill — even better!
+                local reqDist = foe.getIdealRange() >= 2 ? 3 : 2;
+                local d = _t.getDistanceTo(ft);
+                if (d < reqDist)
+                    return { Safe = false, Exact = false, Nearest = d };
+                if (d == reqDist)
+                    onExactRing = true;
+                if (d < nearestUphill)
+                    nearestUphill = d;
+            }
+            return { Safe = true, Exact = onExactRing, Nearest = nearestUphill };
+        };
+
+        local curCheck = checkPerimeter(myTile);
+        local chiefTile = null;
+        foreach (bro in _info.Brothers)
+            if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+
+        // If we are ALREADY standing safely on the exact dist-2 / dist-3 bait perimeter (not in bad terrain/hazard), hold right here!
+        if (curCheck.Safe && curCheck.Exact && !myTile.IsBadTerrain && !_behavior.hasNegativeTileEffect(myTile, _actor))
+        {
+            return {
+                Tile = myTile,
+                HoldHere = true,
+                NeedsShieldwall = isShield && (_info.EnemyProjectileRanged >= 2.0 || curCheck.Nearest <= 3)
+            };
+        }
+
+        if (moveAPBudget < 2)
+        {
+            if (curCheck.Safe && curCheck.Nearest <= 4)
+                return { Tile = myTile, HoldHere = true, NeedsShieldwall = isShield && _info.EnemyProjectileRanged >= 2.0 };
+            return null;
+        }
+
+        local navigator = ::Tactical.getNavigator();
+        local settings = this.navSettings(_actor, navigator);
+        local candidates = this.tilesInRange(myTile, 1, 2);
+        local bestTile = null;
+        local bestScore = -999.0;
+
+        foreach (dest in candidates)
+        {
+            if (!dest.IsEmpty || dest.ID == myTile.ID) continue;
+            if (_behavior.hasNegativeTileEffect(dest, _actor)) continue;
+            if (dest.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0) continue;
+
+            local chk = checkPerimeter(dest);
+            if (!chk.Safe) continue;
+            // Must either step onto the exact bait ring, climb to match hill elevation, or get closer to the ring.
+            local climbs = dest.Level > myTile.Level;
+            if (!chk.Exact && !climbs && chk.Nearest >= curCheck.Nearest)
+                continue;
+
+            if (!navigator.findPath(myTile, dest, settings, 0)) continue;
+            local cost = navigator.getCostForPath(_actor, settings, moveAPBudget, availFat);
+            if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.Tiles > 2 || cost.ActionPointsRequired > moveAPBudget)
+                continue;
+            if (isShield && reserveFat > 0 && (availFat - cost.FatigueRequired) < reserveFat)
+                continue;
+
+            local exp = this.evaluateTileExposure(_actor, dest, _info);
+            if (!isShield && exp.AdjAllies == 0 && exp.NearAllies2 < 2)
+                continue;
+
+            local distGain = chk.Nearest < 99 ? (curCheck.Nearest - chk.Nearest) : 2;
+            local sc = (chk.Exact ? 26.0 : 12.0)
+                + distGain * 8.0
+                + (dest.Level - myTile.Level) * 14.0
+                + ::Math.min(2, exp.AdjAllies) * 9.0
+                + ::Math.min(2, exp.AdjShieldAllies) * (isShield ? 7.0 : 10.0)
+                + ::Math.min(3, exp.NearAllies2) * 3.0
+                + this.scoreTerrainAdvantage(_actor, dest, myTile, _info.Enemies, isShield ? "tank" : "dps") * 0.65
+                - cost.ActionPointsRequired * 0.6;
+            if (!isShield && this.hasRangedCoverAt(dest, _actor, _info.Enemies, 8))
+                sc += 10.0;
+            if (isShield && chiefTile != null && dest.getDistanceTo(chiefTile) <= 4)
+                sc += 5.0;
+            if (sc > bestScore) { bestScore = sc; bestTile = dest; }
+        }
+
+        if (bestTile != null)
+            return { Tile = bestTile, HoldHere = false, NeedsShieldwall = isShield && (_info.EnemyProjectileRanged >= 2.0 || curCheck.Nearest <= 4) };
+        if (curCheck.Safe && curCheck.Nearest <= 4)
+            return { Tile = myTile, HoldHere = true, NeedsShieldwall = isShield && _info.EnemyProjectileRanged >= 2.0 };
+        return null;
+    },
+
+    // Unified Initiative & Turn-Order Tactical Wait evaluator (Phase 1 -> Phase 2 coordination):
+    //   1) wait_tank_opener: R1-R3 unshielded melee yields Phase 1 to unacted Shieldbearers / R1 Mentor summoner.
+    //   2) wait_uphill_or_firststrike: Shieldbearers (after enemy shooters acted) and non-striking melee wait for slower/uphill enemies to descend & burn AP first.
+    //   3) wait_surround_focus / wait_combo_inzoc: fast DPS waits for slower tanks/summons to build surround OR armor-shredders (Hammer/2H Mace/Xbow) to strip armor first, then piles on in Phase 2!
+    //   4) wait_buff_expire: wait out an unacted enemy's expiring Shieldwall / Riposte / Spearwall before striking.
+    //   5) wait_ranged_range: fast ranged bro with no enemy currently in weapon range waits for slower Phase-1 enemies to step into range.
+    function evaluateTacticalWait( _actor, _info, _agent )
+    {
+        if (_actor == null || _info == null || _info.Enemies.len() == 0)
+            return null;
+        if (!::Autopilot.isUnderAIControl(_actor) || !::Autopilot.conf("bgpSmartFrontline"))
+            return null;
+        if (this.isCasterRole(_actor))
+            return null;
+        if (!::Tactical.TurnSequenceBar.canEntityWait(_actor))
+            return null;
+        if (_actor.getActionPoints() < 4 || _actor.getCurrentProperties().IsStunned
+            || _actor.getMoraleState() == ::Const.MoraleState.Fleeing)
+            return null;
+        // Never delay endgame cleanup, routing chases, or urgent backline rescues/wounded retreats.
+        if (::Tactical.Entities.isEnemyRetreating() || _info.ActiveEnemies <= 2 || ::Time.getRound() >= 12)
+            return null;
+        if (this.hasBacklineBreach(_info) || this.shouldWoundedRetreat(_actor, _info))
+            return null;
+        // Never wait when already holding Shieldwall/Spearwall/Indomitable active!
+        if (_actor.getSkills().hasSkill("effects.shieldwall") || _actor.getSkills().hasSkill("effects.spearwall")
+            || _actor.getSkills().hasSkill("effects.indomitable"))
+            return null;
+
+        local tb = this.inspectTurnBar(_actor, _info);
+        if (!tb.HasAnyoneLeftInPhase1)
+            return null;
+        // Never pass up a likely immediate lethal kill!
+        if (this.canKillActiveTargetNow(_actor, _info))
+            return null;
+
+        local myTile = _actor.getTile();
+        local inZoC = myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0;
+        local isShield = ::BGP.hasShield(_actor);
+        local isRanged = this.isRangedRole(_actor);
+        local rnd = ::Time.getRound();
+
+        // --- Mode 5: Fast Ranged waiting when NO active enemy is inside weapon firing range yet ---
+        if (isRanged)
+        {
+            if (inZoC || tb.Phase1Enemies.len() == 0)
+                return null;
+            // Never delay kiting away from close threats.
+            if (this.nearestLiveBacklineThreatDist(_actor, _info.Enemies) <= 3)
+                return null;
+            local hasAnyTargetInRange = false;
+            foreach (s in _actor.getSkills().m.Skills)
+            {
+                if (!s.isAttack() || !s.isRanged() || s.isHidden() || !s.isUsable() || !s.isAffordable()) continue;
+                local maxR = s.getMaxRange();
+                local minR = s.getMinRange();
+                foreach (foe in _info.Enemies)
+                {
+                    if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                    local ft = foe.getTile();
+                    local d = myTile.getDistanceTo(ft);
+                    if (d >= minR && d <= maxR && s.isUsableOn(ft, myTile))
+                    {
+                        hasAnyTargetInRange = true;
+                        break;
+                    }
+                }
+                if (hasAnyTargetInRange) break;
+            }
+            if (!hasAnyTargetInRange)
+                return { Reason = "wait_ranged_range", Score = 460.0, SuppressMove = true, SuppressAttack = false };
+            return null;
+        }
+
+        // --- Mode 1: Unshielded melee yields opening Phase 1 to unacted Shieldbearers / R1 Mentor summoner ---
+        if (!isShield && !inZoC && rnd <= 3 && tb.Phase1ShieldAllies > 0
+            && (_info.EngagedBrothers == 0 || rnd == 1))
+        {
+            local enemyDist2 = false;
+            foreach (foe in _info.Enemies)
+                if (myTile.getDistanceTo(foe.getTile()) <= 2) { enemyDist2 = true; break; }
+            if (!enemyDist2)
+                return { Reason = "wait_tank_opener", Score = 510.0, SuppressMove = true, SuppressAttack = false };
+        }
+
+        // --- Mode 2: Initiative & Uphill Bait Wait (let slower/uphill enemy melee move first -> Phase 2 counter-strike + next-round double turn!) ---
+        if (!inZoC && !_info.HillCampStall && !_info.StallBroken)
+        {
+            // 2A: Shieldbearer smart wait — ONLY when all enemy archers already shot in Phase 1 (0 extra arrow risk!)
+            // and slower enemy melee (especially on high ground!) haven't committed yet.
+            if (isShield && tb.Phase1Shooters == 0 && (tb.Phase1MeleeUphill > 0 || (tb.Phase1MeleeNear > 0 && _info.EnemyMiasmaPriests == 0)))
+            {
+                // Skip if an enemy is already adjacent or we want to raise early Spearwall against >=2 close melee.
+                local strikeNow = this.findSameTurnStrikePlan(_actor, _info.Enemies);
+                local hasPinnedStrike = false;
+                if (strikeNow != null && strikeNow.Enemy != null && strikeNow.Enemy.getTile().getZoneOfControlCountOtherThan(strikeNow.Enemy.getAlliedFactions()) > 0)
+                    hasPinnedStrike = true;
+                if (!hasPinnedStrike && !_info.LightMeleeVolleyRush)
+                    return { Reason = "wait_shield_read", Score = 520.0, SuppressMove = true, SuppressAttack = false };
+            }
+
+            // 2B: Unshielded melee cannot strike anyone this turn, while slower unacted enemy melee (dist 2-4 or uphill 2-5) haven't moved yet.
+            if (!isShield && (tb.Phase1MeleeUphill > 0 || (tb.Phase1MeleeNear > 0 && _info.EnemyMiasmaPriests == 0)))
+            {
+                local exposedToVolley = _info.LightMeleeVolleyRush && !this.hasRangedCoverAt(myTile, _actor, _info.Enemies, 8);
+                if (!exposedToVolley && this.findSameTurnStrikePlan(_actor, _info.Enemies) == null)
+                    return { Reason = "wait_firststrike_bait", Score = 515.0, SuppressMove = true, SuppressAttack = false };
+            }
+        }
+
+        // --- Mode 4: Wait out an unacted enemy's expiring Shieldwall / Riposte / Spearwall (when safe from being hit first) ---
+        local atk = this.cheapestMeleeSkill(_actor);
+        if (!isShield && atk != null && (!_info.LightMeleeVolleyRush || inZoC))
+        {
+            local isReach2 = atk.getMaxRange() >= 2;
+            local safeToWaitBuff = !inZoC || (tb.Phase1MeleeAdj == 0);
+            if (safeToWaitBuff)
+            {
+                local reachable = 0;
+                local allExpiringBuff = true;
+                foreach (foe in _info.Enemies)
+                {
+                    if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                    local ft = foe.getTile();
+                    local d = myTile.getDistanceTo(ft);
+                    if (d < atk.getMinRange() || d > (inZoC ? atk.getMaxRange() : atk.getMaxRange() + 1)) continue;
+                    if (inZoC && !atk.isUsableOn(ft, myTile)) continue;
+                    ++reachable;
+                    local fs = foe.getSkills();
+                    local hasDefBuff = fs.hasSkill("effects.shieldwall") || fs.hasSkill("effects.riposte") || fs.hasSkill("effects.spearwall");
+                    local actsInP1 = (foe.getID() in tb.Phase1Set);
+                    if (!hasDefBuff || !actsInP1)
+                    {
+                        allExpiringBuff = false;
+                        break;
+                    }
+                }
+                if (reachable > 0 && allExpiringBuff)
+                    return { Reason = "wait_buff_expire", Score = inZoC ? 740.0 : 530.0, SuppressMove = true, SuppressAttack = inZoC };
+            }
+        }
+
+        // --- Mode 3: Coordinated Surround & Armor-Strip Phase-2 Focus-Fire Wait ---
+        // Wait for slower Phase-1 allies (Shieldbearers, Undead summons, 2H Hammer / 2H Mace armor-shredders) to step in,
+        // surround the target (+10-20% hitchance), and strip armor FIRST, so our fast DPS deletes them together in Phase 2!
+        if (!isShield && atk != null && tb.Phase1Allies.len() > 0 && _actor.getHitpointsPct() >= 0.45)
+        {
+            local self = this;
+            // Helper: evaluate combo payoff from unacted Phase-1 allies on a specific target _foe.
+            local function checkComboOnTarget( _foe ) {
+                if (_foe == null || _foe.getMoraleState() == ::Const.MoraleState.Fleeing)
+                    return { Worth = false };
+                // Never wait on unacted high-burst Berserkers, hostile casters, or archers (kill/lock them immediately!).
+                local fs = _foe.getSkills();
+                if (_foe.ClassName == "orc_berserker" || fs.hasSkill("effects.berserker_rage")
+                    || fs.hasSkill("actives.raise_undead") || fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma"))
+                    return { Worth = false };
+                local ft = _foe.getTile();
+                local foeInP1 = (_foe.getID() in tb.Phase1Set);
+                local foePinned = ft.getZoneOfControlCountOtherThan(_foe.getAlliedFactions()) > 0;
+                // Never delay hitting enemy archers/ranged units; when already in ZoC require target already acted/stunned/netted/pinned;
+                // when unengaged (!inZoC), waiting on a non-ranged melee target is safe and lets both allies surround AND unpinned foes step into our kill zone!
+                if (_foe.isArmedWithRangedWeapon())
+                    return { Worth = false };
+                if (inZoC && foeInP1 && !_foe.getCurrentProperties().IsStunned && !fs.hasSkill("effects.net")
+                    && (!foePinned || _foe.getIdealRange() >= 2))
+                    return { Worth = false };
+
+                local curAdjAllies = 0;
+                for (local d = 0; d < 6; ++d)
+                {
+                    if (!ft.hasNextTile(d)) continue;
+                    local nt = ft.getNextTile(d);
+                    if (nt.IsOccupiedByActor && ::Math.abs(nt.Level - ft.Level) <= 1 && nt.getEntity().isAlliedWith(_actor))
+                        ++curAdjAllies;
+                }
+
+                local p1MeleeApproachers = 0;
+                local p1ArmorShredders = 0;
+                local bodyArm = _foe.getArmor(::Const.BodyPart.Body);
+                local iAmFleshBurst = self.isFleshBurstWeapon(_actor);
+
+                foreach (ally in tb.Phase1Allies)
+                {
+                    if (ally.getActionPoints() < 4 || ally.getCurrentProperties().IsRooted) continue;
+                    local at = ally.getTile();
+                    local ad = at.getDistanceTo(ft);
+                    local aIsRanged = self.isRangedRole(ally);
+                    if (aIsRanged)
+                    {
+                        if (iAmFleshBurst && bodyArm >= 90 && self.isArmorShredder(ally) && ad <= 6)
+                            ++p1ArmorShredders;
+                        continue;
+                    }
+                    if (self.isCasterRole(ally))
+                        continue;
+                    local reachMax = ally.getIdealRange() >= 2 ? 4 : 3;
+                    if (ad <= reachMax)
+                    {
+                        if (ad > 1 && ally.getIdealRange() <= 1 && at.getZoneOfControlCountOtherThan(ally.getAlliedFactions()) == 0)
+                            ++p1MeleeApproachers;
+                        else if (ad == 1 && !::BGP.hasShield(ally) && self.isArmorShredder(ally))
+                            ++p1ArmorShredders;
+                        if (iAmFleshBurst && bodyArm >= 90 && self.isArmorShredder(ally)
+                            && (ad <= (ally.getIdealRange() >= 2 ? 3 : 2) || (ad == 1)))
+                            ++p1ArmorShredders;
+                    }
+                }
+
+                local hit = 65;
+                try { hit = atk.getHitchance(_foe); } catch (e) {}
+                local armorStripCombo = (iAmFleshBurst && bodyArm >= 90 && p1ArmorShredders >= 1);
+                local surroundCombo = (p1MeleeApproachers >= 1 && (curAdjAllies <= 1 || hit < 65));
+                return {
+                    Worth = armorStripCombo || surroundCombo,
+                    ArmorStrip = armorStripCombo,
+                    Surround = surroundCombo
+                };
+            };
+
+            if (inZoC)
+            {
+                // IRONCLAD IN-ZOC SAFETY: only wait in melee contact when ZERO adjacent dangerous enemies can swing before Phase 2!
+                if (tb.Phase1MeleeAdj == 0)
+                {
+                    local adjTargets = 0;
+                    local allWorth = true;
+                    foreach (foe in _info.Enemies)
+                    {
+                        if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                        local ft = foe.getTile();
+                        local d = myTile.getDistanceTo(ft);
+                        if (d < atk.getMinRange() || d > atk.getMaxRange() || !atk.isUsableOn(ft, myTile)) continue;
+                        ++adjTargets;
+                        local res = checkComboOnTarget(foe);
+                        if (!res.Worth) { allWorth = false; break; }
+                    }
+                    if (adjTargets > 0 && allWorth)
+                        return { Reason = "wait_combo_inzoc", Score = 740.0, SuppressMove = true, SuppressAttack = true };
+                }
+            }
+            else
+            {
+                // Unengaged DPS waiting to pile onto an already-safe target once slower tank/hammer/summons surround or strip it!
+                local plan = this.findSameTurnStrikePlan(_actor, _info.Enemies);
+                if (plan != null && plan.Enemy != null)
+                {
+                    local res = checkComboOnTarget(plan.Enemy);
+                    if (res.Worth)
+                        return { Reason = "wait_surround_focus", Score = 525.0, SuppressMove = true, SuppressAttack = false };
+                }
+            }
+        }
+
+        return null;
+    },
+
     // Continuous enemy elite threat rating (scales across all game stages using relative skill-vs-defense deltas & turn order).
     function enemyEliteScore( _foe, _info = null )
     {
@@ -2240,6 +2966,13 @@ local F = A.Frontline <- {
                     continue;
                 if (!canSWAfter && (adjEnemies >= 2 || (largeBattle && !pinsChiefThreat)))
                     continue;
+                // High-ground discipline: never pin an uphill melee/polearm enemy from below when we can engage equal-level targets or lure them down!
+                if (!pinsChiefThreat)
+                {
+                    local uphill = this.isUphillMeleeTrap(dest, _actor, _info);
+                    if (uphill.IsTrap || (uphill.PolearmTrap && !canSWAfter))
+                        continue;
+                }
                 // Against melee-only enemies with NO ranged weapons, don't march a shieldbearer forward to feed Zombies first strike unless peeling Mentor or striking this turn!
                 if (_info.NoEnemyRanged && !pinsChiefThreat)
                 {
@@ -2468,8 +3201,11 @@ local F = A.Frontline <- {
                 // Hard anti-surround veto: never step into suicidal solo or 3+ surround pockets.
                 if (!fleeing && this.isSuicidalDiveV2(_actor, dest, _info, apLeft, eff.AP))
                     continue;
-                // Fragile bros must not burn all AP walking into melee with zero attack left (except healthy Mentor breach peel).
+                // High-ground discipline: never dive adjacent below uphill melee enemies unless executing a lethal kill or peeling Mentor.
                 local urgentMentorPeel = (foeBreachChief && _actor.getHitpointsPct() >= 0.45);
+                if (!fleeing && !isLethalStrike && !urgentMentorPeel && this.isUphillMeleeTrap(dest, _actor, _info).IsTrap)
+                    continue;
+                // Fragile bros must not burn all AP walking into melee with zero attack left (except healthy Mentor breach peel).
                 if (isFragile && !canStrike && !fleeing && !urgentMentorPeel)
                     continue;
 
@@ -2621,6 +3357,10 @@ local F = A.Frontline <- {
             // Unshielded melee never step within 2 tiles of unengaged dangerous melee killers on opening R1-R2 without striking!
             local newMeleeDist = this.nearestDangerousMeleeDistAt(dest, _info.Enemies);
             if (!isShield && newMeleeDist <= 2)
+                continue;
+            // High-ground discipline: never park cohesive advance below uphill melee or inside uphill polearm reach.
+            local uphillAdv = this.isUphillMeleeTrap(dest, _actor, _info);
+            if (uphillAdv.IsTrap || uphillAdv.PolearmTrap)
                 continue;
 
             if (!navigator.findPath(myTile, dest, settings, 0)) continue;
@@ -2987,12 +3727,17 @@ local F = A.Frontline <- {
         // Never walk away and cancel an active Shieldwall or Spearwall raised this turn.
         if (_actor.getSkills().hasSkill("effects.shieldwall") || _actor.getSkills().hasSkill("effects.spearwall"))
             return true;
-        // After executing a cohesive R1-R2 formation step, do not let vanilla EngageMelee spend leftover AP scattering ahead or backwards!
+        // After executing a cohesive R1-R2 formation step or uphill-bait stand-off step, do not let vanilla EngageMelee spend leftover AP scattering!
         local fl = _agent != null ? _agent.getBehavior(::Const.AI.Behavior.ID.BGP_Frontline) : null;
-        if (fl != null && ("CohesiveMovedRound" in fl.m) && fl.m.CohesiveMovedRound == ::Time.getRound())
+        if (fl != null && (("CohesiveMovedRound" in fl.m) && fl.m.CohesiveMovedRound == ::Time.getRound()
+            || ("UphillBaitRound" in fl.m) && fl.m.UphillBaitRound == ::Time.getRound()))
             return true;
         local decision = this.shouldActorHold(_actor, _agent);
         if (decision.Hold)
+            return true;
+        // Suppress EngageMelee when Initiative/turn-order tactical Wait wants to hold Phase 1 for surround, first-strike, or uphill lure!
+        local waitPlan = this.evaluateTacticalWait(_actor, decision.Info, _agent);
+        if (waitPlan != null && waitPlan.SuppressMove)
             return true;
         if (!::BGP.hasShield(_actor) && !this.isRangedRole(_actor) && !this.isCasterRole(_actor)
             && ::Tactical.TurnSequenceBar.canEntityWait(_actor)
@@ -3083,6 +3828,10 @@ local F = A.Frontline <- {
         }
         else if (this.isRangedRole(_actor) && _targetTile.ID != myTile.ID)
         {
+            // Suppress premature forward stepping when ranged tactical Wait wants slower Phase-1 enemies to step into range first.
+            local rWait = this.evaluateTacticalWait(_actor, decision.Info, _agent);
+            if (rWait != null && rWait.SuppressMove)
+                return true;
             // Prevent non-caster Bow/Crossbow/Throwing backliners from walking INTO dist <= 2 of a live melee threat
             // (which otherwise causes Engage.Ranged -> backline_kite ping-pong burning AP without firing!).
             local curMelee = 99;
@@ -3168,9 +3917,30 @@ local F = A.Frontline <- {
                 mult *= 0.88;
         }
 
-        // 2. Focus armor-stripped enemies so follow-ups finish them rapidly.
+        // 2. Focus armor-stripped enemies and heavily surrounded targets so Phase-2 waiting brothers chain-burst the SAME enemy down!
         if (!fleeing && _target.getArmorMax(::Const.BodyPart.Body) > 30 && bodyArmor <= 10)
             mult *= 1.20;
+        if (!fleeing)
+        {
+            local tTile = _target.getTile();
+            local adjAllies = 0;
+            for (local d = 0; d < 6; ++d)
+            {
+                if (!tTile.hasNextTile(d)) continue;
+                local nt = tTile.getNextTile(d);
+                if (nt.IsOccupiedByActor && ::Math.abs(nt.Level - tTile.Level) <= 1 && nt.getEntity().isAlliedWith(_actor))
+                    ++adjAllies;
+            }
+            if (adjAllies >= 3)
+                mult *= 1.22;
+            else if (adjAllies >= 2)
+                mult *= 1.12;
+            // In Phase 2 (after Waiting), reinforce coordinated focus-fire on surrounded, armor-stripped, or wounded targets to trigger morale cascades!
+            local isPhase2 = false;
+            try { isPhase2 = _actor.isWaitActionSpent(); } catch (e) {}
+            if (isPhase2 && (adjAllies >= 2 || hpPct <= 0.65 || (_target.getArmorMax(::Const.BodyPart.Body) > 30 && bodyArmor <= 25)))
+                mult *= 1.12;
+        }
 
         // 3. Priority targets: hostile casters, Orc Berserkers, archers/crossbowmen, bannermen/drummers/officers, and heavy 2H elites.
         local tSkills = _target.getSkills();
@@ -4162,6 +4932,13 @@ local F = A.Frontline <- {
                     return true;
             }
         }
+        // On opening R1-R2, prevent unshielded frontliners from stepping 2+ tiles into ZoC with insufficient post-move AP to strike
+        // (using dynamic previewSkillCostsAfterMove AP, so Vigorous Assault / Vanquisher bros who CAN strike after moving 2 tiles are never blocked!)
+        // right in front of enemy polearms / 3+ convergence traps without an adjacent Shieldbearer protecting them!
+        if (::Time.getRound() <= 2 && moveDist >= 2 && _apAfter < minAtkAP
+            && exp.AdjEnemies >= 1 && exp.AdjShieldAllies == 0 && (exp.Polearms2 >= 1 || exp.PotentialSurround >= 3)
+            && !(_info.LightMeleeVolleyRush && !isFragile && exp.AdjEnemies <= 1))
+            return true;
         // Never walk into a Halberdier/Ancient Polearm kill-box (2+ adjacent + reach-2 polearms) with zero shield support and zero attack AP left!
         if (exp.AdjEnemies >= 2 && (exp.Polearms2 >= 2 || (exp.Polearms2 >= 1 && mdef < 28)) && exp.AdjShieldAllies == 0 && _apAfter < minAtkAP && mdef < 35)
             return true;
@@ -4566,21 +5343,40 @@ local F = A.Frontline <- {
             {
                 veto = true;
             }
-            // Penalize walking off high ground into uphill/bad-terrain fights against melee-only enemies when not lethal.
-            if (!veto && !::BGP.hasShield(_entity) && info.EnemyProjectileRanged < 3.0 && info.EnemyUrgentCasters == 0
-                && this.m.TargetTile.ID != myTile.ID && this.m.TargetActor != null && !::MSU.isNull(this.m.TargetActor)
-                && this.m.TargetActor.getMoraleState() != ::Const.MoraleState.Fleeing)
+            // Universal high-ground discipline (applies to BOTH Shieldbearers and unshielded melee, even when enemy has stronger ranged!):
+            // Never walk below an uphill melee enemy (locking them on high ground with +10% elevation bonus) or into uphill polearm reach (dist <= 2),
+            // unless peeling Mentor, chasing fleeing targets, securing a lethal finish, matching elevation, or HillCampStall lifted the hold!
+            if (!veto && this.m.TargetTile.ID != myTile.ID && !F.isRangedRole(_entity) && !F.isCasterRole(_entity))
             {
-                local tgtLvl = this.m.TargetActor.getTile().Level;
-                local destLvl = this.m.TargetTile.Level;
-                local badJump = this.m.TargetTile.IsBadTerrain && !myTile.IsBadTerrain;
-                if ((destLvl < tgtLvl || destLvl < myTile.Level || badJump) && F.isFragileMelee(_entity))
+                local tgt = this.m.TargetActor;
+                local tgtFleeing = tgt != null && !::MSU.isNull(tgt) && tgt.getMoraleState() == ::Const.MoraleState.Fleeing;
+                local tgtDying = tgt != null && !::MSU.isNull(tgt) && tgt.getHitpoints() <= 24;
+                if (!tgtFleeing && !tgtDying)
                 {
+                    local uphill = F.isUphillMeleeTrap(this.m.TargetTile, _entity, info);
                     local reqAP = effAtkAP != null ? effAtkAP : 4;
-                    if (approxApAfter < reqAP)
+                    if (uphill.IsTrap)
+                    {
                         veto = true;
-                    else
-                        this.m.Score *= 0.45;
+                    }
+                    else if (uphill.PolearmTrap && (approxApAfter < reqAP || ::BGP.hasShield(_entity)))
+                    {
+                        veto = true;
+                    }
+                    else if (!::BGP.hasShield(_entity) && info.EnemyProjectileRanged < 3.0 && info.EnemyUrgentCasters == 0
+                        && tgt != null && !::MSU.isNull(tgt))
+                    {
+                        local tgtLvl = tgt.getTile().Level;
+                        local destLvl = this.m.TargetTile.Level;
+                        local badJump = this.m.TargetTile.IsBadTerrain && !myTile.IsBadTerrain;
+                        if ((destLvl < tgtLvl || destLvl < myTile.Level || badJump) && F.isFragileMelee(_entity))
+                        {
+                            if (approxApAfter < reqAP)
+                                veto = true;
+                            else
+                                this.m.Score *= 0.45;
+                        }
+                    }
                 }
             }
             // Also stop shieldbearers from being dragged by vanilla EngageMelee into 3+ surrounds, isolated solo dives,
@@ -4858,7 +5654,7 @@ local F = A.Frontline <- {
     };
 });
 
-// Let non-shield 2-tile bros yield phase 1 to unacted shieldbearers before stepping in,
+// Let non-shield 2-tile bros yield Phase 1 for tactical Wait (tank opener, surround/armor-strip combo, buff expire),
 // and fix snh_isTileInDanger so healthy Billhook/polearm bros don't get paralyzed by enemies already locked in our frontline's ZoC!
 ::BGP.HooksMod.hook("scripts/ai/autopilot_step_n_hit", function(q) {
     q.onEvaluate = @(__original) function( _entity ) {
@@ -4867,7 +5663,8 @@ local F = A.Frontline <- {
             && _entity.getTile().getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0)
         {
             local decision = F.shouldActorHold(_entity, this.getAgent());
-            if (F.hasUnactedShieldAlly(_entity, decision.Info))
+            local wPlan = F.evaluateTacticalWait(_entity, decision.Info, this.getAgent());
+            if ((wPlan != null && wPlan.SuppressMove) || F.hasUnactedShieldAlly(_entity, decision.Info))
                 return 0;
         }
         return __original(_entity);
@@ -4890,6 +5687,36 @@ local F = A.Frontline <- {
                 return true;
         }
         return false;
+    };
+});
+
+// Yield melee attacks ONLY when our ironclad safe Phase-1 tactical combo wait (wait_combo_inzoc / wait_buff_expire) triggers,
+// so fast Cleaver/Sword/Polearm DPS waits for slower Hammer/2H Mace/Tank allies to strip armor & surround before bursting in Phase 2!
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_default", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")
+            && ::Tactical.TurnSequenceBar.canEntityWait(_entity))
+        {
+            local info = F.assessBattle(_entity, this.getAgent());
+            local wPlan = F.evaluateTacticalWait(_entity, info, this.getAgent());
+            if (wPlan != null && wPlan.SuppressAttack)
+                return ::Const.AI.Behavior.Score.Zero;
+        }
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/autopilot_attack_alternate", function(q) {
+    q.onEvaluate = @(__original) function( _entity ) {
+        if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")
+            && ::Tactical.TurnSequenceBar.canEntityWait(_entity))
+        {
+            local info = F.assessBattle(_entity, this.getAgent());
+            local wPlan = F.evaluateTacticalWait(_entity, info, this.getAgent());
+            if (wPlan != null && wPlan.SuppressAttack)
+                return ::Const.AI.Behavior.Score.Zero;
+        }
+        return __original(_entity);
     };
 });
 

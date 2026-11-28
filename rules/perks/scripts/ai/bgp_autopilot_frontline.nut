@@ -11,6 +11,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         BashedRound = -1,
         TerrainMovedRound = -1,
         CohesiveMovedRound = -1,
+        UphillBaitRound = -1,
         KitedRound = -1,
         HybridSwapRound = -1,
         HybridSwapCount = 0
@@ -81,6 +82,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
         local isRanged = F.isRangedRole(_entity);
         local isCaster = F.isCasterRole(_entity);
         local canWait = ::Tactical.TurnSequenceBar.canEntityWait(_entity);
+        local tacticalWait = canWait ? F.evaluateTacticalWait(_entity, info, agent) : null;
 
         // 1. Hold-line phase-1 Wait: hold formation when enemy has no or weaker ranged firepower.
         if (decision.Hold && !inZoC)
@@ -394,6 +396,36 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return 850.0;
         }
 
+        // 3b. Uphill-bait stand-off & Initiative-aware Shieldbearer Wait:
+        // When no equal-elevation intercept exists and uphill melee/polearm enemies sit above us:
+        //   - If enemy archers already shot in Phase 1 (wait_shield_read), wait first so uphill enemies step down before we commit!
+        //   - Otherwise step cleanly to dist 2 from uphill 1-tile melee (dist 3 from uphill 2-tile polearms) retaining Shieldwall AP!
+        local uphillBaitPlan = null;
+        if (!inZoC && !isRanged && !isCaster && !_entity.getCurrentProperties().IsRooted
+            && !_entity.getSkills().hasSkill("effects.shieldwall")
+            && !_entity.getSkills().hasSkill("effects.spearwall")
+            && this.m.BlockedRound != ::Time.getRound())
+        {
+            uphillBaitPlan = F.findUphillBaitTile(this, _entity, info);
+        }
+
+        // If Shieldbearer can safely wait in Phase 1 (0 unacted enemy archers left!) before moving/shieldwalling, read enemy movement first!
+        if (isShield && !inZoC && tacticalWait != null && tacticalWait.Reason == "wait_shield_read")
+        {
+            this.m.Mode = "wait";
+            return tacticalWait.Score;
+        }
+
+        // Shieldbearer uphill-bait step (move to dist 2 vs 1-tile uphill melee / dist 3 vs uphill polearm, then follow up with Shieldwall!).
+        if (isShield && uphillBaitPlan != null && !uphillBaitPlan.HoldHere
+            && uphillBaitPlan.Tile.ID != myTile.ID && uphillBaitPlan.Tile.ID != this.m.MovedTileID
+            && this.m.UphillBaitRound != ::Time.getRound())
+        {
+            this.m.Mode = "uphill_bait";
+            this.m.TargetTile = uphillBaitPlan.Tile;
+            return 840.0;
+        }
+
         // 3c. Reforged Shield Bash on undazed heavy melee threats (once per round).
         if (isShield && inZoC && _entity.getHitpointsPct() >= 0.45 && this.m.BashedRound != ::Time.getRound())
         {
@@ -466,11 +498,13 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                         break;
                     }
                 }
+                local uphillBaitSW = (zone == 0 && uphillBaitPlan != null && uphillBaitPlan.HoldHere && uphillBaitPlan.NeedsShieldwall);
                 local needSW = (meleeAdj >= 2)
                     || (meleeAdj == 1 && (lowHP || (::Time.getRound() <= 2 && meleeWithin2 >= 2)
                         || (eliteAdj && (justIntercepted || _entity.getCurrentProperties().getMeleeDefense() < 35))))
                     || (zone == 0 && info.HoldLine && meleeWithin2 >= 2)
                     || (zone == 0 && ::Time.getRound() <= 2 && info.HybridRangedHeavyMelee && (justIntercepted || _entity.getActionPoints() <= 5))
+                    || uphillBaitSW
                     || rootedUnderFire;
                 // Skip pointless Shieldwall when engaged but ZERO adjacent/reach foes can attack before our next turn!
                 if (needSW && inZoC && !(info.EnemyProjectileRanged >= 4.0 && _entity.getHitpointsPct() <= 0.65))
@@ -548,6 +582,15 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
+        // 4b-2. Initiative & Turn-Order Tactical Wait (safe in-ZoC armor-strip/surround combo wait, buff-expire wait,
+        // unengaged surround/focus-fire wait, first-strike/uphill bait wait, or ranged wait-for-range):
+        // Runs strictly AFTER rescues, nets, kiting, Mentor peels, Shield Bash, Shieldwall, Indomitable, and Spearwall!
+        if (tacticalWait != null)
+        {
+            this.m.Mode = "wait";
+            return tacticalWait.Score;
+        }
+
         // 4c. High-priority terrain positioning (climb high ground or leave Swamp/bad terrain) BEFORE waiting/holding (at most once per round).
         // Disabled against urgent enemy casters (Ancient Priests / Necromancers) and in late-battle cleanup so assaults never stall.
         local terrainPlan = null;
@@ -615,6 +658,16 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                 this.m.Mode = "wait";
                 return 480.0;
             }
+        }
+
+        // 5c-0. Unshielded melee uphill-bait stand-off (stop at dist 2 from uphill 1-tile melee / dist 3 from uphill polearms).
+        if (!isShield && uphillBaitPlan != null && !uphillBaitPlan.HoldHere
+            && uphillBaitPlan.Tile.ID != myTile.ID && uphillBaitPlan.Tile.ID != this.m.MovedTileID
+            && this.m.UphillBaitRound != ::Time.getRound())
+        {
+            this.m.Mode = "uphill_bait";
+            this.m.TargetTile = uphillBaitPlan.Tile;
+            return 430.0;
         }
 
         // 5c. Cohesive R1-R2 advance against hybrid heavy-ranged + strong-melee armies (Nomads/Nobles/Southern armies):
@@ -832,7 +885,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             return true;
         }
 
-        if (this.m.Mode == "vanguard_move" || this.m.Mode == "cohesive_advance" || this.m.Mode == "dynamic_melee_move" || this.m.Mode == "wounded_retreat" || this.m.Mode == "terrain_anchor" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
+        if (this.m.Mode == "vanguard_move" || this.m.Mode == "uphill_bait" || this.m.Mode == "cohesive_advance" || this.m.Mode == "dynamic_melee_move" || this.m.Mode == "wounded_retreat" || this.m.Mode == "terrain_anchor" || this.m.Mode == "step_attack" || this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
         {
             local navigator = ::Tactical.getNavigator();
             if (this.m.IsFirstExecuted)
@@ -867,6 +920,8 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                     this.m.TerrainMovedRound = ::Time.getRound();
                 else if (this.m.Mode == "cohesive_advance")
                     this.m.CohesiveMovedRound = ::Time.getRound();
+                else if (this.m.Mode == "uphill_bait")
+                    this.m.UphillBaitRound = ::Time.getRound();
                 else if (this.m.Mode == "backline_kite" || this.m.Mode == "hazard_step")
                     this.m.KitedRound = ::Time.getRound();
                 this.m.IsMoving = true;
