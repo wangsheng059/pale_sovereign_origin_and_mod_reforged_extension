@@ -1,7 +1,7 @@
-// Davkul cultist origin event pacing & optional cultist-scoped global event frequency multiplier.
+// Davkul cultist & Pale Sovereign origin event pacing & configurable global event frequency multiplier.
 ::DavkulPace <- {
 	ID = "mod_davkul_origin_pace",
-	Version = "1.2.0",
+	Version = "1.2.1",
 	Name = "达库尔起源加速",
 	Mod = null,
 	MH = null,
@@ -30,16 +30,30 @@
 	}
 };
 
-::DavkulPace.isCultistOrigin <- function()
+::DavkulPace.getOriginID <- function()
 {
 	try
 	{
 		if (!("World" in ::getroottable()) || ::World == null || !("Assets" in ::World) || ::World.Assets == null)
-			return false;
+			return "";
 		local origin = ::World.Assets.getOrigin();
-		return origin != null && origin.getID() == "scenario.cultists";
+		return origin != null ? origin.getID() : "";
 	}
 	catch (e) {}
+	return "";
+};
+
+::DavkulPace.shouldApplyGlobalBoost <- function( _onlyScoped = null, _paleBoost = null )
+{
+	local onlyScoped = _onlyScoped != null ? _onlyScoped : ::DavkulPace.getValue("DavkulPace_GlobalOnlyCultists", true);
+	if (!onlyScoped)
+		return true;
+	local oid = ::DavkulPace.getOriginID();
+	if (oid == "scenario.cultists")
+		return true;
+	local paleBoost = _paleBoost != null ? _paleBoost : ::DavkulPace.getValue("DavkulPace_PaleGlobalBoost", true);
+	if (paleBoost && oid == "scenario.pale_sovereign")
+		return true;
 	return false;
 };
 
@@ -83,7 +97,7 @@
 	});
 };
 
-::DavkulPace.applyGlobalFrequency <- function( _mult = null, _onlyCultists = null )
+::DavkulPace.applyGlobalFrequency <- function( _mult = null, _onlyScoped = null, _paleBoost = null )
 {
 	if (!("Events" in ::Const)) return;
 	if (::DavkulPace.BaseMinDelay == null)
@@ -91,9 +105,8 @@
 		::DavkulPace.BaseMinDelay = ::Const.Events.GlobalMinDelay;
 		::DavkulPace.BaseChancePerSecond = ::Const.Events.GlobalChancePerSecond;
 	}
-	local onlyCultists = _onlyCultists != null ? _onlyCultists : ::DavkulPace.getValue("DavkulPace_GlobalOnlyCultists", true);
 	local mult = _mult != null ? _mult : ::DavkulPace.getValue("DavkulPace_GlobalEventMult", 3);
-	if (onlyCultists && !::DavkulPace.isCultistOrigin())
+	if (!::DavkulPace.shouldApplyGlobalBoost(_onlyScoped, _paleBoost))
 		mult = 1;
 	if (mult < 1) mult = 1;
 	::Const.Events.GlobalMinDelay = ::DavkulPace.BaseMinDelay / mult.tofloat();
@@ -121,13 +134,17 @@
 		"献祭/投奔事件触发权重（倍）",
 		"冷却结束后，献祭和投奔事件被选中的权重倍数。1 = 原版。");
 	page.addBooleanSetting("DavkulPace_GlobalOnlyCultists", true,
-		"全局事件加速仅对达库尔起源生效",
-		"开启时，下方的「全局随机事件频率」倍率仅在使用达库尔教徒起源时生效，其他起源（如亡灵主宰）保持 1 倍原版事件节奏；关闭后对所有起源生效。")
-		.addBeforeChangeCallback(function( _newValue ) { ::DavkulPace.applyGlobalFrequency(null, _newValue); });
+		"全局事件加速仅对指定起源生效",
+		"开启时，下方的「全局随机事件频率」倍率仅在达库尔教徒起源（以及勾选下项时的亡灵主宰起源）生效，其他常规起源保持 1 倍原版节奏；关闭后对所有起源生效。")
+		.addBeforeChangeCallback(function( _newValue ) { ::DavkulPace.applyGlobalFrequency(null, _newValue, null); });
+	page.addBooleanSetting("DavkulPace_PaleGlobalBoost", true,
+		"亡灵主宰起源启用全局事件加速",
+		"开启时（默认开启），游玩「亡灵主宰」起源同样享受下方的全局随机事件高频加成（默认 3 倍）；关闭后亡灵主宰恢复 1 倍原版事件间隔。")
+		.addBeforeChangeCallback(function( _newValue ) { ::DavkulPace.applyGlobalFrequency(null, null, _newValue); });
 	page.addRangeSetting("DavkulPace_GlobalEventMult", 3, 1, 10, 1,
 		"全局随机事件频率（倍）",
 		"随机事件的整体触发频率。原版平均约 5 天一次随机事件；3 倍约 1.5～2 天一次，10 倍约半天一次。1 = 原版。")
-		.addBeforeChangeCallback(function( _newValue ) { ::DavkulPace.applyGlobalFrequency(_newValue, null); });
+		.addBeforeChangeCallback(function( _newValue ) { ::DavkulPace.applyGlobalFrequency(_newValue, null, null); });
 
 	::DavkulPace.applyGlobalFrequency();
 

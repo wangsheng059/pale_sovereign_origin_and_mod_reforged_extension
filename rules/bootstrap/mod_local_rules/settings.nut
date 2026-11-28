@@ -1,6 +1,9 @@
 // MSU ModSettings for standalone gameplay rules in zz_local_rules.zip.
 ::BGP.Defaults <- {
-	BGP_VisionMult = 2.0,
+	BGP_VisionFlat = 1.15,
+	BGP_VisionForest = 1.15,
+	BGP_VisionHills = 2.5,
+	BGP_VisionMountains = 3.5,
 	BGP_LargeCompanyXP = true,
 	BGP_ForceEnemyLoot = true,
 	BGP_SaveBrokenNamed = true,
@@ -25,22 +28,48 @@
 	return _fallback;
 };
 
-::BGP.applyVisionMult <- function( _mult = null )
+::BGP.clampVision <- function( _val, _min, _max )
+{
+	local v = _val.tofloat();
+	if (v < _min) v = _min;
+	if (v > _max) v = _max;
+	return ::Math.floor(v * 100.0 + 0.5) / 100.0;
+};
+
+::BGP.applyVisionMult <- function()
 {
 	if (!("World" in ::Const) || !("TerrainTypeVisionRadiusMult" in ::Const.World))
 		return;
 	if (!("BGP_BaseTerrainVision" in ::Const.World) || ::Const.World.BGP_BaseTerrainVision == null)
 		::Const.World.BGP_BaseTerrainVision <- clone ::Const.World.TerrainTypeVisionRadiusMult;
 
-	local mult = _mult != null ? _mult.tofloat() : ::BGP.getSetting("BGP_VisionMult", 2.0).tofloat();
-	if (mult < 1.0) mult = 1.0;
-	if (mult > 5.0) mult = 5.0;
+	local vFlat = ::BGP.clampVision(::BGP.getSetting("BGP_VisionFlat", 1.15), 0.5, 5.0);
+	local vForest = ::BGP.clampVision(::BGP.getSetting("BGP_VisionForest", 1.15), 0.5, 5.0);
+	local vHills = ::BGP.clampVision(::BGP.getSetting("BGP_VisionHills", 2.5), 0.5, 5.0);
+	local vMtns = ::BGP.clampVision(::BGP.getSetting("BGP_VisionMountains", 3.5), 0.5, 5.0);
 
-	local orig = ::Const.World.BGP_BaseTerrainVision;
+	local tt = ("TerrainType" in ::Const.World) ? ::Const.World.TerrainType : {};
+	local hillsIdx = ("Hills" in tt) ? tt.Hills : 4;
+	local mtnIdx = ("Mountains" in tt) ? tt.Mountains : 9;
+	local forestSet = {};
+	foreach (k in ["Forest", "SnowyForest", "LeaveForest", "AutumnForest", "Swamp"])
+	{
+		if (k in tt)
+			forestSet[tt[k]] <- true;
+	}
+
 	local target = ::Const.World.TerrainTypeVisionRadiusMult;
-	local n = ::Math.min(orig.len(), target.len());
-	for (local i = 0; i < n; i++)
-		target[i] = orig[i] * mult;
+	for (local i = 0; i < target.len(); i++)
+	{
+		if (i == hillsIdx)
+			target[i] = vHills;
+		else if (i == mtnIdx)
+			target[i] = vMtns;
+		else if (i in forestSet)
+			target[i] = vForest;
+		else
+			target[i] = vFlat;
+	}
 };
 
 ::BGP.refreshRosterSkills <- function()
@@ -104,9 +133,24 @@
 ::BGP.Mod = ::MSU.Class.Mod(::BGP.ID, ::BGP.Version, ::BGP.Name);
 local page = ::BGP.Mod.ModSettings.addPage("General", "玩法规则");
 
-page.addRangeSetting("BGP_VisionMult", 2.0, 1.0, 5.0, 0.5,
-	"大地图视野倍率",
-	"按原版各森山平地比例缩放战团大地图视野半径（1 = 原版视野，5 = 5 倍视野，修改后立即生效）。")
+page.addRangeSetting("BGP_VisionFlat", 1.15, 0.5, 5.0, 0.05,
+	"大地图视野：平地与常规地形",
+	"平原、草原、雪原、荒漠、苔原、农田等开阔地形的大地图视野倍率（原整合包默认 1.15；原版为 1.0，修改后立即生效）。")
+	.addAfterChangeCallback(function( _oldValue ) { ::BGP.applyVisionMult(); });
+
+page.addRangeSetting("BGP_VisionForest", 1.15, 0.5, 5.0, 0.05,
+	"大地图视野：森林与沼泽",
+	"各类森林与沼泽地形的大地图视野倍率（原整合包默认 1.15；若想恢复原版树林/沼泽遮挡视野，可调低至 0.70–0.80，修改后立即生效）。")
+	.addAfterChangeCallback(function( _oldValue ) { ::BGP.applyVisionMult(); });
+
+page.addRangeSetting("BGP_VisionHills", 2.5, 0.5, 5.0, 0.05,
+	"大地图视野：丘陵",
+	"站上丘陵地形时的大地图视野倍率（原整合包默认 2.5；原版丘陵约为 1.25–1.5，修改后立即生效）。")
+	.addAfterChangeCallback(function( _oldValue ) { ::BGP.applyVisionMult(); });
+
+page.addRangeSetting("BGP_VisionMountains", 3.5, 0.5, 5.0, 0.05,
+	"大地图视野：山地",
+	"站上山地地形时的大地图视野倍率（原整合包默认 3.5；原版山地约为 1.5–2.0，修改后立即生效）。")
 	.addAfterChangeCallback(function( _oldValue ) { ::BGP.applyVisionMult(); });
 
 page.addBooleanSetting("BGP_LargeCompanyXP", true,
