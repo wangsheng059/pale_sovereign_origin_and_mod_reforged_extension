@@ -12,7 +12,7 @@ this.bgp_seal_vanguard_skill <- ::inherit("scripts/skills/actives/bgp_seal_skill
 		this.m.Lines = [
 			"移动消耗的疲劳 " + ::MSU.Text.colorPositive("-50%"),
 			"每回合第一次击杀回复 " + ::MSU.Text.colorPositive("4") + " 行动点，且下一次移动免疫控制区",
-			"代价：远程防御归零；持盾时战印失效（加成和代价都没有）"
+			"代价：远程防御归零；持盾时战印失效"
 		];
 	}
 });

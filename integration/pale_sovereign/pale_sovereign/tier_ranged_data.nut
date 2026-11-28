@@ -81,7 +81,7 @@ local talents = {
     },
     armor_shattering_bolt = {
         Name = "碎甲重矢", Flavor = "重矢撕开铁片，霰弹则把立足点从敌人脚下打掉。",
-        Description = "弩和火炮攻击的护甲伤害 +50%，命中后使目标踉跄，行动顺序推迟到回合末。"
+        Description = "弩和火炮攻击的护甲伤害 +50%，命中后使目标踉跄。"
     },
     arrow_rain = {
         Name = "亡者箭雨", Flavor = "它短促地抬手，骨箭和投矛随即从头顶落下。",

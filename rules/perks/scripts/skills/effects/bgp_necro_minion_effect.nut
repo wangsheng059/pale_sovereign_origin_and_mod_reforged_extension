@@ -117,7 +117,7 @@ this.bgp_necro_minion_effect <- ::inherit("scripts/skills/skill", {
 		try { isPet = actor.m.Item != null; } catch (e) { isPet = false; }
 		if (this.m.MasterName != "")
 			ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "听命于" + this.m.MasterName });
-		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = isPet ? "不会出血、中毒，不受夜晚影响，没有士气；战中会受临时伤（战后仅保留生命损失，不保留伤势）" : "不会出血、中毒，不受夜晚影响，没有士气" });
+		ret.push({ id = 11, type = "text", icon = "ui/icons/special.png", text = isPet ? "不会出血、中毒，不受夜晚影响，没有士气；战中会受临时伤（战后自动清除）" : "不会出血、中毒，不受夜晚影响，没有士气" });
 		if (this.m.HasRegen)
 			ret.push({ id = 12, type = "text", icon = "ui/icons/health.png", text = "每回合开始时回复 " + ::MSU.Text.colorPositive(::BGP.Necro.WillScale.Regen(this.getWill())) + " 点生命（W = 主人决心 − " + ::BGP.Necro.WillOffset + " = " + this.m.Will + "）" });
 		if (this.m.HasArmorRegen)

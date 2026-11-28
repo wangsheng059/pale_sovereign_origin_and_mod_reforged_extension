@@ -31,7 +31,7 @@ this.pale_corpse_shot <- ::inherit("scripts/skills/skill", {
     function getTooltip()
     {
         local ret = this.getDefaultTooltip();
-        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "消耗 1 点防腐尸骸，距离最多 3 格。尸体会落在被砸中的人脚下，没砸中就落在目标格；落地的尸体可以复活或引爆。战团还有 " + ::PaleSovereign.get("Reserve") + " 点防腐尸骸。" });
+        ret.push({ id = 10, type = "text", icon = "ui/icons/special.png", text = "消耗 1 点防腐尸骸（剩余 " + ::PaleSovereign.get("Reserve") + " 点）。命中时尸体落在受击者脚下，未命中则落在目标格。" });
         return ret;
     }
 

@@ -54,7 +54,7 @@ S.UndeadPerkGroups <- {
         ID = "pg.pale_undead_zombie",
         Name = "腐尸本能",
         Icon = "ui/perk_groups/pale_undead_zombie.png",
-        Description = "常驻行尸专属特技组（取自亡灵宠物特质池）。本组已学会的特技在常驻亡灵升阶时会永久保留。",
+        Description = "常驻行尸专属特技组。本组已学会的特技在升阶时永久保留。",
         Tree = [
             ["perk.pale_ud_healthy"],
             ["perk.pale_ud_rot_stench"],
@@ -69,7 +69,7 @@ S.UndeadPerkGroups <- {
         ID = "pg.pale_undead_skeleton",
         Name = "枯骨本能",
         Icon = "ui/perk_groups/pale_undead_skeleton.png",
-        Description = "常驻骷髅专属特技组（取自亡灵宠物特质池）。本组已学会的特技在常驻亡灵升阶时会永久保留。",
+        Description = "常驻骷髅专属特技组。本组已学会的特技在升阶时永久保留。",
         Tree = [
             ["perk.pale_ud_soften_blows"],
             ["perk.pale_ud_undying_flesh"],
@@ -89,7 +89,7 @@ foreach (key, def in S.UndeadPerks)
         ID = "perk.pale_ud_" + key,
         Script = "scripts/skills/perks/perk_pale_ud_" + key,
         Name = def.Name,
-        Tooltip = def.Description + "\n\n常驻亡灵专属特技：学会后在升阶时永久保留（其他特技升阶时会重置）。",
+        Tooltip = def.Description + "\n\n升阶时永久保留。",
         Icon = def.Icon + ".png",
         IconDisabled = def.Icon + "_sw.png"
     });

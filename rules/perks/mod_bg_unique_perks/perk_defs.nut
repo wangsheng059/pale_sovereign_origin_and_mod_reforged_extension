@@ -32,9 +32,9 @@
 			Description = [
 				"每击杀一名敌人，随机获得以下恩赐之一（可重复获得并叠加）：",
 				"行动点数 " + ::MSU.Text.colorPositive("+2") + "。",
-				"每格移动消耗的行动点数 " + ::MSU.Text.colorPositive("-1") + "、疲劳 " + ::MSU.Text.colorPositive("-2") + "（每格最少仍消耗 1 点，减免总量受平地最低 1 点限制）。",
-				"立即获得头甲 " + ::MSU.Text.colorPositive("+20") + "、身甲 " + ::MSU.Text.colorPositive("+20") + "（可超过上限，需已穿戴对应部位护甲），生命值上限和当前生命值 " + ::MSU.Text.colorPositive("+20") + "。",
-				"下一次攻击命中时使目标眩晕（命中后消耗）。"
+				"每格移动消耗的行动点数 " + ::MSU.Text.colorPositive("-1") + "、疲劳 " + ::MSU.Text.colorPositive("-2") + "（最低各消耗 1 点）。",
+				"已穿戴的头甲、身甲耐久 " + ::MSU.Text.colorPositive("+20") + "（可超上限），当前与最大生命值 " + ::MSU.Text.colorPositive("+20") + "。",
+				"下一次攻击命中时使目标眩晕。"
 			]
 		}]
 	}),

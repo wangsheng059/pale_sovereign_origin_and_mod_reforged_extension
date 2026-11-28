@@ -156,11 +156,13 @@ if (::BGP.HasAC)
 					+ " / 10% 血 " + ::MSU.Text.colorPositive(::BGP.Tame.formatPct(::BGP.Tame.calcRefPct(actor, 0.10)))
 					+ " / 5% 血 " + ::MSU.Text.colorPositive(::BGP.Tame.formatPct(::BGP.Tame.calcRefPct(actor, 0.05)))
 			});
+			local s = actor.getSkills();
+			local showNecroHint = (s.hasSkill("background.bgp_necromancer") || s.hasSkill("background.pale_necromancer")) && !s.hasSkill("perk.bgp_necro_grandmaster");
 			ret.push({
 				id = 11,
 				type = "text",
 				icon = "ui/icons/special.png",
-				text = "目标被定身时额外 ×1.25；亡灵法师学会第 7 阶“亡灵法术大师”后可驯服亡灵"
+				text = "目标被定身时额外 ×1.25" + (showNecroHint ? "；学会“亡灵法术大师”后可驯服亡灵" : "")
 			});
 			return ret;
 		};
