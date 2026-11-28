@@ -4144,23 +4144,24 @@ local F = A.Frontline <- {
                         mult *= 0.86;
                 }
             }
-            if (_skill.getID() == "actives.knock_out")
+            if (sid == "actives.knock_out" || sid == "actives.strike_down")
             {
                 if (!fleeing && !_target.getCurrentProperties().IsImmuneToStun && !_target.getCurrentProperties().IsStunned)
                 {
                     local w = _target.getMainhandItem();
                     local heavy = (w != null && w.isItemType(::Const.Items.ItemType.TwoHanded))
-                        || _target.getHitpointsMax() >= 110 || tSkills.hasSkill("racial.champion");
-                    mult *= heavy ? 1.45 : 1.0;
-                    // Turn-order stun discipline: stunning an unacted enemy before they swing denies their entire turn!
+                        || _target.getHitpointsMax() >= 120 || tSkills.hasSkill("racial.champion")
+                        || tSkills.hasSkill("effects.berserker_rage");
+                    mult *= heavy ? 1.25 : 0.45;
+                    // Turn-order stun discipline: stunning an unacted heavy enemy before they swing denies their entire turn!
                     if (!stLive.CanActThisRound)
-                        mult *= 0.55;
+                        mult *= 0.45;
                     else if (stLive.TurnsUntil <= 4)
-                        mult *= 1.28;
+                        mult *= 1.18;
                 }
                 else
                 {
-                    mult *= 0.45;
+                    mult *= 0.25;
                 }
             }
         }
@@ -5158,6 +5159,1245 @@ local F = A.Frontline <- {
             finalScore = 460.0;
 
         return { Score = finalScore, Tile = bestTile };
+    },
+
+    // =========================================================================
+    // Gen 35: Zero-Friendly-Fire AoE Geometry, Step-and-Reap, Precision Decapitate & Mace Stun Discipline
+    // =========================================================================
+
+    // Return the exact engine-verified list of tiles hit by melee AoE skills from _origin aiming at _targetTile.
+    // Verified against live Battle Brothers tactical execution:
+    //   - Dist-1 3-tile arcs (shatter, swing, rf_cleaving_swing, sweep, tail_slam, ghost_swing, censer_castigate, dist-1 reap):
+    //       dir d0 = origin.getDirectionTo(target), hits d0, (d0+5)%6, (d0+4)%6 (counterclockwise).
+    //   - Dist-2 reap:
+    //       12-tile clockwise dist-2 ring where ring[2*d] = origin->d->d and ring[2*d+1] = origin->d->(d+1)%6;
+    //       targeting ring[k] hits ring[k], ring[(k+11)%12], ring[(k+10)%12] (counterclockwise).
+    //   - Line split (split, rf_cleaving_split, split_axe, ignite_firelance, excalibur_split):
+    //       targetTile + (_lineLen - 1) sequential steps along dir = origin.getDirectionTo(target).
+    //   - 360-degree swings (thresh, round_swing, tail_slam_big):
+    //       all 6 adjacent tiles around _origin.
+    function getAoEAffectedTiles( _origin, _targetTile, _skillID, _maxLevelDiff = 1, _lineLen = 2 )
+    {
+        local out = [];
+        if (_origin == null || _targetTile == null)
+            return out;
+
+        if (_skillID == "actives.thresh" || _skillID == "actives.round_swing" || _skillID == "actives.tail_slam_big")
+        {
+            for (local d = 0; d < 6; ++d)
+            {
+                if (!_origin.hasNextTile(d)) continue;
+                local t = _origin.getNextTile(d);
+                if (::Math.abs(t.Level - _origin.Level) <= _maxLevelDiff)
+                    out.push(t);
+            }
+            return out;
+        }
+
+        if (_skillID == "actives.split" || _skillID == "actives.rf_cleaving_split"
+            || _skillID == "actives.split_axe" || _skillID == "actives.ignite_firelance"
+            || _skillID == "actives.tail_slam_split" || _skillID == "actives.uproot"
+            || _skillID == "actives.ghost_split" || _skillID == "actives.excalibur_split")
+        {
+            local dir = _origin.getDirectionTo(_targetTile);
+            local cur = _targetTile;
+            local steps = ::Math.max(2, _lineLen);
+            for (local i = 0; i < steps; ++i)
+            {
+                if (cur == null) break;
+                if (::Math.abs(cur.Level - _origin.Level) <= _maxLevelDiff)
+                    out.push(cur);
+                if (i + 1 < steps && cur.hasNextTile(dir))
+                    cur = cur.getNextTile(dir);
+                else
+                    break;
+            }
+            return out;
+        }
+
+        local dist = _origin.getDistanceTo(_targetTile);
+        if (_skillID == "actives.reap" && dist == 2)
+        {
+            local ring2 = array(12, null);
+            local hitIdx = -1;
+            for (local d = 0; d < 6; ++d)
+            {
+                if (!_origin.hasNextTile(d)) continue;
+                local mid = _origin.getNextTile(d);
+                if (mid.hasNextTile(d))
+                {
+                    local c = mid.getNextTile(d);
+                    ring2[2 * d] = c;
+                    if (c.ID == _targetTile.ID) hitIdx = 2 * d;
+                }
+                local dn = (d + 1) % 6;
+                if (mid.hasNextTile(dn))
+                {
+                    local e = mid.getNextTile(dn);
+                    ring2[2 * d + 1] = e;
+                    if (e.ID == _targetTile.ID) hitIdx = 2 * d + 1;
+                }
+            }
+            if (hitIdx >= 0)
+            {
+                foreach (off in [0, 11, 10])
+                {
+                    local t = ring2[(hitIdx + off) % 12];
+                    if (t != null && ::Math.abs(t.Level - _origin.Level) <= _maxLevelDiff)
+                        out.push(t);
+                }
+            }
+            return out;
+        }
+
+        // Default: dist-1 3-tile counterclockwise arc (reap at dist 1, shatter, swing, rf_cleaving_swing, sweep, censer_castigate, etc.)
+        if (dist == 1)
+        {
+            local d0 = _origin.getDirectionTo(_targetTile);
+            foreach (off in [0, 5, 4])
+            {
+                local dir = (d0 + off) % 6;
+                if (!_origin.hasNextTile(dir)) continue;
+                local t = _origin.getNextTile(dir);
+                if (::Math.abs(t.Level - _origin.Level) <= _maxLevelDiff)
+                    out.push(t);
+            }
+        }
+        return out;
+    },
+
+    // Enumerate all candidate aim tiles in range around _origin for an AoE skill (including empty tiles for clean friendly-fire shift aiming).
+    function collectAoEAimTiles( _origin, _skill )
+    {
+        local out = [];
+        if (_origin == null || _skill == null)
+            return out;
+        local minR = _skill.getMinRange();
+        local maxR = _skill.getMaxRange();
+        local seen = {};
+        for (local d = 0; d < 6; ++d)
+        {
+            if (!_origin.hasNextTile(d)) continue;
+            local t1 = _origin.getNextTile(d);
+            if (minR <= 1 && maxR >= 1 && !(t1.ID in seen))
+            {
+                seen[t1.ID] <- true;
+                out.push(t1);
+            }
+            if (maxR >= 2)
+            {
+                foreach (d2 in [d, (d + 1) % 6])
+                {
+                    if (!t1.hasNextTile(d2)) continue;
+                    local t2 = t1.getNextTile(d2);
+                    if (_origin.getDistanceTo(t2) == 2 && !(t2.ID in seen))
+                    {
+                        seen[t2.ID] <- true;
+                        out.push(t2);
+                    }
+                }
+            }
+        }
+        return out;
+    },
+
+    // Compute exact part-aware mathematical expected damage for _skill against _target from _originTile:
+    //   - Uses live hit chance P(hit) (with elevation delta when evaluating stepped origins)
+    //   - Uses live headshot probability p_head & headshot crit mult (respecting Steel Brow / IsImmuneToCriticals / IsHeadless)
+    //   - Evaluates Body and Head hits separately against live Head Armor vs Body Armor (plus Battle Forged / Nimble)
+    //   - Discounts armor chipping on a thick secondary armor bar (e.g. 300 helm when body armor is already broken)
+    //   - Models Head vs Body Temporary Injury value on living targets (crossing live light 25% / heavy 50% injury thresholds,
+    //     respecting Crippling Strikes & target injury resistance, weighting severe head trauma higher than body injuries!)
+    //   - Models 2H Axe actives.split_man exact 100% primary-part + 50% secondary-part split damage!
+    function computeSkillExpectedDamage( _actor, _skill, _target, _originTile = null )
+    {
+        local hit = 55;
+        try {
+            hit = _skill.getHitchance(_target);
+            if (_originTile != null && _originTile.ID != _actor.getTile().ID)
+            {
+                local tt = _target.getTile();
+                local curLvlDiff = _actor.getTile().Level - tt.Level;
+                local newLvlDiff = _originTile.Level - tt.Level;
+                hit = ::Math.max(5, ::Math.min(95, hit + (newLvlDiff - curLvlDiff) * 10));
+            }
+        } catch (e) {}
+        local hitF = hit * 0.01;
+
+        local hp = ::Math.maxf(1.0, _target.getHitpoints().tofloat());
+        local maxHP = ::Math.maxf(hp, _target.getHitpointsMax().tofloat());
+        local bodyArm = _target.getArmor(::Const.BodyPart.Body).tofloat();
+        local headArm = _target.getArmor(::Const.BodyPart.Head).tofloat();
+
+        local usedExact = false;
+        local onHitRawHP = 0.0;
+        local onHitHP = 0.0;
+        local onHitArm = 0.0;
+        local onHitVal = 0.0;
+        local pKill = 0.0;
+
+        try {
+            local p = _actor.getSkills().buildPropertiesForUse(_skill, _target);
+            local tp = _target.getCurrentProperties();
+            local regDmg = (p.DamageRegularMin + p.DamageRegularMax) * 0.5 * p.DamageRegularMult * p.DamageTotalMult;
+            if (regDmg > 0.01)
+            {
+                local armDmgRaw = regDmg * p.DamageArmorMult;
+                local skillDir = 0.0;
+                try { skillDir = _skill.m.DirectDamageMult; } catch (e2) {}
+                local dirMult = ::Math.maxf(0.0, ::Math.minf(1.0, (skillDir + p.DamageDirectAdd) * p.DamageDirectMult));
+
+                local canHeadshot = !tp.IsImmuneToHeadshots;
+                try { if (_target.m.IsHeadless) canHeadshot = false; } catch (e2) {}
+                local headP = canHeadshot ? ::Math.maxf(0.0, ::Math.minf(1.0, p.getHitchance(::Const.BodyPart.Head) * 0.01)) : 0.0;
+                local bodyP = 1.0 - headP;
+                local headMult = tp.IsImmuneToCriticals ? 1.0 : p.DamageAgainstMult[::Const.BodyPart.Head];
+                local bodyMult = p.DamageAgainstMult[::Const.BodyPart.Body];
+
+                local armRecv = tp.DamageReceivedArmorMult * tp.DamageReceivedTotalMult;
+                local hpRecv = tp.DamageReceivedRegularMult * tp.DamageReceivedTotalMult;
+                local dirRecv = tp.DamageReceivedDirectMult;
+                local tSkills = _target.getSkills();
+                if (tSkills.hasSkill("perk.battle_forged"))
+                    armRecv *= ::Math.maxf(0.10, 1.0 - 0.0005 * (bodyArm + headArm));
+                local nmb = tSkills.getSkillByID("perk.nimble");
+                if (nmb != null)
+                {
+                    try { hpRecv *= nmb.getChance(); } catch (e2) { hpRecv *= 0.50; }
+                }
+
+                // Temporary injury thresholds (respecting Crippling Strikes & target injury resistance; undead are immune).
+                local canInjure = false;
+                local lightInjThr = maxHP * 0.25;
+                local heavyInjThr = maxHP * 0.50;
+                try {
+                    canInjure = tp.IsAffectedByInjuries;
+                    if (canInjure)
+                    {
+                        local injMult = p.ThresholdToInflictInjuryMult * tp.ThresholdToReceiveInjuryMult;
+                        lightInjThr = ::Math.maxf(10.0, maxHP * 0.25 * injMult);
+                        heavyInjThr = ::Math.maxf(20.0, maxHP * 0.50 * injMult);
+                    }
+                } catch (e2) { canInjure = false; }
+
+                // Helper: evaluate hitting one body part with live armor _partArm vs opposite bar _otherArm.
+                local function evalPart( _partArm, _otherArm, _partMult, _scale, _isHead ) {
+                    local r = regDmg * _scale;
+                    local aRaw = armDmgRaw * _scale * armRecv;
+                    local armHit = ::Math.minf(_partArm, aRaw);
+                    local armAfter = ::Math.maxf(0.0, _partArm - armHit);
+
+                    local dirHP = ::Math.maxf(0.0, r * dirMult * dirRecv - 0.10 * armAfter);
+                    local ovfHP = (_partArm <= 0.01) ? r : (armAfter <= 0.01 ? ::Math.maxf(0.0, r - armHit) : 0.0);
+                    local rawHP = ::Math.maxf(dirHP, ovfHP) * _partMult * hpRecv;
+                    local effHP = ::Math.minf(rawHP, hp * 1.05);
+
+                    // Smart armor-strip weight: chipping an intact thick bar (e.g. 300 helm) while the opposite bar
+                    // (e.g. 20 body) is already broken/much thinner contributes far less to killing the target!
+                    local armW = 0.50;
+                    if (armHit > 0.01)
+                    {
+                        if (_partArm >= _otherArm + 140.0 && armAfter > 60.0)
+                            armW = 0.15;
+                        else if (_partArm >= _otherArm + 75.0 && _otherArm <= 50.0 && armAfter > 30.0)
+                            armW = 0.22;
+                        else if (armAfter <= 0.01)
+                            armW = 0.60;
+                    }
+
+                    // Head vs Body Temporary Injury bonus when target survives the hit:
+                    // head trauma (Severe Concussion, Fractured Skull, Brain Damage, Cut Artery) inflicts far harsher combat debuffs
+                    // than average body injuries, provided HP damage actually gets past Head Armor!
+                    local injBonus = 0.0;
+                    if (canInjure && rawHP < hp * 0.95)
+                    {
+                        if (rawHP >= heavyInjThr)
+                            injBonus = _isHead ? 22.0 : 12.0;
+                        else if (rawHP >= lightInjThr)
+                            injBonus = _isHead ? 11.0 : 6.0;
+                    }
+
+                    // Per-part kill probability on hit (1.0 if guaranteed kill, partial ramp if close to lethal roll).
+                    local partKillP = 0.0;
+                    if (rawHP >= hp * 0.96) partKillP = 1.0;
+                    else if (rawHP >= hp * 0.78) partKillP = 0.55;
+
+                    return {
+                        RawHP = rawHP,
+                        EffHP = effHP,
+                        ArmHit = armHit,
+                        InjBonus = injBonus,
+                        KillP = partKillP,
+                        Val = effHP + armHit * armW + injBonus
+                    };
+                };
+
+                local sid = _skill.getID();
+                if (sid == "actives.split_man")
+                {
+                    // 2H Axe Split Man strikes primary part at 100% and opposite part at 50%!
+                    local b1 = evalPart(bodyArm, headArm, bodyMult, 1.0, false);
+                    local h2 = evalPart(headArm, bodyArm, headMult, 0.5, true);
+                    local h1 = evalPart(headArm, bodyArm, headMult, 1.0, true);
+                    local b2 = evalPart(bodyArm, headArm, bodyMult, 0.5, false);
+                    local rawIfBody = b1.RawHP + h2.RawHP;
+                    local rawIfHead = h1.RawHP + b2.RawHP;
+                    local hpIfBody = ::Math.minf(rawIfBody, hp * 1.05);
+                    local hpIfHead = ::Math.minf(rawIfHead, hp * 1.05);
+                    local injIfBody = rawIfBody >= hp * 0.95 ? 0.0 : (b1.InjBonus + h2.InjBonus * 0.75);
+                    local injIfHead = rawIfHead >= hp * 0.95 ? 0.0 : (h1.InjBonus + b2.InjBonus * 0.75);
+                    local valIfBody = hpIfBody + (b1.Val - b1.EffHP - b1.InjBonus) + (h2.Val - h2.EffHP - h2.InjBonus) + injIfBody;
+                    local valIfHead = hpIfHead + (h1.Val - h1.EffHP - h1.InjBonus) + (b2.Val - b2.EffHP - b2.InjBonus) + injIfHead;
+                    local kBody = rawIfBody >= hp * 0.96 ? 1.0 : (rawIfBody >= hp * 0.78 ? 0.55 : 0.0);
+                    local kHead = rawIfHead >= hp * 0.96 ? 1.0 : (rawIfHead >= hp * 0.78 ? 0.55 : 0.0);
+                    onHitRawHP = bodyP * rawIfBody + headP * rawIfHead;
+                    onHitHP = bodyP * hpIfBody + headP * hpIfHead;
+                    onHitArm = bodyP * (b1.ArmHit + h2.ArmHit) + headP * (h1.ArmHit + b2.ArmHit);
+                    onHitVal = bodyP * valIfBody + headP * valIfHead;
+                    pKill = hitF * (bodyP * kBody + headP * kHead);
+                }
+                else
+                {
+                    local bRes = evalPart(bodyArm, headArm, bodyMult, 1.0, false);
+                    local hRes = evalPart(headArm, bodyArm, headMult, 1.0, true);
+                    onHitRawHP = bodyP * bRes.RawHP + headP * hRes.RawHP;
+                    onHitHP = bodyP * bRes.EffHP + headP * hRes.EffHP;
+                    onHitArm = bodyP * bRes.ArmHit + headP * hRes.ArmHit;
+                    onHitVal = bodyP * bRes.Val + headP * hRes.Val;
+                    pKill = hitF * (bodyP * bRes.KillP + headP * hRes.KillP);
+                }
+                usedExact = true;
+            }
+        } catch (e) { usedExact = false; }
+
+        if (!usedExact)
+        {
+            local expHP = 25.0, expArm = 20.0;
+            try {
+                local dmg = _skill.getExpectedDamage(_target);
+                expHP = dmg.HitpointDamage + dmg.DirectDamage;
+                expArm = dmg.ArmorDamage;
+            } catch (e) {}
+            onHitRawHP = expHP;
+            onHitHP = ::Math.minf(expHP, hp * 1.05);
+            onHitArm = ::Math.minf(expArm, bodyArm + headArm);
+            onHitVal = onHitHP + onHitArm * 0.50;
+            pKill = hitF * (onHitRawHP >= hp * 0.96 ? 1.0 : (onHitRawHP >= hp * 0.78 ? 0.55 : 0.0));
+        }
+
+        return {
+            Hit = hit,
+            HitF = hitF,
+            OnHitRawHP = onHitRawHP,
+            OnHitHP = onHitHP,
+            OnHitArm = onHitArm,
+            OnHitVal = onHitVal,
+            PKill = pKill,
+            ExpHP = hitF * onHitHP,
+            ExpArm = hitF * onHitArm,
+            ExpVal = hitF * onHitVal
+        };
+    },
+
+    // Equivalent tactical damage value of actually killing _foe this swing:
+    // accounts for board/action removal, living-army Morale Cascade checks on nearby enemies,
+    // unacted-turn denial, Berserk / Killing Frenzy tempo, and Mentor-breach / high-priority threat removal.
+    function computeKillEquivalentValue( _actor, _foe, _info = null )
+    {
+        if (_foe == null || ::MSU.isNull(_foe) || _foe.getMoraleState() == ::Const.MoraleState.Fleeing)
+            return 0.0;
+
+        local val = 32.0; // Base board removal & action-economy gain.
+
+        // Living-army Morale Cascade: killing a non-undead enemy triggers morale drops on nearby living enemies!
+        if (!_foe.getFlags().has("undead"))
+        {
+            val += 14.0;
+            if (_info != null && "Enemies" in _info)
+            {
+                local ft = _foe.getTile();
+                local nearLiving = 0;
+                foreach (e in _info.Enemies)
+                {
+                    if (e.getID() == _foe.getID() || e.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                    if (!e.getFlags().has("undead") && ft.getDistanceTo(e.getTile()) <= 4)
+                        ++nearLiving;
+                }
+                val += ::Math.min(3, nearLiving) * 4.0;
+            }
+        }
+
+        // Turn-order action denial: killing an enemy BEFORE they act this round saves immediate incoming attacks.
+        local st = this.enemyLiveStats(_foe);
+        if (st.CanActThisRound)
+            val += (st.TurnsUntil <= 3 ? 15.0 : 10.0);
+
+        // Attacker on-kill tempo perks (Berserk +4 AP, Killing Frenzy +25% dmg).
+        local aSk = _actor.getSkills();
+        if (aSk.hasSkill("perk.berserk")) val += 16.0;
+        if (aSk.hasSkill("perk.killing_frenzy") && !aSk.hasSkill("effects.killing_frenzy")) val += 8.0;
+
+        // Threat & Mentor-breach multiplier.
+        local fs = _foe.getSkills();
+        local isHigh = fs.hasSkill("racial.champion") || fs.hasSkill("actives.raise_undead")
+            || fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma")
+            || fs.hasSkill("effects.berserker_rage") || _foe.ClassName == "orc_berserker";
+        if (!isHigh && _info != null && "Brothers" in _info)
+        {
+            local ft = _foe.getTile();
+            foreach (bro in _info.Brothers)
+            {
+                if (this.isCasterRole(bro) && ft.getDistanceTo(bro.getTile()) <= 2)
+                {
+                    isHigh = true;
+                    break;
+                }
+            }
+        }
+        if (isHigh) val *= 1.45;
+        return val;
+    },
+
+    // Evaluate one concrete AoE strike from _originTile aiming at _targetTile.
+    // Strictly detects ANY allied unit on affected tiles so friendly fire is cleanly eliminated.
+    function evaluateAoEStrike( _actor, _originTile, _targetTile, _skill, _info = null, _lineLen = 2 )
+    {
+        local maxLvl = 1;
+        try { maxLvl = _skill.getMaxLevelDifference(); } catch (e) { maxLvl = 1; }
+        local sid = _skill.getID();
+        local tiles = this.getAoEAffectedTiles(_originTile, _targetTile, sid, maxLvl, _lineLen);
+
+        local alliesHit = 0;
+        local activeEnemies = 0;
+        local fleeingEnemies = 0;
+        local lethalKills = 0;
+        local priorityKills = 0;
+        local totalExpHP = 0.0;
+        local totalExpArm = 0.0;
+        local totalEffDmg = 0.0;
+        local totalCompVal = 0.0;
+        local totalExpKills = 0.0;
+        local totalValue = 0.0;
+        local hitSum = 0.0;
+        local nonDefBuffEnemies = 0;
+        local hitIDs = {};
+
+        local chiefTile = null;
+        if (_info != null && "Brothers" in _info)
+        {
+            foreach (bro in _info.Brothers)
+                if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+        }
+
+        foreach (t in tiles)
+        {
+            if (t == null || !t.IsOccupiedByActor) continue;
+            local occ = t.getEntity();
+            if (occ == null || ::MSU.isNull(occ) || !occ.isAlive() || occ.isDying()) continue;
+            if (occ.getID() == _actor.getID()) continue;
+            if (occ.isAlliedWith(_actor))
+            {
+                ++alliesHit;
+                continue;
+            }
+            if (!occ.isAttackable() || occ.isHiddenToPlayer() || !t.IsVisibleForPlayer)
+                continue;
+
+            local isFleeing = (occ.getMoraleState() == ::Const.MoraleState.Fleeing);
+            if (isFleeing)
+            {
+                ++fleeingEnemies;
+                continue;
+            }
+            ++activeEnemies;
+            hitIDs[occ.getID()] <- true;
+
+            // Exact headshot-rate, head/body-armor & head/body-injury weighted expected damage!
+            local ed = this.computeSkillExpectedDamage(_actor, _skill, occ, _originTile);
+            local killEq = ed.PKill > 0.0 ? this.computeKillEquivalentValue(_actor, occ, _info) : 0.0;
+            hitSum += ed.Hit;
+            totalExpHP += ed.ExpHP;
+            totalExpArm += ed.ExpArm;
+            totalEffDmg += ed.ExpVal;
+            totalExpKills += ed.PKill;
+            totalCompVal += ed.ExpVal + ed.PKill * killEq;
+
+            local os = occ.getSkills();
+            if (!os.hasSkill("effects.shieldwall") && !os.hasSkill("effects.riposte"))
+                ++nonDefBuffEnemies;
+
+            local kills = (ed.OnHitRawHP >= occ.getHitpoints() * 0.92 && ed.Hit >= 40);
+            if (kills)
+            {
+                ++lethalKills;
+                local isUrg = os.hasSkill("racial.champion") || os.hasSkill("actives.raise_undead")
+                    || os.hasSkill("actives.horror") || os.hasSkill("actives.miasma")
+                    || os.hasSkill("effects.berserker_rage") || occ.ClassName == "orc_berserker"
+                    || (chiefTile != null && t.getDistanceTo(chiefTile) <= 2);
+                if (isUrg) ++priorityKills;
+            }
+
+            // Compute tactical value per enemy hit using focus-target multipliers.
+            local baseVal = ed.ExpVal + ed.PKill * killEq * 0.65;
+            if (kills) baseVal *= 1.35;
+            if (os.hasSkill("effects.riposte")) baseVal *= 0.45;
+            else if (os.hasSkill("effects.shieldwall") && ed.Hit < 55) baseVal *= 0.55;
+            if (os.hasSkill("racial.champion") || os.hasSkill("effects.berserker_rage")
+                || os.hasSkill("actives.raise_undead") || os.hasSkill("actives.horror") || os.hasSkill("actives.miasma"))
+                baseVal *= 1.35;
+            if (chiefTile != null && t.getDistanceTo(chiefTile) <= 2)
+                baseVal *= 1.45;
+            if (sid == "actives.shatter" && !os.hasSkill("effects.staggered") && !occ.getCurrentProperties().IsImmuneToStun)
+                baseVal += 10.0 * ed.HitF;
+            totalValue += baseVal;
+        }
+
+        local avgHit = activeEnemies > 0 ? (hitSum / activeEnemies) : 0.0;
+
+        return {
+            AimTile = _targetTile,
+            AlliesHit = alliesHit,
+            ActiveEnemies = activeEnemies,
+            FleeingEnemies = fleeingEnemies,
+            LethalKills = lethalKills,
+            PriorityKills = priorityKills,
+            TotalExpHP = totalExpHP,
+            TotalExpArm = totalExpArm,
+            EffDmg = totalEffDmg,
+            CompVal = totalCompVal,
+            ExpKills = totalExpKills,
+            AvgHit = avgHit,
+            NonDefBuffEnemies = nonDefBuffEnemies,
+            TotalValue = totalValue,
+            HitIDs = hitIDs
+        };
+    },
+
+    // Measure the highest AP-normalized mathematical expected damage AND kill+morale competitive value achievable
+    // by ANY usable non-AoE primary weapon attack (Skill 1) from _originTile (e.g. overhead_strike, pound, split_man,
+    // smite, strike, cleave), ensuring a high-hit Skill-1 finish on a wounded enemy properly competes against AoE!
+    function bestSingleTargetMetric( _actor, _originTile, _info, _aoeSkill = null )
+    {
+        local aoeID = _aoeSkill != null ? _aoeSkill.getID() : null;
+        local aoeAP = _aoeSkill != null ? _aoeSkill.getActionPointCost() : 6;
+
+        local primSkills = [];
+        foreach (s in _actor.getSkills().m.Skills)
+        {
+            if (s == null || !s.m.IsActive || !s.m.IsAttack || !s.m.IsTargeted || s.m.IsRanged || !s.m.IsWeaponSkill)
+                continue;
+            local sid = s.getID();
+            if (s.m.IsAOE || sid == aoeID) continue;
+            if (sid == "actives.knock_out" || sid == "actives.strike_down"
+                || sid == "actives.split_shield" || sid == "actives.disarm"
+                || sid == "actives.hook" || sid == "actives.repel" || sid == "actives.knock_back"
+                || sid == "actives.rf_hook_shield" || sid == "actives.rf_deep_impact"
+                || sid == "actives.decapitate" || sid == "actives.exesword_decapitate"
+                || sid == "actives.golem_decapitate" || sid == "actives.lash")
+                continue;
+            if (s.isHidden() || !s.isUsable()) continue;
+            primSkills.push(s);
+        }
+        if (primSkills.len() == 0)
+            return { Skill = null, BestEffDmg = 0.0, BestCompVal = 0.0, BestPKill = 0.0, PrimAP = 6, PrimFat = 15, UrgentKillID = -1, AnyKillID = -1 };
+
+        local chiefTile = null;
+        if (_info != null && "Brothers" in _info)
+        {
+            foreach (bro in _info.Brothers)
+                if (this.isCasterRole(bro)) { chiefTile = bro.getTile(); break; }
+        }
+
+        local bestSkill = null;
+        local bestNormDmg = 0.0;
+        local bestNormComp = 0.0;
+        local bestPKill = 0.0;
+        local bestPrimAP = 6;
+        local bestPrimFat = 15;
+        local urgentKillID = -1;
+        local anyKillID = -1;
+        local enemies = (_info != null && "Enemies" in _info) ? _info.Enemies : this.collectEnemies(_actor, null);
+
+        foreach (prim in primSkills)
+        {
+            local minR = prim.getMinRange();
+            local maxR = prim.getMaxRange();
+            local pAP = ::Math.max(1, prim.getActionPointCost());
+            local pFat = prim.getFatigueCost();
+            local apScale = ::Math.maxf(1.0, aoeAP.tofloat() / pAP.tofloat());
+
+            foreach (foe in enemies)
+            {
+                if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+                local ft = foe.getTile();
+                local d = _originTile.getDistanceTo(ft);
+                if (d < minR || d > maxR) continue;
+                local ok = false;
+                try { ok = prim.isUsableOn(ft, _originTile); } catch (e) { ok = false; }
+                if (!ok) continue;
+
+                local ed = this.computeSkillExpectedDamage(_actor, prim, foe, _originTile);
+                local killEq = ed.PKill > 0.0 ? this.computeKillEquivalentValue(_actor, foe, _info) : 0.0;
+                local normEff = ed.ExpVal * apScale;
+                local normComp = (ed.ExpVal + ed.PKill * killEq) * apScale;
+
+                if (normEff > bestNormDmg) bestNormDmg = normEff;
+                if (ed.PKill > bestPKill) bestPKill = ed.PKill;
+                if (normComp > bestNormComp)
+                {
+                    bestNormComp = normComp;
+                    bestSkill = prim;
+                    bestPrimAP = pAP;
+                    bestPrimFat = pFat;
+                }
+
+                if (ed.OnHitRawHP >= foe.getHitpoints() * 0.95 && ed.Hit >= 48)
+                {
+                    anyKillID = foe.getID();
+                    local fs = foe.getSkills();
+                    local st = this.enemyLiveStats(foe);
+                    local isUrg = (chiefTile != null && ft.getDistanceTo(chiefTile) <= 2)
+                        || fs.hasSkill("racial.champion") || fs.hasSkill("actives.raise_undead")
+                        || fs.hasSkill("actives.horror") || fs.hasSkill("actives.miasma")
+                        || fs.hasSkill("effects.berserker_rage") || foe.ClassName == "orc_berserker"
+                        || (st.CanActThisRound && this.isHeavyMeleeThreat(foe, _actor));
+                    if (isUrg) urgentKillID = foe.getID();
+                }
+            }
+        }
+        return {
+            Skill = bestSkill,
+            BestEffDmg = bestNormDmg,
+            BestCompVal = bestNormComp,
+            BestPKill = bestPKill,
+            PrimAP = bestPrimAP,
+            PrimFat = bestPrimFat,
+            UrgentKillID = urgentKillID,
+            AnyKillID = anyKillID
+        };
+    },
+
+    // Compute the minimum expected-damage ratio (AoE E[Dmg] / AP-normalized Skill-1 E[Dmg]) required to justify
+    // spending an AoE skill's higher Fatigue/AP cost over focused Skill-1 damage (covers Greatsword split/swing,
+    // 2H Flail thresh, 2H Axe round_swing/split_axe, 2H Hammer shatter, Polearm reap, and Reforged AoE swings/splits).
+    function computeAoERequiredMult( _actor, _aoeSkill, _single, _ev, _kind, _moveAP = 0 )
+    {
+        local aoeFat = _aoeSkill.getFatigueCost();
+        local primFat = (_single != null && _single.PrimFat > 0) ? _single.PrimFat : 15;
+        local fatDelta = ::Math.max(0, aoeFat - primFat);
+        local fatPct = _actor.getFatigueMax() > 0 ? (_actor.getFatigue().tofloat() / _actor.getFatigueMax().tofloat()) : 0.0;
+
+        // Require AoE expected damage to significantly beat focused Skill-1 expected damage:
+        // base 1.35x + extra fatigue surcharge (+1.2% per extra Fat up to +0.25) + tiredness surcharge + step AP surcharge.
+        // (Extra AP cost of AoE vs Skill 1 is already folded into _single.BestEffDmg via apScale = aoeAP / primAP.)
+        local reqMult = 1.35 + ::Math.minf(0.25, fatDelta * 0.012);
+        if (fatPct >= 0.40)
+            reqMult += (fatPct - 0.40) * 0.55;
+        if (_moveAP > 0)
+            reqMult += _moveAP * 0.03;
+
+        // High-risk 360-degree -15% hitchance AoEs (Thresh, Round Swing) require an even clearer edge (>= 1.60x).
+        if (_kind == "thresh")
+            reqMult = ::Math.maxf(reqMult, 1.60);
+
+        // Modest relaxation when AoE delivers a multi-kill (>= 2) or secures a kill Skill 1 cannot get,
+        // while still requiring a clear expected-damage advantage over Skill 1.
+        if (_ev.LethalKills >= 2)
+            reqMult = ::Math.maxf(1.20, reqMult - 0.22);
+        else if (_ev.LethalKills >= 1 && (_single == null || _single.AnyKillID == -1))
+            reqMult = ::Math.maxf(1.25, reqMult - 0.14);
+
+        return reqMult;
+    },
+
+    // Unified Zero-Friendly-Fire optimizer & expected-damage gate for standing melee AoE behaviors:
+    //   kind = "reap"   (ai_attack_reap: actives.reap, actives.censer_castigate)
+    //   kind = "swing"  (ai_attack_swing: actives.shatter, actives.swing, actives.rf_cleaving_swing, actives.sweep, ...)
+    //   kind = "split"  (ai_attack_split: actives.split, actives.rf_cleaving_split, actives.split_axe, ...)
+    //   kind = "thresh" (ai_attack_thresh: actives.thresh, actives.round_swing, ...)
+    function evaluateSmartMeleeAoE( _behavior, _actor, _origScore, _kind )
+    {
+        _behavior.m.TargetTile = null;
+        _behavior.m.Skill = null;
+        if (_actor.getActionPoints() < ::Const.Movement.AutoEndTurnBelowAP
+            || _actor.getMoraleState() == ::Const.MoraleState.Fleeing
+            || _actor.getCurrentProperties().IsStunned)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        local info = this.assessBattle(_actor, _behavior.getAgent());
+        if (info.Enemies.len() == 0)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        // Respect ironclad Phase-1 tactical combo / buff-expire wait for Autopilot player brothers.
+        if (::Autopilot.isUnderAIControl(_actor) && ::Tactical.TurnSequenceBar.canEntityWait(_actor))
+        {
+            local wPlan = this.evaluateTacticalWait(_actor, info, _behavior.getAgent());
+            if (wPlan != null && wPlan.SuppressAttack)
+                return ::Const.AI.Behavior.Score.Zero;
+        }
+
+        local skill = _behavior.selectSkill(_behavior.m.PossibleSkills);
+        if (skill == null || skill.isHidden() || !skill.isUsable() || !skill.isAffordable())
+            return ::Const.AI.Behavior.Score.Zero;
+
+        local myTile = _actor.getTile();
+        local lineLen = 2;
+        if (_kind == "split")
+        {
+            try { if (_behavior.m.Length > 0) lineLen = _behavior.m.Length; } catch (e) { lineLen = 2; }
+        }
+
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local fatAfter = availFat - skill.getFatigueCost();
+        local single = this.bestSingleTargetMetric(_actor, myTile, info, skill);
+
+        local bestEval = null;
+        local aimCandidates = (_kind == "thresh") ? [myTile.hasNextTile(0) ? myTile.getNextTile(0) : null] : this.collectAoEAimTiles(myTile, skill);
+
+        foreach (aimTile in aimCandidates)
+        {
+            if (aimTile == null) continue;
+            if (_kind != "thresh")
+            {
+                local usable = false;
+                try { usable = skill.isUsableOn(aimTile, myTile); } catch (e) { usable = false; }
+                if (!usable) continue;
+            }
+            else
+            {
+                // For 360-degree thresh/round_swing, find any valid target tile to execute the skill on.
+                local validAim = null;
+                for (local d = 0; d < 6; ++d)
+                {
+                    if (!myTile.hasNextTile(d)) continue;
+                    local nt = myTile.getNextTile(d);
+                    local ok = false;
+                    try { ok = skill.isUsableOn(nt, myTile); } catch (e) { ok = false; }
+                    if (ok) { validAim = nt; break; }
+                }
+                if (validAim == null) continue;
+                aimTile = validAim;
+            }
+
+            local ev = this.evaluateAoEStrike(_actor, myTile, aimTile, skill, info, lineLen);
+            // HARD ZERO FRIENDLY-FIRE RULE: never hit ANY ally (brothers, Mentor, Lich King, pets, undead allies)!
+            if (ev.AlliesHit > 0)
+                continue;
+            // Require at least 2 active non-fleeing enemies hit (3+ for 360-degree thresh/round_swing unless multi-kill).
+            if (_kind == "thresh")
+            {
+                if (ev.ActiveEnemies < 3 && !(ev.ActiveEnemies == 2 && ev.LethalKills >= 2 && fatAfter >= 14))
+                    continue;
+            }
+            else
+            {
+                if (ev.ActiveEnemies < 2)
+                    continue;
+            }
+            // Do not waste 2x fatigue grazing Shieldwall/Riposte turtles at poor hit chance with zero kills.
+            if (ev.LethalKills == 0 && ev.NonDefBuffEnemies == 0 && ev.AvgHit < 52)
+                continue;
+            if (ev.ActiveEnemies == 2 && ev.LethalKills == 0 && ev.AvgHit < 38)
+                continue;
+            // Fatigue headroom gate for non-lethal 2-target AoEs.
+            if (ev.ActiveEnemies == 2 && ev.LethalKills == 0 && fatAfter < 10)
+                continue;
+
+            // UNIVERSAL UNIFIED EXPECTED-VALUE COMPETITION GATE:
+            // Compares AoE CompVal = Sum(part-aware ExpDmg + Head/Body Injury + P(kill)*KillMorale)
+            // directly against Skill-1 AP-normalized BestCompVal * reqMult (scaled by extra Fatigue, tiredness, and 360 risk).
+            // Smooth & continuous (never absolute): a reliable Skill-1 wounded finish beats marginal 2-man AoEs,
+            // while a multi-kill AoE or overwhelming 3-man sweep still cleanly wins over a routine single finish!
+            local reqMult = this.computeAoERequiredMult(_actor, skill, single, ev, _kind, 0);
+            if (single.UrgentKillID != -1 && ev.LethalKills == 0)
+                reqMult += 0.18;
+            if (single.BestCompVal > 0.0 && ev.CompVal < single.BestCompVal * reqMult)
+                continue;
+
+            if (bestEval == null || ev.TotalValue > bestEval.TotalValue)
+                bestEval = ev;
+        }
+
+        if (bestEval == null)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        _behavior.m.Skill = skill;
+        _behavior.m.TargetTile = bestEval.AimTile;
+
+        local bMult = 1.0;
+        try { bMult = _behavior.getProperties().BehaviorMult[_behavior.m.ID]; } catch (e) {}
+        if (bMult <= 0.0) bMult = 1.0;
+
+        // Calibrate score so clean 0-FF high-expected-damage sweeps reliably beat single-target Attack.Default (~180-550)
+        // while staying cleanly below wounded_retreat (820) and emergency rescues / kiting / Shieldwall (850-1650).
+        local targetScore = ::Const.AI.Behavior.Score.Attack * bMult
+            * (bestEval.ActiveEnemies >= 3 ? 4.8 : (bestEval.LethalKills >= 1 ? 3.8 : 2.8))
+            + bestEval.TotalValue * 2.2
+            + bestEval.LethalKills * 140.0 + bestEval.PriorityKills * 110.0;
+        if (_origScore > 0.0)
+            targetScore = ::Math.maxf(targetScore, _origScore * (bestEval.ActiveEnemies >= 3 ? 1.35 : 1.10));
+        local scoreCap = (bestEval.ActiveEnemies >= 3 || bestEval.LethalKills >= 1) ? 780.0 : 620.0;
+        return ::Math.minf(scoreCap, targetScore);
+    },
+
+    // Find the best zero-friendly-fire actives.reap plan for a 2-tile polearm wielder (standing OR after a 1-2 tile safe non-ZoC step),
+    // using live previewSkillCostsAfterMove() so Polearm Mastery (5 AP) & Vigorous Assault (-1 AP / 2 tiles) work seamlessly,
+    // and enforcing the mathematical expected-damage margin over Skill-1 strike!
+    function findBestReapPlan( _behavior, _actor, _info )
+    {
+        if (_actor == null || _info == null || _info.Enemies.len() < 2)
+            return null;
+        if (this.isRangedRole(_actor) || this.isCasterRole(_actor) || _actor.getCurrentProperties().IsStunned)
+            return null;
+        local reap = _actor.getSkills().getSkillByID("actives.reap");
+        if (reap == null || reap.isHidden() || !reap.isUsable())
+            return null;
+
+        local myTile = _actor.getTile();
+        local inZoC = myTile.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0;
+        local ap = _actor.getActionPoints();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local reapAP = reap.getActionPointCost();
+        local reapFat = reap.getFatigueCost();
+
+        // Optimistic minimum AP after move-discount perks (Vigorous Assault / Vanquisher).
+        local skills = _actor.getSkills();
+        local hasMoveDiscount = skills.hasSkill("perk.rf_vigorous_assault") || skills.hasSkill("perk.rf_vanquisher");
+        local optimisticAP = hasMoveDiscount ? ::Math.max(1, reapAP - 2) : reapAP;
+        if (ap < optimisticAP)
+            return null;
+
+        // Check standing single-target baseline (and urgent kill check).
+        local singleHere = this.bestSingleTargetMetric(_actor, myTile, _info, reap);
+        local canStep = (!inZoC && !_actor.getCurrentProperties().IsRooted && !this.shouldWoundedRetreat(_actor, _info));
+
+        local origins = [{ Tile = myTile, MoveAP = 0, MoveFat = 0, EffAP = reapAP, EffFat = reapFat }];
+        if (canStep && (ap - optimisticAP) >= 2)
+        {
+            local maxStepTiles = (ap - optimisticAP) >= 4 ? 2 : 1;
+            local navigator = ::Tactical.getNavigator();
+            local settings = this.navSettings(_actor, navigator);
+            local cands = this.tilesInRange(myTile, 1, maxStepTiles);
+            foreach (dest in cands)
+            {
+                if (!dest.IsEmpty || dest.ID == myTile.ID) continue;
+                if (dest.getZoneOfControlCountOtherThan(_actor.getAlliedFactions()) > 0) continue;
+                if (_behavior != null && _behavior.hasNegativeTileEffect(dest, _actor)) continue;
+                // Do not step into an uphill polearm/melee trap or isolated forward danger for a reap.
+                local uphill = this.isUphillMeleeTrap(dest, _actor, _info);
+                if (uphill.IsTrap || uphill.PolearmTrap) continue;
+                if (!navigator.findPath(myTile, dest, settings, 0)) continue;
+                local cost = navigator.getCostForPath(_actor, settings, ap, availFat);
+                if (!cost.IsComplete || cost.End == null || cost.End.ID != dest.ID || cost.Tiles > maxStepTiles) continue;
+                local eff = this.previewSkillCostsAfterMove(_actor, reap, cost);
+                if (ap - cost.ActionPointsRequired < eff.AP || availFat - cost.FatigueRequired < eff.Fat)
+                    continue;
+                // Avoid stepping directly adjacent to an unengaged dangerous melee killer when current tile was safer.
+                local curThreatD = this.nearestDangerousMeleeDist(_actor, _info.Enemies);
+                local newThreatD = this.nearestDangerousMeleeDistAt(dest, _info.Enemies);
+                if (curThreatD >= 3 && newThreatD <= 1) continue;
+                origins.push({
+                    Tile = dest,
+                    MoveAP = cost.ActionPointsRequired,
+                    MoveFat = cost.FatigueRequired,
+                    EffAP = eff.AP,
+                    EffFat = eff.Fat
+                });
+            }
+        }
+
+        local bestPlan = null;
+        local bestRank = -9999.0;
+
+        foreach (org in origins)
+        {
+            local oTile = org.Tile;
+            if (ap - org.MoveAP < org.EffAP || availFat - org.MoveFat < org.EffFat)
+                continue;
+            local fatAfter = availFat - org.MoveFat - org.EffFat;
+            local singleOrg = (oTile.ID == myTile.ID) ? singleHere : this.bestSingleTargetMetric(_actor, oTile, _info, reap);
+            local refSingle = (singleOrg.BestCompVal >= singleHere.BestCompVal) ? singleOrg : singleHere;
+            local aimTiles = this.collectAoEAimTiles(oTile, reap);
+
+            foreach (aim in aimTiles)
+            {
+                local usable = false;
+                try { usable = reap.isUsableOn(aim, oTile); } catch (e) { usable = false; }
+                if (!usable) continue;
+
+                local ev = this.evaluateAoEStrike(_actor, oTile, aim, reap, _info, 2);
+                // STRICT ZERO FRIENDLY FIRE!
+                if (ev.AlliesHit > 0 || ev.ActiveEnemies < 2)
+                    continue;
+                if (ev.LethalKills == 0 && ev.NonDefBuffEnemies == 0 && ev.AvgHit < 52)
+                    continue;
+                if (ev.ActiveEnemies == 2 && ev.LethalKills == 0)
+                {
+                    if (fatAfter < 10) continue;
+                    if (ev.AvgHit < 40) continue;
+                }
+                // Unified mathematical expected-value margin over Skill-1 strike (damage + head/body injury + kill/morale competition + fatigue + step AP)!
+                local reqMult = this.computeAoERequiredMult(_actor, reap, refSingle, ev, "reap", org.MoveAP);
+                if (singleHere.UrgentKillID != -1 && ev.LethalKills == 0)
+                    reqMult += 0.18;
+                if (refSingle.BestCompVal > 0.0 && ev.CompVal < refSingle.BestCompVal * reqMult)
+                    continue;
+
+                // Rank candidate (origin, aim) plans: 3-man clean sweeps >> 2-man lethal sweeps > 2-man clean sweeps; prefer staying on high ground.
+                local rank = ev.TotalValue
+                    + (ev.ActiveEnemies >= 3 ? 85.0 : 0.0)
+                    + ev.LethalKills * 55.0 + ev.PriorityKills * 45.0
+                    + (oTile.Level - myTile.Level) * 14.0
+                    - org.MoveAP * 2.5
+                    - (oTile.IsBadTerrain ? 12.0 : 0.0);
+                if (rank > bestRank)
+                {
+                    bestRank = rank;
+                    local behScore = (ev.ActiveEnemies >= 3) ? 740.0 : (ev.LethalKills >= 1 ? 660.0 : 590.0);
+                    bestPlan = {
+                        OriginTile = oTile,
+                        AimTile = aim,
+                        Skill = reap,
+                        Eval = ev,
+                        Score = behScore,
+                        NeedsMove = (oTile.ID != myTile.ID)
+                    };
+                }
+            }
+        }
+        return bestPlan;
+    },
+
+    // Precision timing optimizer for actives.decapitate (Cleaver Duelists & Lich King):
+    //   1. Execution: use when Decapitate secures a kill that primary Cleave cannot reliably confirm.
+    //   2. Anti-Resurrection Behead: use to permanently behead Zombies / Wiedergangers / Fallen Heroes.
+    //   3. Overkill Prevention: VETO when Cleave already kills a non-zombie cleanly (saves +67% fatigue!).
+    //   4. 1-2 Combo & Wounded Burst: on full/high-HP targets, swing Cleave FIRST (2x bleed + drop HP + cheap fat),
+    //      then follow up with Decapitate on swing 2 once HP is wounded and armor is low (or on bleed-immune wounded targets!).
+    function evaluateSmartDecapitate( _behavior, _actor, _origScore )
+    {
+        _behavior.m.TargetTile = null;
+        _behavior.m.Skill = null;
+        if (_actor.getActionPoints() < ::Const.Movement.AutoEndTurnBelowAP
+            || _actor.getMoraleState() == ::Const.MoraleState.Fleeing
+            || _actor.getCurrentProperties().IsStunned)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        local info = this.assessBattle(_actor, _behavior.getAgent());
+        if (info.Enemies.len() == 0)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        if (::Autopilot.isUnderAIControl(_actor) && ::Tactical.TurnSequenceBar.canEntityWait(_actor))
+        {
+            local wPlan = this.evaluateTacticalWait(_actor, info, _behavior.getAgent());
+            if (wPlan != null && wPlan.SuppressAttack)
+                return ::Const.AI.Behavior.Score.Zero;
+        }
+
+        local decap = _behavior.selectSkill(_behavior.m.PossibleSkills);
+        if (decap == null || decap.isHidden() || !decap.isUsable() || !decap.isAffordable())
+            return ::Const.AI.Behavior.Score.Zero;
+
+        local cleave = _actor.getSkills().getSkillByID("actives.cleave");
+        if (cleave != null && (cleave.isHidden() || !cleave.isUsable() || !cleave.isAffordable()))
+            cleave = null;
+
+        local myTile = _actor.getTile();
+        local ap = _actor.getActionPoints();
+        local decapAP = decap.getActionPointCost();
+        local decapFat = decap.getFatigueCost();
+        local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+        local fatPct = _actor.getFatigue().tofloat() / ::Math.maxf(1.0, _actor.getFatigueMax().tofloat());
+        local canSwingTwice = (ap >= decapAP * 2);
+        local isPlayerBro = (_actor.getFaction() == ::Const.Faction.Player);
+
+        local enemyHasNecro = false;
+        foreach (e in info.Enemies)
+        {
+            if (e.getMoraleState() != ::Const.MoraleState.Fleeing && e.getSkills().hasSkill("actives.raise_undead"))
+            {
+                enemyHasNecro = true;
+                break;
+            }
+        }
+
+        local bestTile = null;
+        local bestScore = 0.0;
+
+        foreach (foe in info.Enemies)
+        {
+            if (foe.getMoraleState() == ::Const.MoraleState.Fleeing) continue;
+            local ft = foe.getTile();
+            local d = myTile.getDistanceTo(ft);
+            if (d < decap.getMinRange() || d > decap.getMaxRange()) continue;
+            local usable = false;
+            try { usable = decap.isUsableOn(ft, myTile); } catch (e) { usable = false; }
+            if (!usable) continue;
+
+            local hp = foe.getHitpoints();
+            local hpPct = foe.getHitpointsPct();
+            local bleedImmune = foe.getCurrentProperties().IsImmuneToBleeding;
+            local cn = foe.ClassName;
+            local isZombieRes = foe.getFlags().has("zombie_minion")
+                || cn == "zombie" || cn == "zombie_yeoman" || cn == "zombie_knight"
+                || cn == "rf_zombie_hero" || cn == "zombie_betrayer";
+
+            local dEd = this.computeSkillExpectedDamage(_actor, decap, foe, myTile);
+            local dHit = dEd.Hit;
+            local dExpHP = dEd.OnHitHP;
+            local dRawHP = dEd.OnHitRawHP;
+            if (dHit < 32) continue;
+
+            local cHit = dHit, cExpHP = 0.0, cRawHP = 0.0;
+            if (cleave != null)
+            {
+                local cEd = this.computeSkillExpectedDamage(_actor, cleave, foe, myTile);
+                cHit = cEd.Hit;
+                cExpHP = cEd.OnHitHP;
+                cRawHP = cEd.OnHitRawHP;
+            }
+
+            local decapKills = (dRawHP >= hp * 0.92 && dHit >= 38);
+            local cleaveCleanKills = (cleave != null && cRawHP >= hp * 1.12 && cHit >= 45);
+
+            local modeMult = 0.0;
+            // Mode A: True Execution (Decapitate kills what Cleave cannot reliably kill!).
+            if (decapKills && !cleaveCleanKills)
+            {
+                modeMult = 1.65;
+            }
+            // Mode B: Anti-Resurrection Zombie / Fallen Hero Behead!
+            else if (isZombieRes && dExpHP >= hp * 0.85 && dHit >= 40
+                && (availFat >= decapFat + 6 || enemyHasNecro || foe.getHitpointsMax() >= 115))
+            {
+                modeMult = (enemyHasNecro || foe.getHitpointsMax() >= 115) ? 1.60 : 1.40;
+            }
+            // Mode C: Overkill Prevention (never waste +67% fatigue overkilling non-resurrecting low-HP foes Cleave already kills!).
+            else if (cleaveCleanKills)
+            {
+                continue;
+            }
+            // Mode D: Wounded HP Burst (strictly after target HP & armor are opened; swing Cleave first on full-HP targets!).
+            else
+            {
+                local hpGate = bleedImmune ? 0.72 : (canSwingTwice ? 0.50 : 0.58);
+                if (hpPct > hpGate) continue;
+                if (dHit < 48) continue;
+                local fatBuf = isPlayerBro ? 16 : 12;
+                if (_actor.getFatigueMax() > 0 && (availFat < decapFat + fatBuf || (isPlayerBro && fatPct > 0.68))) continue;
+                if (cleave != null)
+                {
+                    local minGain = bleedImmune ? 12.0 : 22.0;
+                    local minRatio = bleedImmune ? 1.15 : 1.24;
+                    if (dExpHP < cExpHP + minGain || dExpHP < cExpHP * minRatio)
+                        continue;
+                }
+                modeMult = 1.32;
+            }
+
+            // Score using vanilla queryTargetValue (which already incorporates our scoreFocusTarget multipliers!).
+            local tv = 1.0;
+            try { tv = _behavior.queryTargetValue(_actor, foe, decap); } catch (e) { tv = 1.0; }
+            local sc = ::Const.AI.Behavior.Score.Attack * tv * modeMult * (dHit * 0.01);
+            if (decapKills) sc = ::Math.maxf(sc, 420.0 * modeMult);
+            if (sc > bestScore)
+            {
+                bestScore = sc;
+                bestTile = ft;
+            }
+        }
+
+        if (bestTile == null)
+            return ::Const.AI.Behavior.Score.Zero;
+
+        _behavior.m.Skill = decap;
+        _behavior.m.TargetTile = bestTile;
+        return bestScore;
+    },
+
+    // Precision gate for 2H Mace actives.strike_down & 1H Mace actives.knock_out:
+    // eliminates routine / overkill / low-value / surrounded-fodder / low-fatigue stun spam (preserving full-dmg Dazing Cudgel
+    // + Reforged Concussive Strikes headshot stuns!), while firing cleanly on genuine clutch stuns (Champions, Berserkers,
+    // Knights, Warlords, Executioners, Mentor-breachers, and active Riposte/Spearwall cancels).
+    function evaluateSmartKnockOut( _behavior, _actor, _origScore )
+    {
+        if ((typeof _origScore != "integer" && typeof _origScore != "float") || _origScore <= 0.0 || _behavior.m.Skill == null)
+            return _origScore;
+
+        local info = this.assessBattle(_actor, _behavior.getAgent());
+        if (::Tactical.TurnSequenceBar.canEntityWait(_actor))
+        {
+            local wPlan = this.evaluateTacticalWait(_actor, info, _behavior.getAgent());
+            if (wPlan != null && wPlan.SuppressAttack)
+            {
+                _behavior.m.TargetTile = null;
+                _behavior.m.Skill = null;
+                _behavior.m.BestTarget = null;
+                return ::Const.AI.Behavior.Score.Zero;
+            }
+        }
+
+        local skill = _behavior.m.Skill;
+        local sid = skill.getID();
+        // Only govern Mace stun skills (leave Disarm, RF Hook Shield, and RF Deep Impact unaffected).
+        if (sid != "actives.strike_down" && sid != "actives.knock_out")
+            return _origScore;
+
+        local foe = null;
+        if (_behavior.m.TargetTile != null && _behavior.m.TargetTile.IsOccupiedByActor)
+            foe = _behavior.m.TargetTile.getEntity();
+        else if (_behavior.m.BestTarget != null)
+        {
+            if (typeof _behavior.m.BestTarget == "table" && ("Target" in _behavior.m.BestTarget))
+                foe = _behavior.m.BestTarget.Target;
+            else
+                foe = _behavior.m.BestTarget;
+        }
+
+        local veto = false;
+        if (foe == null || ::MSU.isNull(foe) || !foe.isAlive() || foe.isDying()
+            || foe.getMoraleState() == ::Const.MoraleState.Fleeing
+            || foe.getCurrentProperties().IsStunned
+            || foe.getCurrentProperties().IsImmuneToStun)
+        {
+            veto = true;
+        }
+
+        local isEmergencyPeel = false;
+        local isApexKiller = false;
+        local isCancelStance = false;
+
+        if (!veto)
+        {
+            local is2H = (sid == "actives.strike_down");
+            local prim = _actor.getSkills().getSkillByID(is2H ? "actives.cudgel" : "actives.bash");
+            if (prim == null || prim.isHidden() || !prim.isUsable() || !prim.isAffordable())
+                prim = this.cheapestMeleeSkill(_actor);
+
+            local ft = foe.getTile();
+            local fs = foe.getSkills();
+            local cn = foe.ClassName;
+            local st = this.enemyLiveStats(foe);
+            local elite = this.enemyEliteScore(foe, info);
+            local availFat = _actor.getFatigueMax() - _actor.getFatigue();
+            local fatPct = _actor.getFatigue().tofloat() / ::Math.maxf(1.0, _actor.getFatigueMax().tofloat());
+            local skillFat = skill.getFatigueCost();
+
+            // Check emergency peel: enemy breaching Mentor (dist <= 2) or adjacent to a ranged / wounded (<48% HP) unshielded brother.
+            foreach (bro in info.Brothers)
+            {
+                local bt = bro.getTile();
+                local bd = ft.getDistanceTo(bt);
+                if (this.isCasterRole(bro) && bd <= 2)
+                {
+                    isEmergencyPeel = true;
+                    break;
+                }
+                if (bd <= 1 && (this.isRangedRole(bro) || (!::BGP.hasShield(bro) && bro.getHitpointsPct() <= 0.48)))
+                {
+                    isEmergencyPeel = true;
+                    break;
+                }
+            }
+
+            isApexKiller = fs.hasSkill("racial.champion") || fs.hasSkill("effects.berserker_rage")
+                || cn == "orc_berserker" || cn == "orc_warlord"
+                || cn == "knight" || cn == "rf_knight_anointed"
+                || cn == "executioner" || cn == "desert_devil"
+                || cn == "barbarian_chosen" || cn == "barbarian_champion"
+                || cn == "swordmaster" || cn == "blade_dancer"
+                || cn == "rf_marshal" || cn == "nomad_leader" || cn == "hedge_knight";
+
+            isCancelStance = (fs.hasSkill("effects.riposte") || fs.hasSkill("effects.spearwall") || fs.hasSkill("effects.shieldwall"))
+                && elite >= 1.25 && foe.getHitpointsPct() >= 0.50;
+
+            local stunHit = 50;
+            try { stunHit = skill.getHitchance(foe); } catch (e) {}
+
+            // 1. Kill > Stun: never spend 2x fatigue for 0.5x damage when primary Cudgel/Bash already kills or target is dying!
+            if (prim != null && prim.getID() != sid)
+            {
+                local pEd = this.computeSkillExpectedDamage(_actor, prim, foe, _actor.getTile());
+                if (pEd.OnHitRawHP >= foe.getHitpoints() * 0.90 && pEd.Hit >= 40)
+                    veto = true;
+            }
+            if (!veto && !isEmergencyPeel && foe.getHitpointsPct() <= 0.42 && foe.getHitpoints() <= 60)
+                veto = true;
+
+            // 2. Hit chance & Fatigue discipline.
+            if (!veto)
+            {
+                if (isEmergencyPeel)
+                {
+                    if (stunHit < 42 || availFat < skillFat + 6)
+                        veto = true;
+                }
+                else
+                {
+                    if (stunHit < 52 || availFat < skillFat + 22 || fatPct > 0.58)
+                        veto = true;
+                }
+            }
+
+            // 3. Surround discipline: do not stun enemies already surrounded by 3+ allies (just smash them down!).
+            local adjAllies = 0;
+            if (!veto)
+            {
+                for (local d = 0; d < 6; ++d)
+                {
+                    if (!ft.hasNextTile(d)) continue;
+                    local nt = ft.getNextTile(d);
+                    if (nt.IsOccupiedByActor && ::Math.abs(nt.Level - ft.Level) <= 1 && nt.getEntity().isAlliedWith(_actor))
+                        ++adjAllies;
+                }
+                if (adjAllies >= 3 && !isEmergencyPeel && (!isApexKiller || foe.getHitpointsPct() <= 0.60))
+                    veto = true;
+            }
+
+            // 4. Target threat tier & Daze/Concussive-Strikes discipline:
+            //    2H Cudgel already deals 2x damage + auto-Daze 2T + free headshot Stun (rf_concussive_strikes).
+            //    Reserve Strike Down / Knock Out strictly for Apex Killers, Emergency Peels, Stance Cancels, or high-elite unacted undazed 2H threats!
+            if (!veto)
+            {
+                local hasConcussive = _actor.getSkills().hasSkill("perk.rf_concussive_strikes");
+                local highElite = this.isHeavyMeleeThreat(foe, _actor) && elite >= (hasConcussive ? 1.80 : 1.65)
+                    && foe.getHitpointsPct() >= 0.58 && adjAllies <= 2
+                    && st.CanActThisRound && (!hasConcussive || st.TurnsUntil <= 4)
+                    && !fs.hasSkill("effects.dazed");
+                if (!isEmergencyPeel && !isApexKiller && !isCancelStance && !highElite)
+                    veto = true;
+            }
+
+            // 5. Turn-order & late-battle cleanup discipline.
+            if (!veto && !st.CanActThisRound)
+            {
+                if (!is2H)
+                {
+                    if (!isEmergencyPeel && !isCancelStance)
+                        veto = true;
+                }
+                else
+                {
+                    // Even for 2-turn Strike Down, only stun an already-acted enemy if it's a healthy Apex Killer or Emergency Peel with abundant stamina.
+                    if (!((isEmergencyPeel || isApexKiller) && foe.getHitpointsPct() >= 0.58 && availFat >= skillFat + 26))
+                        veto = true;
+                }
+            }
+            if (!veto && info.ActiveEnemies <= 3 && !isEmergencyPeel && !isApexKiller)
+                veto = true;
+        }
+
+        if (veto)
+        {
+            _behavior.m.TargetTile = null;
+            _behavior.m.Skill = null;
+            _behavior.m.BestTarget = null;
+            return ::Const.AI.Behavior.Score.Zero;
+        }
+
+        if (isEmergencyPeel || isApexKiller || isCancelStance)
+            return ::Math.maxf(_origScore, 340.0);
+        return _origScore * 0.85;
     }
 };
 
@@ -5655,17 +6895,27 @@ local F = A.Frontline <- {
 });
 
 // Let non-shield 2-tile bros yield Phase 1 for tactical Wait (tank opener, surround/armor-strip combo, buff expire),
+// yield to clean zero-FF actives.reap opportunities (both standing Attack.Reap and BGP_Frontline step_reap),
 // and fix snh_isTileInDanger so healthy Billhook/polearm bros don't get paralyzed by enemies already locked in our frontline's ZoC!
 ::BGP.HooksMod.hook("scripts/ai/autopilot_step_n_hit", function(q) {
     q.onEvaluate = @(__original) function( _entity ) {
         if (::Autopilot.isUnderAIControl(_entity) && ::Autopilot.conf("bgpSmartFrontline")
-            && !::BGP.hasShield(_entity) && ::Tactical.TurnSequenceBar.canEntityWait(_entity)
             && _entity.getTile().getZoneOfControlCountOtherThan(_entity.getAlliedFactions()) == 0)
         {
             local decision = F.shouldActorHold(_entity, this.getAgent());
-            local wPlan = F.evaluateTacticalWait(_entity, decision.Info, this.getAgent());
-            if ((wPlan != null && wPlan.SuppressMove) || F.hasUnactedShieldAlly(_entity, decision.Info))
-                return 0;
+            if (!::BGP.hasShield(_entity) && ::Tactical.TurnSequenceBar.canEntityWait(_entity))
+            {
+                local wPlan = F.evaluateTacticalWait(_entity, decision.Info, this.getAgent());
+                if ((wPlan != null && wPlan.SuppressMove) || F.hasUnactedShieldAlly(_entity, decision.Info))
+                    return 0;
+            }
+            // Yield single-target step-and-strike whenever a clean zero-FF 2-3 enemy Reap sweep is available (standing or stepping)!
+            if (_entity.getSkills().hasSkill("actives.reap"))
+            {
+                local reapPlan = F.findBestReapPlan(this, _entity, decision.Info);
+                if (reapPlan != null)
+                    return 0;
+            }
         }
         return __original(_entity);
     };
@@ -5717,6 +6967,125 @@ local F = A.Frontline <- {
                 return ::Const.AI.Behavior.Score.Zero;
         }
         return __original(_entity);
+    };
+});
+
+// Gen 35: Zero-friendly-fire & timing optimization for Polearm Reap, 2H Hammer Shatter / Swings, Line Splits, 360 Thresh/Round Swing,
+// Cleaver Decapitate (both player brothers & Lich King / PlayerAnimals), and Mace Strike Down / Knock Out!
+// Note: when empty-tile shift aiming is selected to avoid friendly fire, onExecute safely invokes skill.use(TargetTile) directly.
+local function safeEmptyTileAoEExecute( _behavior, _entity )
+{
+    if (::Autopilot.conf("bgpSmartFrontline")
+        && (::Autopilot.isUnderAIControl(_entity) || _entity.getFaction() == ::Const.Faction.PlayerAnimals)
+        && _behavior.m.TargetTile != null && !_behavior.m.TargetTile.IsOccupiedByActor
+        && _behavior.m.Skill != null)
+    {
+        local sk = _behavior.m.Skill;
+        local tt = _behavior.m.TargetTile;
+        _behavior.m.TargetTile = null;
+        _behavior.m.Skill = null;
+        if (sk.isUsable() && sk.isAffordable() && sk.isUsableOn(tt, _entity.getTile()))
+        {
+            _behavior.getAgent().adjustCameraToTarget(tt);
+            if (sk.use(tt))
+            {
+                if (!_entity.isHiddenToPlayer())
+                    _behavior.getAgent().declareAction();
+                if (sk.getDelay() != 0)
+                    _behavior.getAgent().declareEvaluationDelay(sk.getDelay());
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_reap", function(q) {
+    q.evaluate = @(__original) function( _entity ) {
+        if (::Autopilot.conf("bgpSmartFrontline")
+            && (::Autopilot.isUnderAIControl(_entity) || _entity.getFaction() == ::Const.Faction.PlayerAnimals))
+        {
+            try { this.m.Thread = null; } catch (e) {}
+            this.m.Score = F.evaluateSmartMeleeAoE(this, _entity, 0.0, "reap");
+            return true;
+        }
+        return __original(_entity);
+    };
+    q.onExecute = @(__original) function( _entity ) {
+        if (safeEmptyTileAoEExecute(this, _entity))
+            return true;
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_swing", function(q) {
+    q.evaluate = @(__original) function( _entity ) {
+        if (::Autopilot.conf("bgpSmartFrontline")
+            && (::Autopilot.isUnderAIControl(_entity) || _entity.getFaction() == ::Const.Faction.PlayerAnimals))
+        {
+            try { this.m.Thread = null; } catch (e) {}
+            this.m.Score = F.evaluateSmartMeleeAoE(this, _entity, 0.0, "swing");
+            return true;
+        }
+        return __original(_entity);
+    };
+    q.onExecute = @(__original) function( _entity ) {
+        if (safeEmptyTileAoEExecute(this, _entity))
+            return true;
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_split", function(q) {
+    q.evaluate = @(__original) function( _entity ) {
+        if (::Autopilot.conf("bgpSmartFrontline")
+            && (::Autopilot.isUnderAIControl(_entity) || _entity.getFaction() == ::Const.Faction.PlayerAnimals))
+        {
+            try { this.m.Thread = null; } catch (e) {}
+            this.m.Score = F.evaluateSmartMeleeAoE(this, _entity, 0.0, "split");
+            return true;
+        }
+        return __original(_entity);
+    };
+    q.onExecute = @(__original) function( _entity ) {
+        if (safeEmptyTileAoEExecute(this, _entity))
+            return true;
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_thresh", function(q) {
+    q.evaluate = @(__original) function( _entity ) {
+        if (::Autopilot.conf("bgpSmartFrontline")
+            && (::Autopilot.isUnderAIControl(_entity) || _entity.getFaction() == ::Const.Faction.PlayerAnimals))
+        {
+            try { this.m.Thread = null; } catch (e) {}
+            this.m.Score = F.evaluateSmartMeleeAoE(this, _entity, 0.0, "thresh");
+            return true;
+        }
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_decapitate", function(q) {
+    q.evaluate = @(__original) function( _entity ) {
+        if (::Autopilot.conf("bgpSmartFrontline")
+            && (::Autopilot.isUnderAIControl(_entity) || _entity.getFaction() == ::Const.Faction.PlayerAnimals))
+        {
+            try { this.m.Thread = null; } catch (e) {}
+            this.m.Score = F.evaluateSmartDecapitate(this, _entity, 0.0);
+            return true;
+        }
+        return __original(_entity);
+    };
+});
+
+::BGP.HooksMod.hook("scripts/ai/tactical/behaviors/ai_attack_knock_out", function(q) {
+    q.evaluate = @(__original) function( _entity ) {
+        local done = __original(_entity);
+        if (done && ::Autopilot.conf("bgpSmartFrontline") && ::Autopilot.isUnderAIControl(_entity))
+            this.m.Score = F.evaluateSmartKnockOut(this, _entity, this.m.Score);
+        return done;
     };
 });
 

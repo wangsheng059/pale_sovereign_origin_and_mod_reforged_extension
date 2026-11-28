@@ -3,6 +3,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
     m = {
         Mode = null,
         TargetTile = null,
+        ReapAimTile = null,
         Skill = null,
         WeaponToEquip = null,
         IsMoving = false,
@@ -28,6 +29,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
     {
         this.m.Mode = null;
         this.m.TargetTile = null;
+        this.m.ReapAimTile = null;
         this.m.Skill = null;
         this.m.WeaponToEquip = null;
         this.m.IsMoving = false;
@@ -38,6 +40,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
     {
         this.m.Mode = null;
         this.m.TargetTile = null;
+        this.m.ReapAimTile = null;
         this.m.Skill = null;
         this.m.WeaponToEquip = null;
         this.m.IsMoving = false;
@@ -48,6 +51,7 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
     {
         this.m.Mode = null;
         this.m.TargetTile = null;
+        this.m.ReapAimTile = null;
         this.m.Skill = null;
         this.m.WeaponToEquip = null;
         this.m.IsMoving = false;
@@ -611,6 +615,25 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
             }
         }
 
+        // 4d. Zero-friendly-fire Step-and-Reap for 2-tile polearms (Warscythe / Swordlance / Scythe):
+        // steps 1-2 safe non-ZoC tiles (using dynamic previewSkillCostsAfterMove for Polearm Mastery / Vigorous Assault)
+        // to line up a clean 2-3 enemy Reap arc with ZERO allied hits!
+        if (!inZoC && !isRanged && !isCaster && !_entity.getCurrentProperties().IsRooted
+            && _entity.getSkills().hasSkill("actives.reap")
+            && this.m.BlockedRound != ::Time.getRound())
+        {
+            local reapPlan = F.findBestReapPlan(this, _entity, info);
+            if (reapPlan != null && reapPlan.NeedsMove
+                && reapPlan.OriginTile.ID != myTile.ID && reapPlan.OriginTile.ID != this.m.MovedTileID)
+            {
+                this.m.Mode = "step_reap";
+                this.m.TargetTile = reapPlan.OriginTile;
+                this.m.ReapAimTile = reapPlan.AimTile;
+                this.m.Skill = reapPlan.Skill;
+                return reapPlan.Score;
+            }
+        }
+
         // 5. Dynamic safe melee routing for unshielded 1-tile DPS: prefer flanking weaker/pinned enemies with allies,
         // and Wait rather than diving solo into snow/surrounds with zero attacks left.
         if (!isShield && !isRanged && !isCaster && !inZoC && !_entity.getCurrentProperties().IsRooted)
@@ -879,6 +902,96 @@ this.bgp_autopilot_frontline <- ::inherit("scripts/ai/tactical/behavior", {
                             this.m.HybridSwapCount = 0;
                         }
                         ++this.m.HybridSwapCount;
+                    }
+                }
+            }
+            return true;
+        }
+
+        if (this.m.Mode == "step_reap")
+        {
+            local navigator = ::Tactical.getNavigator();
+            if (this.m.IsFirstExecuted)
+            {
+                this.m.IsFirstExecuted = false;
+                local dest = this.m.TargetTile;
+                if (dest == null || dest.ID == _entity.getTile().ID)
+                {
+                    this.m.IsMoving = false;
+                    return false;
+                }
+                if (!dest.IsEmpty)
+                {
+                    this.m.Mode = null;
+                    this.m.TargetTile = null;
+                    this.m.ReapAimTile = null;
+                    this.m.Skill = null;
+                    return true;
+                }
+                local settings = ::BGP.Autopilot.Frontline.navSettings(_entity, navigator);
+                if (!navigator.findPath(_entity.getTile(), dest, settings, 0))
+                {
+                    this.m.BlockedRound = ::Time.getRound();
+                    this.m.Mode = null;
+                    this.m.TargetTile = null;
+                    this.m.ReapAimTile = null;
+                    this.m.Skill = null;
+                    return true;
+                }
+                local cost = navigator.getCostForPath(_entity, settings, _entity.getActionPoints(), _entity.getFatigueMax() - _entity.getFatigue());
+                if (cost.Tiles < 1)
+                {
+                    this.m.BlockedRound = ::Time.getRound();
+                    this.m.Mode = null;
+                    this.m.TargetTile = null;
+                    this.m.ReapAimTile = null;
+                    this.m.Skill = null;
+                    return true;
+                }
+                this.getAgent().adjustCameraToTarget(dest);
+                this.m.MovedTileID = _entity.getTile().ID;
+                this.m.IsMoving = true;
+                return false;
+            }
+
+            if (this.m.IsMoving)
+            {
+                if (!navigator.travel(_entity, _entity.getActionPoints(), _entity.getFatigueMax() - _entity.getFatigue()))
+                {
+                    this.m.IsMoving = false;
+                    if (_entity.getTile().ID == this.m.MovedTileID)
+                    {
+                        this.m.BlockedRound = ::Time.getRound();
+                        this.m.Mode = null;
+                        this.m.TargetTile = null;
+                        this.m.ReapAimTile = null;
+                        this.m.Skill = null;
+                        return true;
+                    }
+                    return false;
+                }
+                return false;
+            }
+
+            local skill = this.m.Skill;
+            local aim = this.m.ReapAimTile;
+            local curTile = _entity.getTile();
+            this.m.Mode = null;
+            this.m.TargetTile = null;
+            this.m.ReapAimTile = null;
+            this.m.Skill = null;
+            if (skill != null && aim != null && skill.isUsable() && skill.isAffordable() && skill.isUsableOn(aim, curTile))
+            {
+                // Re-verify strict zero friendly fire from actual post-move tile before executing!
+                local chk = ::BGP.Autopilot.Frontline.evaluateAoEStrike(_entity, curTile, aim, skill, null, 2);
+                if (chk.AlliesHit == 0 && chk.ActiveEnemies >= 2)
+                {
+                    if (skill.use(aim))
+                    {
+                        if (!_entity.isHiddenToPlayer())
+                            this.getAgent().declareAction();
+                        if (skill.getDelay() != 0)
+                            this.getAgent().declareEvaluationDelay(skill.getDelay());
                     }
                 }
             }
